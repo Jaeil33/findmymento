@@ -1,0 +1,104 @@
+{
+  "project": "Find My Mento",
+  "phase": "0-mvp",
+  "steps": [
+    {
+      "step": 0,
+      "name": "project-setup",
+      "status": "completed",
+      "summary": "Next.js 15 App Router + TS strict + Tailwind v4 + Vitest. UI_GUIDE 색상·타이포를 @theme 토큰으로 등록, UI 프리미티브(Button/Card/Input/Chip) + Badge·StatTile·Distribution·Table·EmptyState."
+    },
+    {
+      "step": 1,
+      "name": "region-data",
+      "status": "completed",
+      "summary": "수도권 66개 시군구 인접 JSON(scripts/gen-region.mjs 생성물, 대칭성 코드 보장) + 1-hop→2-hop 확장. \"같은 시도\" 단계 없음. 광명시 인접 5곳이 스펙과 일치."
+    },
+    {
+      "step": 2,
+      "name": "db-schema",
+      "status": "partial",
+      "summary": "테이블 19개 + RLS 전체 ENABLE + 역할 판별 함수 3개 + 강사용 집계 뷰를 supabase/migrations/20260912000000_init.sql 에 작성. 정책 정적 테스트(tests/rls-policies.test.ts) 30개 통과. 적용·픽스처용 SQL 2개(bootstrap.sql · seed.sql) 추가 — seed.sql 이 RLS 네거티브 테스트 14개의 환경변수 값을 출력한다.",
+      "blocked_reason": "Supabase 프로젝트 키가 없어 적용이 미완. 실 DB 네거티브 테스트 14개는 tests/rls-negative.live.test.ts 에 작성돼 있고 키 + seed.sql 적용 시 실행된다 (docs/DEPLOY.md 2절)."
+    },
+    {
+      "step": 3,
+      "name": "types-and-client",
+      "status": "completed",
+      "summary": "도메인 타입(types/domain.ts) + lib/supabase server/client/env + 역할 판별 래퍼(lib/auth/actor.ts). 키가 없으면 데모 데이터, 있으면 실 DB 로 같은 코드가 동작한다."
+    },
+    {
+      "step": 4,
+      "name": "entry-and-auth",
+      "status": "completed",
+      "summary": "랜딩 1장, 매직링크 로그인 + 콜백, 초대 수락(1회용·만료·멱등 검증), 역할별 분기(/org·/instructor·/admin)."
+    },
+    {
+      "step": 5,
+      "name": "moderation-filter",
+      "status": "completed",
+      "summary": "연락처·이메일·링크·메신저·학교명·이름 마스킹 필터. mask/block 두 모드를 설문·Q&A·문의가 공유한다."
+    },
+    {
+      "step": 6,
+      "name": "survey-flow",
+      "status": "completed",
+      "summary": "/s/[code] 진입 → 가명코드 또는 익명 → 필수 4 + 조건부 3문항 → POST /api/survey. 마감·중복·마스킹 서버 검증, 브라우저 임시 저장(E-05)."
+    },
+    {
+      "step": 7,
+      "name": "recommend-engine",
+      "status": "completed",
+      "summary": "규칙 필터로 후보 확정 → Claude 로 순위·이유 한 줄. LLM 실패·키 없음이면 규칙 순위와 규칙 문구로 200. 미충족 분야를 함께 반환."
+    },
+    {
+      "step": 8,
+      "name": "student-result",
+      "status": "completed",
+      "summary": "추천 카드(연락처·사진·평점 없음), 관심 표현 → POST /api/interest(기관 경유 명시), 0건이면 Q&A 유도를 가장 크게."
+    },
+    {
+      "step": 9,
+      "name": "qna",
+      "status": "completed",
+      "summary": "공개 Q&A 열람·분야 필터·질문 작성(금칙어 차단)·강사 답변·기관/운영자 숨김 처리."
+    },
+    {
+      "step": 10,
+      "name": "org-sessions",
+      "status": "completed",
+      "summary": "회차 생성(배정 강사 강하게 유도) + 입장코드·QR + 교실 투사용 전체화면(/project/[id]) + 가명코드 일괄 발급·인쇄."
+    },
+    {
+      "step": 11,
+      "name": "org-report",
+      "status": "completed",
+      "summary": "회차 리포트(후속 의향을 만족도보다 크게), 수요 클러스터+인용구, 미충족 수요, 관심 표현 검토·동의 기록, 섭외 요청 발송·거절 시 대체 강사 제안, 응답 0건·미배정 회차 강조."
+    },
+    {
+      "step": 12,
+      "name": "instructor-workspace",
+      "status": "completed",
+      "summary": "프로필·프로그램, 배정 회차 + 교실 QR + 회차 리포트(집계치만), 지역 수요, 섭외 수락·거절, 배정 문의 리드, Q&A 답변. 회차 생성 경로 없음."
+    },
+    {
+      "step": 13,
+      "name": "admin-review",
+      "status": "completed",
+      "summary": "강사 심사(성범죄경력 증빙 없으면 승인 불가), 초대 발송, 담당자 비활성화, 48시간 미답변 큐, 미충족 수요 영업 큐."
+    },
+    {
+      "step": 14,
+      "name": "public-directory",
+      "status": "completed",
+      "summary": "/programs 필터·3단 지역 확장 노출, /programs/[id], /instructors/[id](연락처 없음), /inquiry 폼 + POST /api/inquiry(검증·마스킹·레이트 리밋), 접수 완료에 연락 시점 명시, 운영자 배정."
+    },
+    {
+      "step": 15,
+      "name": "deploy",
+      "status": "partial",
+      "summary": "docs/DEPLOY.md(2단계 배포 절차) · supabase/bootstrap.sql(첫 운영자 연결) · supabase/seed.sql(검수·RLS 테스트 픽스처 + RLS_TEST_* 출력) · src/middleware.ts(세션 쿠키 갱신 전용) · /api/health(환경변수 확인, 키 값 비노출) · tests/bundle-secrets.test.ts(빌드 산출물에서 서버 키 탐색) · demo.ts 날짜 상대화(배포된 데모가 마감으로 죽지 않게) · npm run verify. 환경변수 0개로 Vercel 배포 가능.",
+      "blocked_reason": "실물 휴대폰 QR 스캔 + 모바일 레이아웃 검증은 배포 후 사람이 해야 한다 (docs/DEPLOY.md 3절)."
+    }
+  ]
+}

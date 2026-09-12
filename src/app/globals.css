@@ -1,0 +1,120 @@
+@import 'tailwindcss';
+
+/* ──────────────────────────────────────────────────────────────
+   디자인 토큰 — docs/UI_GUIDE.md 색상표를 그대로 옮긴 것.
+   컴포넌트에 hex를 직접 쓰지 말고 항상 이 토큰 이름을 참조한다.
+   라이트 단일 톤. 다크 테마 분기를 만들지 않는다.
+   ────────────────────────────────────────────────────────────── */
+@theme {
+  /* 배경 */
+  --color-page: #fafafa;
+  --color-card: #ffffff;
+  --color-muted: #f5f5f5;
+
+  /* 테두리 */
+  --color-line: #e5e5e5;
+  --color-line-strong: #d4d4d4;
+
+  /* 텍스트 */
+  --color-ink: #171717;
+  --color-body: #404040;
+  --color-sub: #737373;
+  --color-faint: #a3a3a3;
+
+  /* 포인트 — 딥 틸 한 가지. 두 번째 브랜드 색을 만들지 않는다. */
+  --color-point: #0f766e;
+  --color-point-hover: #115e59;
+  --color-point-bg: #f0fdfa;
+  --color-point-line: #99f6e4;
+
+  /* 데이터 / 시맨틱 — 라이트 배경이므로 600~700 계열 */
+  --color-positive: #15803d;
+  --color-positive-bg: #f0fdf4;
+  --color-caution: #b45309;
+  --color-caution-bg: #fffbeb;
+  --color-negative: #b91c1c;
+  --color-negative-bg: #fef2f2;
+
+  --font-sans:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+
+  --animate-fade-in: fade-in 0.2s ease-out both;
+  --animate-slide-up: slide-up 0.25s ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* UI_GUIDE 애니메이션 규칙: fade-in / slide-up 두 개만. reduce에서는 둘 다 끈다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 숫자가 주인공이다 — 표·지표에서 숫자 폭이 흔들리면 읽히지 않는다 */
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-point);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-point-bg);
+    color: var(--color-point-hover);
+  }
+}
+
+/* 가명코드 인쇄용 — 기관이 스티커·명찰로 잘라 쓴다 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-sheet {
+    padding: 0 !important;
+  }
+
+  body {
+    background: #fff;
+  }
+}
