@@ -45,7 +45,10 @@
     {
       "step": 5,
       "name": "post-session-api",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-09-13T22:30:02+0900",
+      "summary": "src/app/api/result-report·followup-plan/route.ts(기관 전용)·session-debrief/route.ts(배정 강사 전용) 신규 — POST {sessionId} → 200 {ok:true, source:llm|rule, draft}. 순서: rateLimit(clientKey(라우트명),10,60s) 실패 429 → getActor 역할 불일치 403 권한이 없습니다(기관 라우트 org_member, 회고 instructor) → JSON 실패 400 요청을 읽을 수 없습니다 / sessionId 1~64자 문자열 아님 400 회차를 지정해 주세요 → loadDataset 소유 확인(s.org_id===actor.orgId / s.instructor_id===actor.instructorId) 실패 404 회차를 찾을 수 없습니다 / 배정된 회차가 아닙니다(없는 회차와 남의 회차 동일 본문) → generate* 예외 시 rule* 초안 200, null이면 같은 404. 본문의 orgId·instructorId·role 미사용, 저장·SDK import·console.log 없음. tests/post-session-api.test.ts 55개(getActor·SDK 모킹, 403/404 동일성·400·429·예외 폴백·저장 없음·연락처 없음·정적 검사), safety-invariants API 라우트 허용 목록에 3개 경로 추가. lib/ai 무수정",
+      "completed_at": "2026-09-13T22:36:08+0900"
     },
     {
       "step": 6,
