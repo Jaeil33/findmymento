@@ -53,7 +53,10 @@
     {
       "step": 6,
       "name": "post-session-ui",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-09-13T22:37:21+0900",
+      "summary": "src/lib/report/text.ts 신규(resultReportToText·followupMessageToText·debriefToText(학교 제출용 요약+고지문만) + 화면과 번호를 공유하는 reportSections·formatAverage), src/components/ai/AssistProgress.tsx(단계 표시 role=status + 공통 부품 useAssistRequest(자기 /api 만 POST {sessionId}, 각 단계 stageMs씩 표시 후 결과)·AssistResultHeader·DraftNotices·DraftMetric)·CopyButton.tsx 신규, report/ResultReportAssist(결과보고서 양식: 초안 배지·개요 표·지표 4칸(null이면 —/표본 부족)·관심 분야 상위·빈 섹션 생략 후 재번호 1. 운영 성과…·창체 참고 문구·전체 복사)·report/FollowupPlanAssist(수요 흐름 막대→가까운 지역 강사(공개 프로필 링크만, 새 탭)→과정안(n차시 라벨)→readonly 섭외 문안+길이/400자+문안 복사→섭외 요청 화면으로(새 탭, 자동 발송 없음), eligible false는 이유+고지만, 공급 0은 후보 없이 고지)·lesson/SessionDebriefAssist(지표 4칸·잘 된 점/다음에 바꿀 점(빈 열 생략, 별점·등급 없음)·학교 제출용 요약+요약 복사·교안 다시 만들기) 신규. 버튼 결과보고서 초안 만들기 / 후속 과정 제안받기 / 수업 회고 만들기(진행 중 만드는 중…, 생성 후 다시 만들기), source 문구 AI가 문장을 정리했습니다 / 응답 집계로 만들었습니다, 칩 응답 N건 집계·저장되지 않음. /org/sessions/[id] 회차 리포트 뒤 수업 후 AI 도우미 섹션(#post-session-ai, xl 2열), /instructor/sessions/[id] 리포트 뒤 회고 섹션, /org 최근 회차 앞 진입 패널(응답 5건 이상 최신 3개 → #post-session-ai, 없으면 안내). 문서 내부 폭은 container query(@lg). 브라우저 저장소·SDK·lib/ai import 없음. tests/post-session-ui.test.tsx 35개",
+      "completed_at": "2026-09-13T22:53:23+0900"
     }
   ],
   "created_at": "2026-09-13T21:38:06+0900"
