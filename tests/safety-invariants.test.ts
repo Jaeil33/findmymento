@@ -112,13 +112,18 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
     // `health` 는 쓰기 경로가 아니라 배포 확인용이고, 아래 테스트가 그 사실을 고정한다.
     // `lesson-plan` 은 **강사 전용**, `session-plan` 은 **기관 전용**이다 —
     // 둘 다 학생·보호자 경로가 아니며 아래에서 그 사실을 고정한다.
+    // 수업 후 AI(ADR-024): `result-report`·`followup-plan` 은 **기관 전용**, `session-debrief` 는
+    // **배정 강사 전용**이다. 권한과 저장 없음은 `tests/post-session-api.test.ts` 가 고정한다.
     expect(routes.sort()).toEqual(
       [
+        'src/app/api/followup-plan/route.ts',
         'src/app/api/health/route.ts',
         'src/app/api/inquiry/route.ts',
         'src/app/api/interest/route.ts',
         'src/app/api/lesson-plan/route.ts',
         'src/app/api/qna/route.ts',
+        'src/app/api/result-report/route.ts',
+        'src/app/api/session-debrief/route.ts',
         'src/app/api/session-plan/route.ts',
         'src/app/api/recommend/route.ts',
         'src/app/api/survey/route.ts',

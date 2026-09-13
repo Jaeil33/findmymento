@@ -5,6 +5,7 @@ import { buttonClass } from '@/components/ui/Button'
 import { StatTile } from '@/components/ui/StatTile'
 import { FactNote, PageHeader, Panel } from '@/components/ui/Section'
 import { Table, Td, Th } from '@/components/ui/Table'
+import { MIN_AGGREGATE_RESPONSES } from '@/lib/ai/guard'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import {
@@ -40,6 +41,9 @@ export default async function OrgHomePage() {
   const needsAttention = rows.filter((r) => r.unassigned || (r.zeroResponse && !r.closed))
   const pendingReview = interests.filter((i) => i.status === 'expressed' || i.status === 'org_review')
   const awaitingInstructor = recruitment.filter((r) => r.status === 'sent')
+  // 수업 후 AI 초안을 바로 만들 수 있는 회차. 5건 미만은 통계를 싣지 못해 거의 빈 초안이 된다 (ADR-018).
+  // rows 는 이미 진행일 최신순이다.
+  const draftReady = rows.filter((r) => r.responseCount >= MIN_AGGREGATE_RESPONSES).slice(0, 3)
 
   return (
     <div className="space-y-8">
@@ -118,6 +122,40 @@ export default async function OrgHomePage() {
           </ul>
         </Panel>
       ) : null}
+
+      <Panel
+        title="수업 후 AI 도우미"
+        description="응답이 모인 회차에서 결과보고서·후속 과정·섭외 문안 초안을 바로 만듭니다."
+      >
+        {draftReady.length === 0 ? (
+          <p className="text-sm text-sub">
+            응답이 {MIN_AGGREGATE_RESPONSES}건 이상 모인 회차가 생기면 여기서 바로 초안을 만들 수 있습니다.
+          </p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {draftReady.map((r) => (
+              <li
+                key={r.session.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{r.session.title}</p>
+                  <p className="mt-0.5 text-xs text-sub tabular-nums">
+                    {r.session.held_on} · 응답 {r.responseCount}건
+                  </p>
+                </div>
+                <Link
+                  href={`/org/sessions/${r.session.id}#post-session-ai`}
+                  aria-label={`${r.session.title} 초안 만들기`}
+                  className="shrink-0 text-sm text-point underline underline-offset-4 hover:text-point-hover"
+                >
+                  초안 만들기
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       <Panel
         title="최근 회차"

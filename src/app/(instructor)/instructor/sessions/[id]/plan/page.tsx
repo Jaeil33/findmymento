@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { PageHeader } from '@/components/ui/Section'
 import { LessonPlanView } from '@/components/lesson/LessonPlanView'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { gradeBandLabel } from '@/lib/db/queries'
@@ -60,6 +61,7 @@ export default async function LessonPlanPage({ params }: { params: Promise<{ id:
       />
 
       <LessonPlanView
+        demoAi={demoAiEnabled()}
         sessionId={session.id}
         initialPlan={existing}
         initialSource={existing?.source ?? null}

@@ -2,12 +2,63 @@
   "project": "Find My Mento",
   "phase": "1-post-session-ai",
   "steps": [
-    { "step": 0, "name": "ai-docs", "status": "pending" },
-    { "step": 1, "name": "ai-guard", "status": "pending" },
-    { "step": 2, "name": "result-report", "status": "pending" },
-    { "step": 3, "name": "followup-plan", "status": "pending" },
-    { "step": 4, "name": "session-debrief", "status": "pending" },
-    { "step": 5, "name": "post-session-api", "status": "pending" },
-    { "step": 6, "name": "post-session-ui", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "ai-docs",
+      "status": "completed",
+      "started_at": "2026-09-13T21:38:06+0900",
+      "summary": "ADR-024(수업 후 AI 3종: 저장 없음·숫자는 규칙 확정·5건 임계치·숫자/이름 가드·창체 참고 문구 규칙·모집/수강료 금지·403/404 권한) 추가, docs/AI.md에 기능 4·5·6 절·안전 경계·폴백·비용·만들지 않는 것·구현 체크리스트(네거티브 테스트 9개) 추가, ARCHITECTURE.md에 api/result-report·followup-plan·session-debrief와 lib/ai 3모듈+guard.ts·데이터 흐름 추가, PRD.md 핵심 기능 13~15·차별점 11·MVP 제외·과금 근거·보조 지표 추가, docs/AI_RESEARCH.md(92줄) 신규, DEPLOY.md에 키 없으면 AI 6개 전부 규칙 동작 + AI 시연 경로 표. 버튼 문구: 결과보고서 초안 만들기 / 후속 과정 제안받기 / 수업 회고 만들기",
+      "completed_at": "2026-09-13T21:49:58+0900"
+    },
+    {
+      "step": 1,
+      "name": "ai-guard",
+      "status": "completed",
+      "started_at": "2026-09-13T21:49:58+0900",
+      "summary": "src/lib/ai/guard.ts 신규 — export: MIN_AGGREGATE_RESPONSES(=5, lesson-plan PRIOR_MIN_RESPONSES와 동일) · sanitizeText(raw,max) · sanitizeList(raw,max,limit) · numbersWithin(text,allowed,ignore?) · containsAny(text,banned) · type JsonLlmRequest · callJsonLlm(req)(키 없음/실패/타임아웃/파싱 실패 전부 null, throw 없음). tests/ai-guard.test.ts 38개(SDK 모킹, 실제 API 미호출). 기존 lib/ai 3파일 무수정, 신규 의존성 없음",
+      "completed_at": "2026-09-13T21:53:39+0900"
+    },
+    {
+      "step": 2,
+      "name": "result-report",
+      "status": "completed",
+      "started_at": "2026-09-13T21:55:40+0900",
+      "summary": "src/lib/ai/result-report.ts 신규 — export: ruleResultReport(ds,sessionId) · allowedNumbers(ds,draft) · bannedNames(ds,sessionId) · buildLlmPayload(ds,draft)(표본 부족 null) · mergeLlmResultReport(draft,raw,{allowed,banned}) · generateResultReport(ds,sessionId)(throw 없음, 없는 회차만 null). src/types/domain.ts에 ResultReportDraft 추가. 제목·개요·지표·고지문은 sessionReport로 규칙 확정, 응답 5건 미만은 통계·학생 의견 비움+LLM 미호출+병합 무시, LLM 문장은 sanitizeText(120)→numbersWithin(FIELDS 무시)→이름 가드→학생 지목(학생 A) 가드, 창체 참고 문구는 숫자 0개·한 문장·150자, 인용은 재마스킹·금지 이름·[..삭제]·4자리 이상 숫자 제외 최대 5(인용 0이면 LLM 학생 의견도 거부). tests/result-report.test.ts 45개(SDK 모킹). 저장·라우트·화면 없음, guard.ts 무수정",
+      "completed_at": "2026-09-13T22:07:44+0900"
+    },
+    {
+      "step": 3,
+      "name": "followup-plan",
+      "status": "completed",
+      "started_at": "2026-09-13T22:07:44+0900",
+      "summary": "src/lib/ai/followup-plan.ts 신규 — export: followupDemand(ds,sessionId) · followupCandidates(ds,orgId,field) · ruleFollowupPlan(ds,sessionId) · mergeLlmFollowupPlan(draft,raw,{allowed,banned}) · generateFollowupPlan(ds,sessionId)(throw 없음, 없는 회차만 null). src/types/domain.ts에 FollowupCandidate·FollowupPlanDraft 추가. 수요는 후속 의향 3점 이상 응답만(분야는 FIELDS만, 시간은 '잘 모르겠어요'·목록 밖 제외, 동률 ko순), 응답 5건 미만·high 0건·분야 미정이면 eligible false+reason+LLM 미호출, 후보는 승인·해당 분야·2-hop 이내를 거리→이름순 최대 3(업체·구독 미반영, 연락처 키 없음), 공급 0이면 후보·문안 없이 미충족 고지문, 규칙 과정안 '{분야} 심화 과정'+1~4차시(회당 원 회차 시수)+'저희 기관' 섭외 문안(400자, 이름·연락처·모집 단어 없음, 제목에 이름이 섞이면 제목 생략), LLM은 eligible이고 공급 있을 때만 제목(40)·차시(60, 개수 같고 전 줄 통과 시만)·문안(400)을 sanitizeText→numbersWithin(FIELDS 무시)→이름 가드(전 승인 강사·업체·기관)→모집·정원·수강료·결제·신청서 가드로 병합, 페이로드에 이름·student_id·가명코드·후보 없음·high 인용 최대 5. tests/followup-plan.test.ts 51개(SDK 모킹). 저장·라우트·화면 없음, guard.ts·result-report.ts 무수정",
+      "completed_at": "2026-09-13T22:19:14+0900"
+    },
+    {
+      "step": 4,
+      "name": "session-debrief",
+      "status": "completed",
+      "started_at": "2026-09-13T22:19:15+0900",
+      "summary": "src/lib/ai/session-debrief.ts 신규 — export: ruleDebrief(ds,sessionId) · mergeLlmDebrief(draft,raw,{allowed,banned}) · generateDebrief(ds,sessionId)(throw 없음, 없는 회차만 null). src/types/domain.ts에 SessionDebriefDraft 추가. 지표는 sessionReport로 규칙 확정(응답률·만족도 4·5점/1·2점·후속 의향 3점 이상 정수 %, 평균 소수 1자리, 관심 분야 1위는 FIELDS만·동률 FIELDS 순), 트리거는 표시된 정수 %로 판정(went_well: 만족 4·5점≥70·후속≥40, 둘 다 아니면 응답 수 확보 / change_next 순서: 후속<40 다음 단계 안내·1·2점≥20 어려워하는 학생 분기·1위≠회차 분야 직업 소개(\"관심 분야 1위: {분야}\")·응답률<50 QR 3분 전, 각 최대 3), 응답 5건 미만은 통계 null·went_well []·QR 안내 1줄·응답 수만 싣는 요약·표본 부족 고지+LLM 미호출+병합 무시, school_summary 규칙 문장은 제목(이름 섞이면 \"이번 특강\")·일시·학년대·시수·응답 수·응답률·만족도 평균·후속 의향 비율·관심 분야 1위(400자, 강사명·기관명·학생 인용 없음), LLM 페이로드는 회차 조건(일시·분야·학년대·시수·장소·class_traits)·지표·규칙 판단·배정 강사 본인 교안의 단계 구분·제목만(인용·student_id·가명코드·이름·타 강사 교안 없음), 병합은 sanitizeText(항목 100·요약 400)→numbersWithin(FIELDS 무시)→이름 가드(result-report bannedNames 재사용)→점수·등급·순위·평점 가드→학생 지목 가드, 항목 수는 규칙 개수 이하(규칙이 빈 목록은 못 채움), metrics·notices·session_id 불변. tests/session-debrief.test.ts 50개(SDK 모킹). 저장·라우트·화면 없음, guard.ts·result-report.ts·followup-plan.ts·교안 무수정",
+      "completed_at": "2026-09-13T22:30:01+0900"
+    },
+    {
+      "step": 5,
+      "name": "post-session-api",
+      "status": "completed",
+      "started_at": "2026-09-13T22:30:02+0900",
+      "summary": "src/app/api/result-report·followup-plan/route.ts(기관 전용)·session-debrief/route.ts(배정 강사 전용) 신규 — POST {sessionId} → 200 {ok:true, source:llm|rule, draft}. 순서: rateLimit(clientKey(라우트명),10,60s) 실패 429 → getActor 역할 불일치 403 권한이 없습니다(기관 라우트 org_member, 회고 instructor) → JSON 실패 400 요청을 읽을 수 없습니다 / sessionId 1~64자 문자열 아님 400 회차를 지정해 주세요 → loadDataset 소유 확인(s.org_id===actor.orgId / s.instructor_id===actor.instructorId) 실패 404 회차를 찾을 수 없습니다 / 배정된 회차가 아닙니다(없는 회차와 남의 회차 동일 본문) → generate* 예외 시 rule* 초안 200, null이면 같은 404. 본문의 orgId·instructorId·role 미사용, 저장·SDK import·console.log 없음. tests/post-session-api.test.ts 55개(getActor·SDK 모킹, 403/404 동일성·400·429·예외 폴백·저장 없음·연락처 없음·정적 검사), safety-invariants API 라우트 허용 목록에 3개 경로 추가. lib/ai 무수정",
+      "completed_at": "2026-09-13T22:37:21+0900"
+    },
+    {
+      "step": 6,
+      "name": "post-session-ui",
+      "status": "completed",
+      "started_at": "2026-09-13T22:37:21+0900",
+      "summary": "src/lib/report/text.ts 신규(resultReportToText·followupMessageToText·debriefToText(학교 제출용 요약+고지문만) + 화면과 번호를 공유하는 reportSections·formatAverage), src/components/ai/AssistProgress.tsx(단계 표시 role=status + 공통 부품 useAssistRequest(자기 /api 만 POST {sessionId}, 각 단계 stageMs씩 표시 후 결과)·AssistResultHeader·DraftNotices·DraftMetric)·CopyButton.tsx 신규, report/ResultReportAssist(결과보고서 양식: 초안 배지·개요 표·지표 4칸(null이면 —/표본 부족)·관심 분야 상위·빈 섹션 생략 후 재번호 1. 운영 성과…·창체 참고 문구·전체 복사)·report/FollowupPlanAssist(수요 흐름 막대→가까운 지역 강사(공개 프로필 링크만, 새 탭)→과정안(n차시 라벨)→readonly 섭외 문안+길이/400자+문안 복사→섭외 요청 화면으로(새 탭, 자동 발송 없음), eligible false는 이유+고지만, 공급 0은 후보 없이 고지)·lesson/SessionDebriefAssist(지표 4칸·잘 된 점/다음에 바꿀 점(빈 열 생략, 별점·등급 없음)·학교 제출용 요약+요약 복사·교안 다시 만들기) 신규. 버튼 결과보고서 초안 만들기 / 후속 과정 제안받기 / 수업 회고 만들기(진행 중 만드는 중…, 생성 후 다시 만들기), source 문구 AI가 문장을 정리했습니다 / 응답 집계로 만들었습니다, 칩 응답 N건 집계·저장되지 않음. /org/sessions/[id] 회차 리포트 뒤 수업 후 AI 도우미 섹션(#post-session-ai, xl 2열), /instructor/sessions/[id] 리포트 뒤 회고 섹션, /org 최근 회차 앞 진입 패널(응답 5건 이상 최신 3개 → #post-session-ai, 없으면 안내). 문서 내부 폭은 container query(@lg). 브라우저 저장소·SDK·lib/ai import 없음. tests/post-session-ui.test.tsx 35개",
+      "completed_at": "2026-09-13T22:54:14+0900"
+    }
+  ],
+  "created_at": "2026-09-13T21:38:06+0900",
+  "completed_at": "2026-09-13T22:54:15+0900"
 }

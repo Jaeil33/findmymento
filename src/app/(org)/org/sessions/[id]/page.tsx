@@ -4,7 +4,10 @@ import { Badge } from '@/components/ui/Badge'
 import { buttonClass } from '@/components/ui/Button'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { SessionReportView } from '@/components/report/SessionReportView'
+import { ResultReportAssist } from '@/components/report/ResultReportAssist'
+import { FollowupPlanAssist } from '@/components/report/FollowupPlanAssist'
 import { QrPanel } from '@/components/session/QrPanel'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import {
@@ -182,6 +185,19 @@ export default async function OrgSessionReportPage({
           report={report}
           supplyByField={supplyByField(ds, org?.region_code)}
         />
+      </section>
+
+      {/* 수업 후 AI (ADR-024). 초안은 저장하지 않는다 — 기관 요약 화면이 이 앵커로 바로 데려온다. */}
+      <section id="post-session-ai" className="scroll-mt-6">
+        <h2 className="text-lg font-semibold tracking-tight text-ink">수업 후 AI 도우미</h2>
+        <p className="mt-1 mb-4 text-sm text-sub">
+          회차가 끝나면 응답 집계로 보고서·후속 과정·섭외 문안 초안을 만듭니다. 숫자는 집계값 그대로
+          쓰고, 아무것도 저장하지 않습니다.
+        </p>
+        <div className="grid items-start gap-5 xl:grid-cols-2">
+          <ResultReportAssist sessionId={session.id} demoAi={demoAiEnabled()} />
+          <FollowupPlanAssist sessionId={session.id} demoAi={demoAiEnabled()} />
+        </div>
       </section>
     </div>
   )

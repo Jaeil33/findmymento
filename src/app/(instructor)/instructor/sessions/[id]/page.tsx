@@ -3,7 +3,9 @@ import { notFound, redirect } from 'next/navigation'
 import { buttonClass } from '@/components/ui/Button'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { SessionReportView } from '@/components/report/SessionReportView'
+import { SessionDebriefAssist } from '@/components/lesson/SessionDebriefAssist'
 import { QrPanel } from '@/components/session/QrPanel'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { gradeBandLabel, isClosed, sessionReport, supplyByField } from '@/lib/db/queries'
@@ -105,6 +107,15 @@ export default async function InstructorSessionReportPage({
       <section>
         <h2 className="mb-4 text-lg font-semibold tracking-tight text-ink">회차 리포트</h2>
         <SessionReportView report={report} supplyByField={supplyByField(ds, org?.region_code)} />
+      </section>
+
+      {/* 수업 후 AI (ADR-024). 강사 자신을 위한 회고이며 저장하지 않는다. */}
+      <section id="post-session-ai" className="scroll-mt-6">
+        <h2 className="text-lg font-semibold tracking-tight text-ink">수업 후 AI 도우미</h2>
+        <p className="mt-1 mb-4 text-sm text-sub">
+          응답 집계로 회고와 학교 제출용 요약 초안을 만듭니다. 아무것도 저장하지 않습니다.
+        </p>
+        <SessionDebriefAssist sessionId={session.id} demoAi={demoAiEnabled()} />
       </section>
     </div>
   )

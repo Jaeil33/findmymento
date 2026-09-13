@@ -74,7 +74,7 @@ export function DashboardShell({
 
       {isDemoMode() ? (
         <p className="border-b border-caution/25 bg-caution-bg px-4 py-2 text-center text-xs text-caution sm:px-6">
-          데모 데이터 모드입니다. 화면의 응답·수요 숫자는 검수용 예시입니다.
+          데모 데이터 모드입니다. 화면의 응답·수요 숫자와 AI 문장은 검수용 시연 예시입니다.
         </p>
       ) : null}
 
