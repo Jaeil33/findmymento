@@ -110,7 +110,8 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
     const routes = walk(apiDir).map((f) => rel(f))
     // 존재하는 경로는 이것뿐이다. 새 경로를 추가하면 여기서 걸린다.
     // `health` 는 쓰기 경로가 아니라 배포 확인용이고, 아래 테스트가 그 사실을 고정한다.
-    // `lesson-plan` 은 **강사 전용**이다 — 학생·보호자 경로가 아니며 아래에서 그 사실을 고정한다.
+    // `lesson-plan` 은 **강사 전용**, `session-plan` 은 **기관 전용**이다 —
+    // 둘 다 학생·보호자 경로가 아니며 아래에서 그 사실을 고정한다.
     expect(routes.sort()).toEqual(
       [
         'src/app/api/health/route.ts',
@@ -118,6 +119,7 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
         'src/app/api/interest/route.ts',
         'src/app/api/lesson-plan/route.ts',
         'src/app/api/qna/route.ts',
+        'src/app/api/session-plan/route.ts',
         'src/app/api/recommend/route.ts',
         'src/app/api/survey/route.ts',
       ].sort(),
@@ -133,6 +135,27 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
     // 응답에 연락처·학생 식별 필드를 만들지 않는다.
     for (const banned of ['phone', 'email', 'pseudo_code', 'student_id', 'guardian']) {
       expect(src, banned).not.toContain(banned)
+    }
+  })
+
+  it('회차 기획 라우트는 기관 담당자만 통과하고 아무것도 저장하지 않는다 (ADR-021)', () => {
+    const src = read(join(SRC, 'app', 'api', 'session-plan', 'route.ts'))
+    expect(src).toContain("actor.role !== 'org_member'")
+    // 저장하지 않는 화면이다. 쓰기 경로가 생기면 RLS 를 같이 설계해야 한다.
+    for (const banned of ['insert', 'upsert', 'update(']) {
+      expect(src, banned).not.toContain(banned)
+    }
+  })
+
+  it('회차 기획이 관내에 없는 공급을 제안하지 못한다 (ADR-021)', () => {
+    const src = read(join(SRC, 'lib', 'ai', 'session-plan.ts'))
+    // 후보는 규칙이 확정한다 — LLM 출력에서 분야를 읽어오면 안 된다.
+    expect(src).toContain('const available = FIELDS.filter')
+    // LLM 응답에서 읽어도 되는 것은 문장 세 개뿐이다. 분야·공급·미충족 수요를 읽으면
+    // 모델이 관내에 없는 공급을 있다고 말할 수 있게 된다.
+    const merge = src.slice(src.indexOf('export function mergeLlmDraft'))
+    for (const banned of ['o.suggested_field', 'o.supply_by_field', 'o.unmet', 'o.suggested_title']) {
+      expect(merge, banned).not.toContain(banned)
     }
   })
 

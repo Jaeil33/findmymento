@@ -6,6 +6,7 @@ import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { approvedInstructors } from '@/lib/db/queries'
 import { regionName } from '@/lib/region'
+import { SessionPlanAssist } from '@/components/session/SessionPlanAssist'
 import { CLASS_TRAITS, FIELDS, VENUES } from '@/types/domain'
 import { createSession } from '../../actions'
 import { IconAlert, IconArrowLeft } from '@/components/ui/Icons'
@@ -157,6 +158,8 @@ export default async function NewSessionPage({
             </div>
           </div>
         </Panel>
+
+        <SessionPlanAssist />
 
         <Panel
           title="수업 조건"
