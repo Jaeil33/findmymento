@@ -47,6 +47,9 @@ src/
 │       ├── recommend/       # AI 추천 — 학생용 (LLM 키 사용 — 서버 전용)
 │       ├── lesson-plan/     # AI 수업 설계 도우미 — 강사용 (LLM 키 사용 — 서버 전용)
 │       ├── session-plan/    # AI 회차 기획 도우미 — 기관용 (LLM 키 사용 — 서버 전용)
+│       ├── result-report/   # AI 결과보고서 초안 — 기관용, 자기 기관 회차만. 저장 없음 (ADR-024)
+│       ├── followup-plan/   # AI 후속 과정 제안 + 섭외 문안 — 기관용, 자기 기관 회차만. 저장·자동 발송 없음
+│       ├── session-debrief/ # AI 수업 회고 + 학교 제출 요약 — 배정 강사만. 저장 없음
 │       ├── inquiry/         # 보호자 문의 접수 (금칙어·스팸 검증 경유)
 │       └── qna/             # 질문·답변 작성 (금칙어 필터 경유)
 ├── components/
@@ -57,6 +60,8 @@ src/
 │   ├── region/              # 시군구 → 인접 확장 로직
 │   ├── moderation/          # 연락처·외부링크 차단 필터
 │   └── ai/                  # recommend.ts (학생) + lesson-plan.ts (강사) + session-plan.ts (기관)
+│                            #   + result-report.ts · followup-plan.ts (기관) + session-debrief.ts (강사)
+│                            #   + guard.ts (수업 후 AI 공통 가드 — 5건 임계치·숫자 가드·이름 가드)
 ├── data/
 │   └── region-adjacency.json   # 수도권 66개 시군구 인접 관계 (외부 지도 API 미사용)
 └── services/
@@ -88,6 +93,8 @@ src/
 | `lesson_plans` | session_id, instructor_id, content(jsonb), inputs_snapshot(jsonb), source(`llm`/`rule`), status(`draft`/`final`) | **AI 수업 설계 도우미 산출물.** 열람은 작성 강사·발주 기관·운영자뿐 (ADR-019). `inputs_snapshot`은 어떤 조건으로 생성했는지의 기록 — 재현과 검수에 쓴다 |
 
 테이블 20개. `lesson_plans`가 추가되고 `lecture_sessions`에 수업 조건 4컬럼(`duration_minutes`·`venue`·`class_traits[]`·`equipment[]`)이 들어온다 (ADR-016).
+
+수업 후 AI(결과보고서·후속 과정 제안·수업 회고)는 저장하지 않으므로 테이블이 늘지 않는다 (ADR-024).
 
 `class_traits`의 허용값은 DB에서 강제한다 — 자유 텍스트가 들어오면 제약이 거부한다. 목록: `통합학급 포함` / `휠체어 사용 학생 있음` / `청각 보조 필요` / `시각 보조 필요` / `한국어 보조 필요` / `첫 경험 다수` / `경험자 다수` / `집중 지속이 짧은 편`.
 
@@ -169,6 +176,21 @@ AI 수업 설계 도우미 (강사용, 수업 전):
   → 실패하면 outline 기반 규칙 템플릿으로 골격 반환 (에러 화면 없음)
   → lesson_plans INSERT (source: llm | rule) → 강사가 수정 → status: final
   → 발주 기관 담당자도 같은 교안을 열람 (ADR-019)
+
+수업 후 AI (기관·강사용, 응답 수집 후 — ADR-024):
+기관 회차 상세 → "결과보고서 초안 만들기" / "후속 과정 제안받기" (Client)
+배정 회차 상세 → "수업 회고 만들기" (Client)
+  → POST /api/result-report · /api/followup-plan   (org_member + 자기 기관 회차)
+    POST /api/session-debrief                      (instructor + 그 회차의 배정 강사)
+     ├ 권한: 역할이 틀리면 403, 회차가 없거나 남의 회차면 404 (둘을 구분하지 않는다)
+     ├ 규칙: 회차 집계로 개요·지표 확정 (응답 5건 미만이면 통계·학생 의견 제외, LLM 호출 안 함)
+     ├ 규칙: 후속 수요(후속 의향 3점 이상의 분야·시간 1위) + 기관 지역 2-hop 승인 강사 후보 (거리·이름순, 최대 3)
+     ├ 규칙: 자유서술은 maskForStorage 재통과분만. 강사명·기관명·업체명·student_id·가명코드는 페이로드에서 제외
+     └ LLM: 문장만 — 성과·개선점·후속 계획·창체 참고 문구 / 과정 제목·차시·섭외 문안 / 회고·학교 제출 요약
+  → guard.ts: 규칙에 없는 숫자, 강사명·기관명·업체명, 연락처·링크가 든 문장은 버리고 규칙 문장 유지
+  → 실패하면 규칙 초안으로 200 (에러 화면 없음)
+  → 저장하지 않는다. 화면 표시 + 복사뿐
+  → 섭외 문안은 기관이 /org/recruitment 에서 직접 보낸다 (자동 발송 없음)
 
 개인(보호자) 경로:
 /programs (Server, anon) → 필터 → /programs/[id] → "문의하기"
