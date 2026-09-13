@@ -7,7 +7,8 @@
       "name": "ai-docs",
       "status": "completed",
       "started_at": "2026-09-13T21:38:06+0900",
-      "summary": "ADR-024(수업 후 AI 3종: 저장 없음·숫자는 규칙 확정·5건 임계치·숫자/이름 가드·창체 참고 문구 규칙·모집/수강료 금지·403/404 권한) 추가, docs/AI.md에 기능 4·5·6 절·안전 경계·폴백·비용·만들지 않는 것·구현 체크리스트(네거티브 테스트 9개) 추가, ARCHITECTURE.md에 api/result-report·followup-plan·session-debrief와 lib/ai 3모듈+guard.ts·데이터 흐름 추가, PRD.md 핵심 기능 13~15·차별점 11·MVP 제외·과금 근거·보조 지표 추가, docs/AI_RESEARCH.md(92줄) 신규, DEPLOY.md에 키 없으면 AI 6개 전부 규칙 동작 + AI 시연 경로 표. 버튼 문구: 결과보고서 초안 만들기 / 후속 과정 제안받기 / 수업 회고 만들기"
+      "summary": "ADR-024(수업 후 AI 3종: 저장 없음·숫자는 규칙 확정·5건 임계치·숫자/이름 가드·창체 참고 문구 규칙·모집/수강료 금지·403/404 권한) 추가, docs/AI.md에 기능 4·5·6 절·안전 경계·폴백·비용·만들지 않는 것·구현 체크리스트(네거티브 테스트 9개) 추가, ARCHITECTURE.md에 api/result-report·followup-plan·session-debrief와 lib/ai 3모듈+guard.ts·데이터 흐름 추가, PRD.md 핵심 기능 13~15·차별점 11·MVP 제외·과금 근거·보조 지표 추가, docs/AI_RESEARCH.md(92줄) 신규, DEPLOY.md에 키 없으면 AI 6개 전부 규칙 동작 + AI 시연 경로 표. 버튼 문구: 결과보고서 초안 만들기 / 후속 과정 제안받기 / 수업 회고 만들기",
+      "completed_at": "2026-09-13T21:49:58+0900"
     },
     {
       "step": 1,
