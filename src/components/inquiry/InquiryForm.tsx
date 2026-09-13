@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { Input, Select, Textarea } from '@/components/ui/Input'
+import { InquiryAssist } from '@/components/inquiry/InquiryAssist'
 import { FIELDS, GRADE_BAND_LABEL, type Field, type GradeBand } from '@/types/domain'
 
 const GRADE_BANDS: GradeBand[] = ['elementary', 'middle', 'high']
@@ -16,6 +17,8 @@ export type InquiryFormProps = {
   targetType: 'program' | 'instructor' | 'none'
   targetId: string | null
   targetLabel: string | null
+  /** 문의 도우미의 시연용 AI 응답 여부 (ADR-025·026). 서버가 판단해 넘긴다. */
+  demoAi?: boolean
 }
 
 /**
@@ -24,6 +27,9 @@ export type InquiryFormProps = {
  * **아이 이름·학교·생년월일 입력란을 만들지 않는다.** 학년대까지만 받는다 —
  * 디자인 선택이 아니라 ADR-014 의 제약이다.
  * 제출은 `/api/inquiry` 를 경유한다. 클라이언트에서 직접 INSERT 하지 않는다 (E-21).
+ *
+ * 맨 위의 문의 도우미(ADR-026)는 초안만 만든다. 보호자가 "폼 채우기"를 눌러야 아래 칸에 들어가고,
+ * 접수는 여전히 이 폼의 버튼 하나뿐이다.
  */
 export function InquiryForm({
   regions,
@@ -32,6 +38,7 @@ export function InquiryForm({
   targetType,
   targetId,
   targetLabel,
+  demoAi = false,
 }: InquiryFormProps) {
   const router = useRouter()
   const [guardianName, setGuardianName] = useState('')
@@ -90,6 +97,19 @@ export function InquiryForm({
           <p className="mt-0.5 font-medium text-ink">{targetLabel}</p>
         </div>
       ) : null}
+
+      <InquiryAssist
+        regionCode={regionCode}
+        gradeBand={gradeBand}
+        field={field}
+        demoAi={demoAi}
+        onApply={(draft) => {
+          if (draft.grade_band) setGradeBand(draft.grade_band)
+          if (draft.field) setField(draft.field)
+          setMessage(draft.message.slice(0, 300))
+          setError(null)
+        }}
+      />
 
       <Input
         label="보호자 이름"
