@@ -511,3 +511,47 @@ export type ResultReportDraft = {
   notices: string[]
   source: 'llm' | 'rule'
 }
+
+/** 후속 과정 섭외 후보 한 명. **연락처 필드가 없다** — 화면은 공개 프로필 링크만 만든다. */
+export type FollowupCandidate = {
+  instructor_id: string
+  name: string
+  region_label: string
+  /** 0 같은 시군구 · 1 인접 · 2 인접의 인접 */
+  distance: number
+}
+
+/**
+ * 기관용 후속 과정 제안 + 섭외 요청 문안 (ADR-024 기능 5). **저장하지 않고 자동 발송하지 않는다** —
+ * 기관이 문안을 복사해 섭외 화면에서 직접 보낸다.
+ *
+ * 수요 숫자·분야·강사 후보·고지문은 규칙이 확정한다. LLM 은 과정 제목·차시·문안의 문장만 쓴다.
+ * 모집 인원·정원·수강료·신청 필드를 두지 않는다 (ADR-023).
+ */
+export type FollowupPlanDraft = {
+  session_id: string
+  /** 표본 충분 && 후속 의향 3점 이상 응답이 1건 이상 && 그 응답에서 신산업 분야 1위가 정해짐 */
+  eligible: boolean
+  /** eligible 이 false 인 이유 (규칙 문장). eligible 이면 null */
+  reason: string | null
+  /** 전체 응답 수 */
+  response_count: number
+  /** 후속 의향 3점 이상 응답 수. 표본 부족이면 0 */
+  demand_count: number
+  /** 후속 의향 3점 이상 응답의 관심 분야 1위 (공급 유무와 무관). 없으면 null */
+  field: Field | null
+  field_interest_count: number
+  /** 후속 의향 3점 이상 응답의 참여 가능 시간 1위 */
+  top_time: string | null
+  /** 기관 지역 기준 2-hop 이내에 그 분야 승인 강사가 있는지 */
+  supply_status: 'available' | 'none'
+  /** 규칙이 고른 후보. 최대 3 */
+  candidates: FollowupCandidate[]
+  suggested_title: string
+  /** 차시별 한 줄. 규칙 기본 4개 */
+  outline: string[]
+  /** 섭외 요청 note 에 붙여 넣는 문안 (400자 이내). 후보가 없으면 '' */
+  request_message: string
+  notices: string[]
+  source: 'llm' | 'rule'
+}

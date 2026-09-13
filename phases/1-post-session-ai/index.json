@@ -29,7 +29,10 @@
     {
       "step": 3,
       "name": "followup-plan",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-09-13T22:07:44+0900",
+      "summary": "src/lib/ai/followup-plan.ts 신규 — export: followupDemand(ds,sessionId) · followupCandidates(ds,orgId,field) · ruleFollowupPlan(ds,sessionId) · mergeLlmFollowupPlan(draft,raw,{allowed,banned}) · generateFollowupPlan(ds,sessionId)(throw 없음, 없는 회차만 null). src/types/domain.ts에 FollowupCandidate·FollowupPlanDraft 추가. 수요는 후속 의향 3점 이상 응답만(분야는 FIELDS만, 시간은 '잘 모르겠어요'·목록 밖 제외, 동률 ko순), 응답 5건 미만·high 0건·분야 미정이면 eligible false+reason+LLM 미호출, 후보는 승인·해당 분야·2-hop 이내를 거리→이름순 최대 3(업체·구독 미반영, 연락처 키 없음), 공급 0이면 후보·문안 없이 미충족 고지문, 규칙 과정안 '{분야} 심화 과정'+1~4차시(회당 원 회차 시수)+'저희 기관' 섭외 문안(400자, 이름·연락처·모집 단어 없음, 제목에 이름이 섞이면 제목 생략), LLM은 eligible이고 공급 있을 때만 제목(40)·차시(60, 개수 같고 전 줄 통과 시만)·문안(400)을 sanitizeText→numbersWithin(FIELDS 무시)→이름 가드(전 승인 강사·업체·기관)→모집·정원·수강료·결제·신청서 가드로 병합, 페이로드에 이름·student_id·가명코드·후보 없음·high 인용 최대 5. tests/followup-plan.test.ts 51개(SDK 모킹). 저장·라우트·화면 없음, guard.ts·result-report.ts 무수정",
+      "completed_at": "2026-09-13T22:18:17+0900"
     },
     {
       "step": 4,
