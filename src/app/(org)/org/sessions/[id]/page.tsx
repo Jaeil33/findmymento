@@ -7,6 +7,7 @@ import { SessionReportView } from '@/components/report/SessionReportView'
 import { ResultReportAssist } from '@/components/report/ResultReportAssist'
 import { FollowupPlanAssist } from '@/components/report/FollowupPlanAssist'
 import { QrPanel } from '@/components/session/QrPanel'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import {
@@ -194,8 +195,8 @@ export default async function OrgSessionReportPage({
           쓰고, 아무것도 저장하지 않습니다.
         </p>
         <div className="grid items-start gap-5 xl:grid-cols-2">
-          <ResultReportAssist sessionId={session.id} />
-          <FollowupPlanAssist sessionId={session.id} />
+          <ResultReportAssist sessionId={session.id} demoAi={demoAiEnabled()} />
+          <FollowupPlanAssist sessionId={session.id} demoAi={demoAiEnabled()} />
         </div>
       </section>
     </div>

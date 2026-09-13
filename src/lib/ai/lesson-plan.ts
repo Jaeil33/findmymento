@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { maskForStorage } from '@/lib/moderation'
+import { demoAiEnabled, demoLessonSteps } from '@/lib/ai/demo-writer'
 import type { Dataset } from '@/lib/db/dataset'
 import {
   GRADE_BAND_LABEL,
@@ -371,7 +372,9 @@ async function refineByLlm(
   skeleton: LessonSkeleton,
 ): Promise<LessonSkeleton | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey.trim() === '') return null
+  const hasKey = Boolean(apiKey && apiKey.trim() !== '')
+  // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
+  if (!hasKey && !demoAiEnabled()) return null
 
   const payload = {
     수업: {
@@ -405,21 +408,26 @@ async function refineByLlm(
   }
 
   try {
-    const client = new Anthropic({ apiKey })
-    const response = await client.messages.create(
-      {
-        model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
-        max_tokens: 4000,
-        system: SYSTEM,
-        messages: [{ role: 'user', content: JSON.stringify(payload) }],
-      },
-      { timeout: 20_000, maxRetries: 1 },
-    )
+    let text: string
+    if (hasKey) {
+      const client = new Anthropic({ apiKey })
+      const response = await client.messages.create(
+        {
+          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+          max_tokens: 4000,
+          system: SYSTEM,
+          messages: [{ role: 'user', content: JSON.stringify(payload) }],
+        },
+        { timeout: 20_000, maxRetries: 1 },
+      )
 
-    const text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
+      text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+    } else {
+      text = JSON.stringify(demoLessonSteps(payload))
+    }
 
     const steps = parseSteps(text)
     if (!steps || steps.length === 0) return null

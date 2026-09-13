@@ -17,6 +17,8 @@ type Props = {
   /** 회차 조건 요약 — 무엇을 근거로 만드는지 버튼 옆에 그대로 보여준다. */
   conditions: string[]
   classTraits: string[]
+  /** 데모 배포의 시연용 AI 응답 여부 (ADR-025). */
+  demoAi?: boolean
 }
 
 /**
@@ -33,6 +35,7 @@ export function LessonPlanView({
   initialPriorResponses,
   conditions,
   classTraits,
+  demoAi = false,
 }: Props) {
   const [plan, setPlan] = useState<Skeleton | null>(initialPlan)
   const [source, setSource] = useState<'llm' | 'rule' | null>(initialSource)
@@ -104,7 +107,11 @@ export function LessonPlanView({
           </Button>
           {source && (
             <span className="text-xs text-sub">
-              {source === 'llm' ? 'AI가 문장을 채웠습니다' : '기본 템플릿으로 만들었습니다'}
+              {source === 'llm'
+                ? demoAi
+                  ? '시연용 AI 문장입니다'
+                  : 'AI가 문장을 채웠습니다'
+                : '기본 템플릿으로 만들었습니다'}
             </span>
           )}
         </div>

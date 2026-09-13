@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { maskForStorage } from '@/lib/moderation'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 
 /**
  * 수업 후 AI 3종(결과보고서·후속 과정·수업 회고)이 공통으로 쓰는 가드 (ADR-024).
@@ -102,6 +103,11 @@ export type JsonLlmRequest = {
   maxTokens: number
   /** 기본 12_000 */
   timeoutMs?: number
+  /**
+   * 시연용 AI 응답 (ADR-025). 키가 없고 데모 데이터 모드일 때만 LLM 대신 불린다.
+   * 받는 값은 LLM 에 보낼 payload 와 같고, 결과는 LLM 응답과 같은 병합·가드를 거친다.
+   */
+  demo?: (payload: unknown) => unknown
 }
 
 /**
@@ -111,7 +117,14 @@ export type JsonLlmRequest = {
  */
 export async function callJsonLlm(req: JsonLlmRequest): Promise<unknown | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey.trim() === '') return null
+  if (!apiKey || apiKey.trim() === '') {
+    if (!req.demo || !demoAiEnabled()) return null
+    try {
+      return req.demo(req.payload)
+    } catch {
+      return null
+    }
+  }
 
   try {
     const client = new Anthropic({ apiKey })

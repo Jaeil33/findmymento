@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { Button } from '@/components/ui/Button'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { approvedInstructors } from '@/lib/db/queries'
@@ -159,7 +160,7 @@ export default async function NewSessionPage({
           </div>
         </Panel>
 
-        <SessionPlanAssist />
+        <SessionPlanAssist demoAi={demoAiEnabled()} />
 
         <Panel
           title="수업 조건"

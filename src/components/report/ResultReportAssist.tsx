@@ -29,9 +29,12 @@ const STAGES = ['회차 응답 집계', '표본 5건 기준 확인', '숫자·�
 export function ResultReportAssist({
   sessionId,
   stageMs = 450,
+  demoAi = false,
 }: {
   sessionId: string
   stageMs?: number
+  /** 데모 배포의 시연용 AI 응답 여부 (ADR-025). 페이지(서버)가 넘긴다. */
+  demoAi?: boolean
 }) {
   const { draft, source, pending, active, error, run } = useAssistRequest<ResultReportDraft>(
     '/api/result-report',
@@ -61,7 +64,7 @@ export function ResultReportAssist({
         </div>
       ) : draft ? (
         <div className="mt-5 animate-fade-in space-y-4">
-          <AssistResultHeader source={source} responseCount={draft.metrics.response_count} />
+          <AssistResultHeader source={source} responseCount={draft.metrics.response_count} demo={demoAi} />
           <ReportDocument draft={draft} />
           <CopyButton label="전체 복사" text={resultReportToText(draft)} />
           <DraftNotices notices={draft.notices} />

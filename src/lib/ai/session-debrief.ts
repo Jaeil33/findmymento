@@ -8,6 +8,7 @@ import {
   sanitizeText,
 } from '@/lib/ai/guard'
 import { bannedNames } from '@/lib/ai/result-report'
+import { demoDebrief } from '@/lib/ai/demo-writer'
 import { FIELDS, type Field, type LectureSession, type SessionDebriefDraft } from '@/types/domain'
 
 /**
@@ -342,6 +343,7 @@ export async function generateDebrief(
       system: SYSTEM,
       payload: buildLlmPayload(ds, session, draft),
       maxTokens: 1500,
+      demo: demoDebrief,
     })
     if (raw === null) return draft
     return mergeLlmDebrief(draft, raw, {

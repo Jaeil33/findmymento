@@ -44,9 +44,12 @@ const DISTANCE: Record<number, { label: string; tone: BadgeTone }> = {
 export function FollowupPlanAssist({
   sessionId,
   stageMs = 450,
+  demoAi = false,
 }: {
   sessionId: string
   stageMs?: number
+  /** 데모 배포의 시연용 AI 응답 여부 (ADR-025). 페이지(서버)가 넘긴다. */
+  demoAi?: boolean
 }) {
   const { draft, source, pending, active, error, run } = useAssistRequest<FollowupPlanDraft>(
     '/api/followup-plan',
@@ -76,7 +79,7 @@ export function FollowupPlanAssist({
         </div>
       ) : draft ? (
         <div className="mt-5 animate-fade-in space-y-6">
-          <AssistResultHeader source={source} responseCount={draft.response_count} />
+          <AssistResultHeader source={source} responseCount={draft.response_count} demo={demoAi} />
           {draft.eligible ? (
             <EligiblePlan draft={draft} />
           ) : (

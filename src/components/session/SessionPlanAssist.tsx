@@ -14,7 +14,7 @@ import type { SessionPlanDraft } from '@/types/domain'
  *
  * JS 가 꺼져 있어도 회차 생성 폼 자체는 그대로 동작한다 — 이 컴포넌트는 보조일 뿐이다.
  */
-export function SessionPlanAssist() {
+export function SessionPlanAssist({ demoAi = false }: { demoAi?: boolean } = {}) {
   const anchor = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<SessionPlanDraft | null>(null)
   const [source, setSource] = useState<'llm' | 'rule' | null>(null)
@@ -87,7 +87,11 @@ export function SessionPlanAssist() {
           </Button>
           {source && (
             <span className="text-xs text-sub">
-              {source === 'llm' ? 'AI가 문장을 정리했습니다' : '공급 현황으로 계산했습니다'}
+              {source === 'llm'
+                ? demoAi
+                  ? '시연용 AI 문장입니다'
+                  : 'AI가 문장을 정리했습니다'
+                : '공급 현황으로 계산했습니다'}
             </span>
           )}
         </div>

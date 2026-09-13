@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { FIELD_UNSURE, type Field, type GradeBand, type Recommendation } from '@/types/domain'
 import { expandRegion, regionName } from '@/lib/region'
 import { maskForStorage } from '@/lib/moderation'
+import { demoAiEnabled, demoRanking } from '@/lib/ai/demo-writer'
 import { approvedInstructors } from '@/lib/db/queries'
 import type { Dataset } from '@/lib/db/dataset'
 
@@ -178,7 +179,9 @@ async function rankByLlm(
   input: RecommendInput,
 ): Promise<{ items: Recommendation[] } | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey.trim() === '') return null
+  const hasKey = Boolean(apiKey && apiKey.trim() !== '')
+  // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
+  if (!hasKey && !demoAiEnabled()) return null
 
   const byId = new Map(items.map((i) => [i.program.id, i]))
 
@@ -207,23 +210,28 @@ async function rankByLlm(
   }
 
   try {
-    const client = new Anthropic({ apiKey })
-    const response = await client.messages.create(
-      {
-        model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
-        max_tokens: 2000,
-        // 짧은 순위·문구 생성이므로 낮은 effort 로 충분하다.
-        output_config: { effort: 'low' },
-        system: SYSTEM,
-        messages: [{ role: 'user', content: JSON.stringify(payload) }],
-      },
-      { timeout: 8_000, maxRetries: 1 },
-    )
+    let text: string
+    if (hasKey) {
+      const client = new Anthropic({ apiKey })
+      const response = await client.messages.create(
+        {
+          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+          max_tokens: 2000,
+          // 짧은 순위·문구 생성이므로 낮은 effort 로 충분하다.
+          output_config: { effort: 'low' },
+          system: SYSTEM,
+          messages: [{ role: 'user', content: JSON.stringify(payload) }],
+        },
+        { timeout: 8_000, maxRetries: 1 },
+      )
 
-    const text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
+      text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+    } else {
+      text = JSON.stringify(demoRanking(payload))
+    }
 
     const parsed = parseRanking(text)
     if (!parsed) return null

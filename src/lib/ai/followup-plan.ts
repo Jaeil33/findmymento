@@ -1,6 +1,7 @@
 import type { Dataset } from '@/lib/db/dataset'
 import { approvedInstructors, gradeBandLabel } from '@/lib/db/queries'
 import { regionDistance, regionName } from '@/lib/region'
+import { demoFollowupPlan } from '@/lib/ai/demo-writer'
 import {
   MIN_AGGREGATE_RESPONSES,
   callJsonLlm,
@@ -420,6 +421,7 @@ export async function generateFollowupPlan(
       system: SYSTEM,
       payload: buildLlmPayload(ds, session, demand),
       maxTokens: 1500,
+      demo: demoFollowupPlan,
     })
     if (raw === null) return draft
     return mergeLlmFollowupPlan(draft, raw, {

@@ -23,6 +23,9 @@ export const SOURCE_LABEL: Record<AssistSource, string> = {
   rule: '응답 집계로 만들었습니다',
 }
 
+/** LLM 키 없는 데모 배포의 시연용 AI 응답 (ADR-025). 실제 LLM 이 쓴 것처럼 보이게 두지 않는다. */
+export const DEMO_SOURCE_LABEL = '시연용 AI 문장입니다'
+
 const NETWORK_ERROR = '인터넷 연결이 끊긴 것 같습니다. 다시 시도해 주세요.'
 
 export function AssistProgress({ stages, active }: { stages: string[]; active: number }) {
@@ -129,13 +132,16 @@ export function useAssistRequest<T extends { source: AssistSource }>(
 export function AssistResultHeader({
   source,
   responseCount,
+  demo = false,
 }: {
   source: AssistSource
   responseCount: number
+  /** 서버가 판단한 시연 모드 여부. true 이고 source 가 llm 이면 시연 문구를 쓴다. */
+  demo?: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium text-sub">{SOURCE_LABEL[source]}</span>
+      <span className="text-xs font-medium text-sub">{source === 'llm' && demo ? DEMO_SOURCE_LABEL : SOURCE_LABEL[source]}</span>
       <Badge tone="neutral">응답 {responseCount}건 집계</Badge>
       <Badge tone="neutral">저장되지 않음</Badge>
     </div>

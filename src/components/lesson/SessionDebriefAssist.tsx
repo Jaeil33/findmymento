@@ -29,9 +29,12 @@ const SUMMARY_MAX = 400
 export function SessionDebriefAssist({
   sessionId,
   stageMs = 450,
+  demoAi = false,
 }: {
   sessionId: string
   stageMs?: number
+  /** 데모 배포의 시연용 AI 응답 여부 (ADR-025). 페이지(서버)가 넘긴다. */
+  demoAi?: boolean
 }) {
   const { draft, source, pending, active, error, run } = useAssistRequest<SessionDebriefDraft>(
     '/api/session-debrief',
@@ -61,7 +64,7 @@ export function SessionDebriefAssist({
         </div>
       ) : draft ? (
         <div className="@container mt-5 animate-fade-in space-y-6">
-          <AssistResultHeader source={source} responseCount={draft.metrics.response_count} />
+          <AssistResultHeader source={source} responseCount={draft.metrics.response_count} demo={demoAi} />
           <DebriefBody draft={draft} sessionId={sessionId} />
           <DraftNotices notices={draft.notices} />
         </div>

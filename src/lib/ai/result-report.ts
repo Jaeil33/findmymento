@@ -7,6 +7,7 @@ import {
   numbersWithin,
   sanitizeText,
 } from '@/lib/ai/guard'
+import { demoResultReport } from '@/lib/ai/demo-writer'
 import { FIELDS, type Field, type LectureSession, type ResultReportDraft } from '@/types/domain'
 
 /**
@@ -354,7 +355,7 @@ export async function generateResultReport(
   try {
     const payload = buildLlmPayload(ds, draft)
     if (!payload) return draft
-    const raw = await callJsonLlm({ system: SYSTEM, payload, maxTokens: 2000 })
+    const raw = await callJsonLlm({ system: SYSTEM, payload, maxTokens: 2000, demo: demoResultReport })
     if (raw === null) return draft
     return mergeLlmResultReport(draft, raw, {
       allowed: allowedNumbers(ds, draft),
