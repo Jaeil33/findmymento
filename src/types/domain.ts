@@ -555,3 +555,37 @@ export type FollowupPlanDraft = {
   notices: string[]
   source: 'llm' | 'rule'
 }
+
+/**
+ * 배정 강사용 수업 회고 + 학교 제출용 결과 요약 (ADR-024 기능 6). **저장하지 않는다.**
+ *
+ * 강사 자신을 위한 회차 집계다. 점수·등급·순위 같은 강사 평가 필드를 두지 않고, 학생 개인을
+ * 평가하지 않는다. 지표와 무엇을 지적할지(트리거)는 규칙이 정하고 LLM 은 문장만 다듬는다.
+ */
+export type SessionDebriefDraft = {
+  session_id: string
+  sample_sufficient: boolean
+  metrics: {
+    response_count: number
+    /** 정수 % */
+    response_rate_pct: number
+    /** 소수 첫째 자리. 표본 부족이면 null */
+    satisfaction_avg: number | null
+    /** 만족도 4·5점 비율 정수 %. 표본 부족이면 null */
+    high_satisfaction_pct: number | null
+    /** 만족도 1·2점 비율 정수 %. 표본 부족이면 null */
+    low_satisfaction_pct: number | null
+    /** 후속 의향 3점 이상 비율 정수 %. 표본 부족이면 null */
+    followup_high_pct: number | null
+    /** 관심 분야 1위. 표본 부족이면 null */
+    top_field: string | null
+  }
+  /** 잘 된 점 — 최대 3 */
+  went_well: string[]
+  /** 다음에 바꿀 점 — 최대 3 */
+  change_next: string[]
+  /** 학교·기관에 제출할 수업 결과 요약. 400자 이내 */
+  school_summary: string
+  notices: string[]
+  source: 'llm' | 'rule'
+}

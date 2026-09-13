@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "session-debrief",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-09-13T22:19:15+0900",
+      "summary": "src/lib/ai/session-debrief.ts 신규 — export: ruleDebrief(ds,sessionId) · mergeLlmDebrief(draft,raw,{allowed,banned}) · generateDebrief(ds,sessionId)(throw 없음, 없는 회차만 null). src/types/domain.ts에 SessionDebriefDraft 추가. 지표는 sessionReport로 규칙 확정(응답률·만족도 4·5점/1·2점·후속 의향 3점 이상 정수 %, 평균 소수 1자리, 관심 분야 1위는 FIELDS만·동률 FIELDS 순), 트리거는 표시된 정수 %로 판정(went_well: 만족 4·5점≥70·후속≥40, 둘 다 아니면 응답 수 확보 / change_next 순서: 후속<40 다음 단계 안내·1·2점≥20 어려워하는 학생 분기·1위≠회차 분야 직업 소개(\"관심 분야 1위: {분야}\")·응답률<50 QR 3분 전, 각 최대 3), 응답 5건 미만은 통계 null·went_well []·QR 안내 1줄·응답 수만 싣는 요약·표본 부족 고지+LLM 미호출+병합 무시, school_summary 규칙 문장은 제목(이름 섞이면 \"이번 특강\")·일시·학년대·시수·응답 수·응답률·만족도 평균·후속 의향 비율·관심 분야 1위(400자, 강사명·기관명·학생 인용 없음), LLM 페이로드는 회차 조건(일시·분야·학년대·시수·장소·class_traits)·지표·규칙 판단·배정 강사 본인 교안의 단계 구분·제목만(인용·student_id·가명코드·이름·타 강사 교안 없음), 병합은 sanitizeText(항목 100·요약 400)→numbersWithin(FIELDS 무시)→이름 가드(result-report bannedNames 재사용)→점수·등급·순위·평점 가드→학생 지목 가드, 항목 수는 규칙 개수 이하(규칙이 빈 목록은 못 채움), metrics·notices·session_id 불변. tests/session-debrief.test.ts 50개(SDK 모킹). 저장·라우트·화면 없음, guard.ts·result-report.ts·followup-plan.ts·교안 무수정",
+      "completed_at": "2026-09-13T22:29:23+0900"
     },
     {
       "step": 5,
