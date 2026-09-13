@@ -1,0 +1,13 @@
+{
+  "project": "Find My Mento",
+  "phase": "1-post-session-ai",
+  "steps": [
+    { "step": 0, "name": "ai-docs", "status": "pending" },
+    { "step": 1, "name": "ai-guard", "status": "pending" },
+    { "step": 2, "name": "result-report", "status": "pending" },
+    { "step": 3, "name": "followup-plan", "status": "pending" },
+    { "step": 4, "name": "session-debrief", "status": "pending" },
+    { "step": 5, "name": "post-session-api", "status": "pending" },
+    { "step": 6, "name": "post-session-ui", "status": "pending" }
+  ]
+}

@@ -3,6 +3,10 @@
     {
       "dir": "0-mvp",
       "status": "pending"
+    },
+    {
+      "dir": "1-post-session-ai",
+      "status": "pending"
     }
   ]
 }
