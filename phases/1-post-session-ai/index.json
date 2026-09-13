@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "ai-guard",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-09-13T21:49:58+0900",
+      "summary": "src/lib/ai/guard.ts 신규 — export: MIN_AGGREGATE_RESPONSES(=5, lesson-plan PRIOR_MIN_RESPONSES와 동일) · sanitizeText(raw,max) · sanitizeList(raw,max,limit) · numbersWithin(text,allowed,ignore?) · containsAny(text,banned) · type JsonLlmRequest · callJsonLlm(req)(키 없음/실패/타임아웃/파싱 실패 전부 null, throw 없음). tests/ai-guard.test.ts 38개(SDK 모킹, 실제 API 미호출). 기존 lib/ai 3파일 무수정, 신규 의존성 없음",
+      "completed_at": "2026-09-13T21:53:39+0900"
     },
     {
       "step": 2,
