@@ -2,7 +2,7 @@
 
 지역 기반 교육 강사·멘토 매칭 플랫폼. 특강 직후 생긴 학생의 관심을 **우리 지역 직업인 강사**의 후속 교육으로 잇는다. 수요 주체는 **학교 · 기관 · 개인(보호자)** 3종이다. 파일럿 지역은 경기도 광명시.
 
-기획은 `docs/PRD.md`, 권한·데이터 모델은 `docs/ARCHITECTURE.md`, 기술 결정은 `docs/ADR.md`, 설문 문항은 `docs/SURVEY.md`, 화면 규칙은 `docs/UI_GUIDE.md`를 따른다.
+기획은 `docs/PRD.md`, 권한·데이터 모델은 `docs/ARCHITECTURE.md`, 기술 결정은 `docs/ADR.md`, AI 기능의 범위와 경계는 `docs/AI.md`, 설문 문항은 `docs/SURVEY.md`, 화면 규칙은 `docs/UI_GUIDE.md`를 따른다.
 
 ---
 

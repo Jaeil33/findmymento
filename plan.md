@@ -2,7 +2,7 @@
 
 Find My Mento MVP 파일럿(경기도 광명시)을 코드로 옮기는 순서다.
 
-이 문서는 **로드맵**이고, 각 step의 실제 실행 명세는 `phases/0-mvp/step{N}.md`에 있다. 둘이 어긋나면 step 파일이 옳다. 기획 근거는 `docs/PRD.md`, 권한·데이터 모델은 `docs/ARCHITECTURE.md`, 기술 결정은 `docs/ADR.md`를 본다.
+이 문서는 **로드맵**이고, 각 step의 실제 실행 명세는 `phases/0-mvp/step{N}.md`에 있다. 둘이 어긋나면 step 파일이 옳다. 기획 근거는 `docs/PRD.md`, 권한·데이터 모델은 `docs/ARCHITECTURE.md`, 기술 결정은 `docs/ADR.md`, AI 기능의 범위와 경계는 `docs/AI.md`를 본다.
 
 ## 현재 상태 (2026-09-12 갱신)
 
