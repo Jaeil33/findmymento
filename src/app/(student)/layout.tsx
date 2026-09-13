@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/layout/Wordmark'
+import { DemoBar } from '@/components/layout/DemoBar'
 
 /**
  * 학생 화면 껍데기. 본문 폭은 **각 페이지가 정한다** — 설문은 `max-w-md` 단일 컬럼,
@@ -22,6 +23,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           </nav>
         </div>
       </header>
+      <DemoBar />
       <main className="flex-1">{children}</main>
     </div>
   )

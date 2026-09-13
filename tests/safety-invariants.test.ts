@@ -114,11 +114,14 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
     // 둘 다 학생·보호자 경로가 아니며 아래에서 그 사실을 고정한다.
     // 수업 후 AI(ADR-024): `result-report`·`followup-plan` 은 **기관 전용**, `session-debrief` 는
     // **배정 강사 전용**이다. 권한과 저장 없음은 `tests/post-session-api.test.ts` 가 고정한다.
+    // 보호자 문의 도우미(ADR-026): `inquiry-assist` 는 비로그인이지만 **초안만 돌려주고 아무에게도 닿지
+    // 않는다.** 접수는 기존 `inquiry` 하나뿐이다. 저장 없음은 아래 테스트와 `tests/inquiry-assist-api.test.ts` 가 고정한다.
     expect(routes.sort()).toEqual(
       [
         'src/app/api/followup-plan/route.ts',
         'src/app/api/health/route.ts',
         'src/app/api/inquiry/route.ts',
+        'src/app/api/inquiry-assist/route.ts',
         'src/app/api/interest/route.ts',
         'src/app/api/lesson-plan/route.ts',
         'src/app/api/qna/route.ts',
@@ -149,6 +152,26 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
     // 저장하지 않는 화면이다. 쓰기 경로가 생기면 RLS 를 같이 설계해야 한다.
     for (const banned of ['insert', 'upsert', 'update(']) {
       expect(src, banned).not.toContain(banned)
+    }
+  })
+
+  it('보호자 문의 도우미는 아무것도 저장하지 않고, 접수된 문의·학생 기록을 읽지 않는다 (ADR-026)', () => {
+    const route = read(join(SRC, 'app', 'api', 'inquiry-assist', 'route.ts'))
+    // 권한을 주는 경로가 아니므로 역할을 보지 않는다. 쓰기가 생기면 anon INSERT 경로가 하나 더 생긴다.
+    for (const banned of ['insert', 'upsert', 'update(', 'getActor', 'guardian_contact']) {
+      expect(route, banned).not.toContain(banned)
+    }
+    const lib = read(join(SRC, 'lib', 'ai', 'inquiry-assist.ts'))
+    for (const banned of ['ds.inquiries', 'ds.students', 'ds.surveyResponses', 'ds.interests', 'instructorContacts']) {
+      expect(lib, banned).not.toContain(banned)
+    }
+    // 보호자가 적은 설명은 마스킹을 거친 뒤에만 LLM 에 간다.
+    expect(lib).toContain('moderate(')
+    // LLM 응답에서 읽는 것은 문의 글 하나뿐이다. 분야·프로그램을 읽으면 없는 공급을 지어낼 수 있다.
+    const merge = lib.slice(lib.indexOf('export function acceptLlmMessage'))
+    expect(merge.length).toBeGreaterThan(0)
+    for (const banned of ['o.field', 'o.matches', 'o.grade_band', 'o.times']) {
+      expect(merge, banned).not.toContain(banned)
     }
   })
 

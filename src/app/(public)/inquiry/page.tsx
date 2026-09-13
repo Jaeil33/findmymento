@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/ui/Section'
 import { InquiryForm } from '@/components/inquiry/InquiryForm'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { loadDataset } from '@/lib/db/dataset'
 import { allRegions, PILOT_REGION_CODE } from '@/lib/region'
 
@@ -53,6 +54,7 @@ export default async function InquiryPage({ searchParams }: { searchParams: Prom
           targetType={targetType}
           targetId={targetId}
           targetLabel={targetLabel}
+          demoAi={demoAiEnabled()}
         />
       </div>
     </div>

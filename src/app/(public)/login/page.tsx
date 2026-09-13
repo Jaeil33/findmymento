@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/Section'
 import { MagicLinkForm } from '@/components/auth/MagicLinkForm'
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/env'
 import { demoActorKeys, demoActorLabel } from '@/lib/auth/actor'
+import { demoGuestEntries } from '@/lib/demo/guests'
 import { enterDemo } from './actions'
 import { IconArrowRight } from '@/components/ui/Icons'
 
@@ -34,11 +35,12 @@ export default function LoginPage() {
         <section className="mt-10 rounded-lg border border-caution/30 bg-caution-bg p-5">
           <h2 className="text-sm font-semibold text-caution">데모 데이터 모드</h2>
           <p className="mt-1.5 text-sm leading-relaxed text-body">
-            Supabase 키가 설정되지 않아 데모 데이터로 동작하고 있습니다. 아래에서 역할을 골라 화면을
-            둘러보실 수 있습니다. 실제 계정 연결 뒤에는 이 블록이 사라지고 이메일 로그인만 남습니다.
+            Supabase 키가 설정되지 않아 데모 데이터로 동작하고 있습니다. 아래에서 둘러볼 사람을 골라
+            주세요. 실제 계정 연결 뒤에는 이 블록이 사라지고 이메일 로그인만 남습니다.
           </p>
 
-          <ul className="mt-4 space-y-2">
+          <h3 className="mt-5 text-xs font-semibold text-ink">계정으로 들어가는 사람</h3>
+          <ul className="mt-2 space-y-2">
             {demoActorKeys().map((key) => (
               <li key={key}>
                 <form action={enterDemo}>
@@ -51,6 +53,30 @@ export default function LoginPage() {
                     <IconArrowRight className="text-sub" />
                   </button>
                 </form>
+              </li>
+            ))}
+          </ul>
+
+          {/* 학생·보호자는 역할 버튼이 아니다 — 쿠키를 심지 않고 실서비스와 같은 비로그인 경로로 연다. */}
+          <h3 className="mt-6 text-xs font-semibold text-ink">계정 없이 쓰는 사람</h3>
+          <p className="mt-1 text-xs leading-relaxed text-body">
+            학생과 보호자는 계정을 만들지 않습니다. 학생은 기관이 나눠 준 가명코드로, 보호자는 비로그인
+            문의 폼으로만 들어옵니다. 실제 서비스와 같은 경로로 바로 엽니다.
+          </p>
+          <ul className="mt-2 space-y-2">
+            {demoGuestEntries().map((entry) => (
+              <li key={entry.key}>
+                <Link
+                  href={entry.href}
+                  className="flex w-full items-center justify-between gap-3 rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-medium text-ink">{entry.label}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-body">{entry.description}</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-sub">{entry.hint}</span>
+                  </span>
+                  <IconArrowRight className="shrink-0 text-sub" />
+                </Link>
               </li>
             ))}
           </ul>

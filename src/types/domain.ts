@@ -589,3 +589,35 @@ export type SessionDebriefDraft = {
   notices: string[]
   source: 'llm' | 'rule'
 }
+
+/**
+ * 보호자 문의 도우미 초안 (ADR-026). **저장하지 않는다** — 보호자가 확인하고 폼에 채울 뿐이다.
+ *
+ * 학년대·분야·시간대·프로그램은 규칙이 정한다. LLM 은 문의 글(`message`) 한 편만 쓴다.
+ * 프로그램 항목은 공개 디렉토리 카드와 같은 정보까지다.
+ */
+export type InquiryAssistMatch = {
+  program_id: string
+  title: string
+  field: Field
+  format: ProgramFormat
+  session_count: number
+  region_label: string
+  instructor_name: string
+  provider_name: string | null
+}
+
+export type InquiryAssistDraft = {
+  /** 보호자 설명에서 아이를 알아볼 수 있는 부분(이름·학교·연락처·나이)을 가렸는지 */
+  masked: boolean
+  grade_band: GradeBand | null
+  field: Field | null
+  times: string[]
+  matches: InquiryAssistMatch[]
+  /** 분야를 못 찾았으면 null — 프로그램을 고르지 않는다 */
+  stage: RegionExpansion['stage'] | null
+  stage_message: string | null
+  message: string
+  notices: string[]
+  source: 'llm' | 'rule'
+}

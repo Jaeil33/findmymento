@@ -11,7 +11,12 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }))
 
-const { demoAiEnabled, demoResultReport } = await import('@/lib/ai/demo-writer')
+const { demoAiEnabled, demoInquiryMessage, demoResultReport } = await import('@/lib/ai/demo-writer')
+const {
+  buildLlmPayload: inquiryPayload,
+  generateInquiryAssist,
+  ruleInquiryAssist,
+} = await import('@/lib/ai/inquiry-assist')
 const { buildLlmPayload, generateResultReport, ruleResultReport } = await import('@/lib/ai/result-report')
 const { generateFollowupPlan, ruleFollowupPlan } = await import('@/lib/ai/followup-plan')
 const { generateDebrief, ruleDebrief } = await import('@/lib/ai/session-debrief')
@@ -260,6 +265,48 @@ describe('학생 추천 (기능 1)', () => {
       expect(i.reason.length).toBeLessThanOrEqual(120)
       expect(CONTACT_RE.test(i.reason)).toBe(false)
     }
+    expect(createMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('보호자 문의 도우미 (기능 7)', () => {
+  const SITUATIONS = [
+    '중학교 2학년 아들이에요. 이름은 민준이고 광명하안중학교 다녀요. 학교 드론 특강 듣고 영상 찍는 데 푹 빠졌어요. 주말에 다닐 수 있을까요?',
+    '초등학생 딸이 3D 프린터로 피규어 만드는 걸 좋아해요. 처음 배우는 거라 잘 따라갈지 걱정돼요. 평일 방과후면 좋겠어요.',
+    '고등학생인데 코딩으로 게임 만들고 싶대요. 방학 때 다닐 곳을 찾아요.',
+    '아이가 VR 체험을 또 해 보고 싶어해요. 중학생입니다.',
+    '특강 듣고 나서 뭔가 더 배우고 싶다고 하는데 뭘 좋아하는지는 잘 모르겠어요.',
+  ]
+  const inputOf = (situation: string) => ({ situation, regionCode: '41210', gradeBand: null, field: null })
+  const digitsOutsideFields = (text: string) =>
+    /\d/.test(['드론', '3D 모델링·프린팅', 'VR·AR', 'AI·코딩', '뷰티'].reduce((t, f) => t.split(f).join(' '), text))
+
+  it.each(SITUATIONS)('%s — 시연 글이 가드를 통과해 채택된다', async (situation) => {
+    const input = inputOf(situation)
+    const rule = ruleInquiryAssist(ds, input)
+    const raw = demoInquiryMessage(inquiryPayload(input, rule)) as { message: string }
+    const draft = await generateInquiryAssist(ds, input)
+
+    expect(draft.source).toBe('llm')
+    expect(draft.message).toBe(raw.message)
+    expect(draft.message).not.toBe(rule.message)
+    expect(draft.message.length).toBeLessThanOrEqual(300)
+  })
+
+  it.each(SITUATIONS)('%s — 조건·프로그램·고지는 규칙 값 그대로이고 아이 정보·숫자가 없다', async (situation) => {
+    const input = inputOf(situation)
+    const rule = ruleInquiryAssist(ds, input)
+    const draft = await generateInquiryAssist(ds, input)
+
+    expect(draft.grade_band).toBe(rule.grade_band)
+    expect(draft.field).toBe(rule.field)
+    expect(draft.times).toEqual(rule.times)
+    expect(draft.matches).toEqual(rule.matches)
+    expect(draft.notices).toEqual(rule.notices)
+    for (const raw of ['민준', '하안중학교']) expect(draft.message).not.toContain(raw)
+    for (const n of names) expect(draft.message).not.toContain(n)
+    expect(digitsOutsideFields(draft.message)).toBe(false)
+    expect(CONTACT_RE.test(draft.message)).toBe(false)
     expect(createMock).not.toHaveBeenCalled()
   })
 })

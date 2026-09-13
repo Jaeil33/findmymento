@@ -709,3 +709,55 @@ export function demoRanking(payload: unknown): unknown {
     }),
   }
 }
+
+// ============================================================================
+// 8. 보호자 문의 도우미 (기능 7) — inquiry-assist.ts buildLlmPayload
+// ============================================================================
+
+/** 보호자 설명에 **실제로 있는** 이야기만 문의 글에 옮긴다. 없는 관심사를 만들지 않는다. */
+const GUARDIAN_THEMES: { re: RegExp; text: string }[] = [
+  { re: /영상|촬영|찍|편집|유튜브/, text: '직접 찍은 장면을 영상으로 만드는 데 관심이 커졌습니다' },
+  { re: /게임|앱|프로그램/, text: '직접 게임이나 프로그램을 만들어 보고 싶어 합니다' },
+  { re: /피규어|물건|만들|설계|디자인/, text: '자기 아이디어를 직접 만들어 보는 활동을 좋아합니다' },
+  { re: /조립|분해|원리|구조|어떻게/, text: '장비가 움직이는 원리와 구조를 궁금해합니다' },
+  { re: /체험|또 해|다시 해/, text: '체험을 한 번 더 해 보고 싶어 합니다' },
+  { re: /축구|대회|친구|팀/, text: '친구들과 함께하는 활동을 좋아합니다' },
+]
+
+const LECTURE_CUE = /특강|진로\s?체험|체험\s?수업/
+const BEGINNER_CUE = /처음|초보|걱정|따라갈|서툴/
+
+export function demoInquiryMessage(payload: unknown): unknown {
+  const p = obj(payload)
+  const said = str(p.보호자_설명)
+  const c = obj(p.정리된_조건)
+  const child = str(c.학년대)
+  const field = str(c.관심_분야)
+  const times = strs(c.희망_시간대)
+
+  const theme = GUARDIAN_THEMES.find((t) => t.re.test(said))
+  const afterLecture = LECTURE_CUE.test(said)
+
+  const interest = field
+    ? afterLecture
+      ? `학교에서 ${field} 특강을 들은 뒤로 아이가 이 분야를 더 배우고 싶어 합니다.`
+      : `아이가 요즘 ${field} 분야에 관심이 많습니다.`
+    : afterLecture
+      ? '학교 특강을 들은 뒤로 아이가 무언가를 더 배우고 싶어 하는데, 어느 분야가 맞을지는 아직 정하지 못했습니다.'
+      : '아이가 관심을 보이는 분야를 계속 배울 곳을 찾고 있는데, 어느 분야가 맞을지는 아직 정하지 못했습니다.'
+
+  const sentences = [
+    '안녕하세요.',
+    child ? `${child} 자녀를 둔 보호자입니다.` : '자녀 교육 때문에 문의드립니다.',
+    interest,
+    theme ? `특히 ${theme.text}.` : null,
+    times.length > 0 ? `${times.join('·')}에 참여할 수 있는 수업이 있을까요?` : null,
+    BEGINNER_CUE.test(said) ? '처음 배우는 아이라 기초부터 따라갈 수 있는지 궁금합니다.' : null,
+    field ? null : '아이 또래가 시작하기 좋은 수업이 있다면 알려 주셔도 좋습니다.',
+    '수업 장소와 진행 방식, 준비물, 가능한 일정과 비용을 안내해 주시면 감사하겠습니다.',
+  ].filter((v): v is string => v !== null)
+
+  let message = sentences.join(' ')
+  if (message.length > 300) message = sentences.filter((s) => !s.startsWith('특히')).join(' ')
+  return { message }
+}
