@@ -38,6 +38,9 @@ export default async function OrgSessionReportPage({
   const org = ds.organizations.find((o) => o.id === session.org_id)
   const closed = isClosed(session)
   const instructors = approvedInstructors(ds)
+  // 발주 기관은 자기 회차의 교안을 열람한다 — 어떤 수업이 들어오는지 사전에 확인할 수 있어야
+  // 하고, 그것이 기관 쪽 가치의 일부다 (ADR-019). 다른 기관의 교안은 RLS 가 막는다.
+  const plan = ds.lessonPlans.find((p) => p.session_id === session.id) ?? null
 
   return (
     <div className="space-y-8">
@@ -135,6 +138,42 @@ export default async function OrgSessionReportPage({
             을 쓰세요. 뒤쪽 좌석에서도 보이도록 QR과 코드를 크게 띄웁니다.
           </p>
         </Panel>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold tracking-tight text-ink">강사 교안</h2>
+        {plan ? (
+          <Panel
+            title={plan.title}
+            description={`${plan.steps.reduce((a, s) => a + s.minutes, 0)}분 · ${
+              plan.source === 'llm' ? 'AI 초안을 강사가 확인함' : '기본 템플릿'
+            }`}
+          >
+            <ol className="space-y-3 text-sm leading-relaxed text-body">
+              {plan.steps.map((step, i) => (
+                <li key={`${step.phase}-${i}`}>
+                  <span className="font-medium text-ink">
+                    [{step.phase}] {step.title} · {step.minutes}분
+                  </span>
+                  <br />
+                  {step.base}
+                  {step.accommodations.length > 0 && (
+                    <span className="mt-1 block text-xs text-caution">
+                      {step.accommodations.map((a) => `${a.trait}: ${a.how}`).join(' / ')}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </Panel>
+        ) : (
+          <Panel title="아직 교안이 없습니다">
+            <p className="text-sm leading-relaxed text-body">
+              배정된 강사가 수업 설계 도우미로 초안을 만들면 여기에 표시됩니다. 어떤 수업이
+              들어오는지 사전에 확인하실 수 있습니다.
+            </p>
+          </Panel>
+        )}
       </section>
 
       <section>

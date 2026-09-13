@@ -11,6 +11,7 @@ const ds: Dataset = {
   instructorVerifications: demo.instructorVerifications,
   programs: demo.programs,
   lectureSessions: demo.lectureSessions,
+  lessonPlans: demo.lessonPlans,
   students: demo.students,
   surveyResponses: demo.surveyResponses,
   interests: demo.interests,

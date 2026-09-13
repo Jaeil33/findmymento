@@ -18,7 +18,7 @@ const sql = readdirSync(MIGRATIONS_DIR)
   .map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf8'))
   .join('\n')
 
-/** docs/ARCHITECTURE.md 데이터 모델 표의 19개 테이블. */
+/** docs/ARCHITECTURE.md 데이터 모델 표의 20개 테이블. */
 const TABLES = [
   'organizations',
   'org_members',
@@ -39,6 +39,7 @@ const TABLES = [
   'qna_questions',
   'qna_answers',
   'moderation_reports',
+  'lesson_plans',
 ]
 
 /** `create table public.x (...)` 본문만 떼어 온다. */
@@ -75,14 +76,14 @@ function policiesFor(table: string): string[] {
 }
 
 describe('테이블 구성', () => {
-  it('19개 테이블이 정확히 정의돼 있다', () => {
-    expect(TABLES).toHaveLength(19)
+  it('20개 테이블이 정확히 정의돼 있다', () => {
+    expect(TABLES).toHaveLength(20)
     for (const t of TABLES) {
       expect(sql).toContain(`create table public.${t} (`)
     }
   })
 
-  it('19개 테이블 전부 RLS 가 켜져 있다 — 예외 없음', () => {
+  it('20개 테이블 전부 RLS 가 켜져 있다 — 예외 없음', () => {
     const missing = TABLES.filter(
       (t) => !new RegExp(`alter table public\\.${t}\\s+enable row level security`).test(sql),
     )
@@ -299,5 +300,93 @@ describe('consents · interests', () => {
   it('관심 표현 SELECT 에 강사 경로가 없다 — 학생 버튼이 강사에게 직접 닿지 않는다', () => {
     const selects = policiesFor('interests').filter((p) => /for select/.test(p))
     for (const p of selects) expect(p).not.toContain('app.current_instructor_id()')
+  })
+})
+
+describe('lesson_plans — 교안 열람 경계 (ADR-019)', () => {
+  const body = tableBody('lesson_plans')
+  const policies = policiesFor('lesson_plans')
+
+  it('anon 에게 어떤 정책도 주지 않는다 — 학생·보호자에게 도달하는 경로가 없다', () => {
+    expect(policies.length).toBeGreaterThan(0)
+    for (const p of policies) expect(p).not.toMatch(/to\s+[^;]*\banon\b/)
+  })
+
+  it('읽기는 작성 강사 · 발주 기관 · 운영자 셋뿐이다', () => {
+    const read = policies.find((p) => /for select/.test(p))
+    expect(read).toBeDefined()
+    expect(read).toContain('instructor_id = app.current_instructor_id()')
+    expect(read).toContain('app.current_org_id()')
+    expect(read).toContain('app.is_admin()')
+  })
+
+  it('읽기 정책이 회차를 거쳐 기관을 확인한다 — 타 기관 회차의 교안이 새지 않는다', () => {
+    const read = policies.find((p) => /for select/.test(p))!
+    expect(read).toMatch(/from public\.lecture_sessions/)
+    expect(read).toMatch(/s\.org_id = app\.current_org_id\(\)/)
+  })
+
+  it('작성은 **그 회차에 배정된** 강사만 가능하다 (ADR-015)', () => {
+    const insert = policies.find((p) => /for insert/.test(p))
+    expect(insert).toBeDefined()
+    expect(insert).toContain('instructor_id = app.current_instructor_id()')
+    // 배정 확인이 없으면 아무 강사나 남의 회차에 교안을 만들 수 있다.
+    expect(insert).toMatch(/from public\.lecture_sessions/)
+    expect(insert).toMatch(/s\.instructor_id = app\.current_instructor_id\(\)/)
+  })
+
+  it('수정·삭제는 작성 강사 본인으로 제한된다', () => {
+    for (const kind of ['for update', 'for delete']) {
+      const p = policies.find((x) => new RegExp(kind).test(x) && !/is_admin/.test(x))
+      expect(p, kind).toBeDefined()
+      expect(p).toContain('instructor_id = app.current_instructor_id()')
+    }
+  })
+
+  it('학생 식별 컬럼이 없다', () => {
+    expect(body).not.toMatch(/\bstudent_id\b/)
+    expect(body).not.toMatch(/\bpseudo_code\b/)
+    expect(body).not.toMatch(/\b(name|phone|email|school)\b/)
+  })
+
+  it('한 회차에 강사 하나의 교안 하나 — 중복 생성이 막힌다', () => {
+    expect(body).toMatch(/unique\s*\(session_id,\s*instructor_id\)/)
+  })
+})
+
+describe('수업 조건 — 학급 특성은 회차 단위 (ADR-016)', () => {
+  it('lecture_sessions 에만 붙는다', () => {
+    expect(sql).toMatch(/alter table public\.lecture_sessions[\s\S]*?class_traits/)
+  })
+
+  it('students 와 survey_responses 에는 학급 특성이 없다', () => {
+    expect(tableBody('students')).not.toMatch(/class_traits|accommodation|disabilit/i)
+    expect(tableBody('survey_responses')).not.toMatch(/class_traits|accommodation|disabilit/i)
+    // 나중에 alter 로 몰래 붙는 경로도 막는다.
+    expect(sql).not.toMatch(/alter table public\.(students|survey_responses)[\s\S]{0,200}?class_traits/)
+  })
+
+  it('class_traits 가 고정 목록으로 제약돼 있다 — 자유 텍스트가 DB 에 들어갈 수 없다', () => {
+    expect(sql).toMatch(/constraint lecture_sessions_class_traits_allowed check/)
+    expect(sql).toMatch(/class_traits <@ array\[/)
+    for (const trait of ['통합학급 포함', '휠체어 사용 학생 있음', '집중 지속이 짧은 편']) {
+      expect(sql).toContain(`'${trait}'`)
+    }
+  })
+
+  it('venue 도 고정값이다', () => {
+    expect(sql).toMatch(/venue in \('교실'/)
+  })
+})
+
+describe('섭외 종료 사유 — 공간 사업의 근거 데이터 (ADR-023)', () => {
+  it('close_reason 이 고정값으로 제약돼 있다', () => {
+    expect(sql).toMatch(/close_reason text[\s\S]{0,160}?'장소 없음'/)
+  })
+
+  it('네 가지 사유가 모두 있다', () => {
+    for (const r of ['공급 없음', '장소 없음', '예산 없음', '일정 불가']) {
+      expect(sql).toContain(`'${r}'`)
+    }
   })
 })

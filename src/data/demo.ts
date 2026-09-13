@@ -23,6 +23,8 @@ import {
   type Interest,
   type Invitation,
   type LectureSession,
+  type LessonPlan,
+  type LessonPlanInputs,
   type OrgMember,
   type Organization,
   type Program,
@@ -34,6 +36,7 @@ import {
   type SurveyResponse,
   FIELDS,
 } from '@/types/domain'
+import { ruleSkeleton } from '@/lib/ai/lesson-plan'
 
 /** 고정 시드 난수. 배포마다 숫자가 흔들리면 검수 중에 "버그인가?"를 매번 묻게 된다. */
 function rng(seed: number) {
@@ -376,6 +379,24 @@ export const programs: Program[] = [
 // ──────────────────────────────────────────────────────────────
 
 export const lectureSessions: LectureSession[] = [
+  // ls-1 보다 앞선 같은 기관·같은 분야 회차. 이 회차의 응답이 ls-1 교안의 입력이 된다 (ADR-018).
+  {
+    id: 'ls-0',
+    org_id: 'org-1',
+    instructor_id: 'in-2',
+    title: '드론 첫 만남 · 학교 운동장',
+    field: '드론',
+    held_on: demoDate(-38),
+    closes_at: demoTime(-31, '23:59'),
+    status: 'closed',
+    entry_code: '318204',
+    grade_band: 'middle',
+    expected_students: 26,
+    duration_minutes: 50,
+    venue: '운동장',
+    class_traits: ['첫 경험 다수'],
+    equipment: ['드론 6대'],
+  },
   {
     id: 'ls-1',
     org_id: 'org-1',
@@ -388,6 +409,10 @@ export const lectureSessions: LectureSession[] = [
     entry_code: '482913',
     grade_band: 'middle',
     expected_students: 32,
+    duration_minutes: 90,
+    venue: '운동장',
+    class_traits: ['첫 경험 다수'],
+    equipment: ['드론 10대', '안전 보호구 32세트'],
   },
   {
     id: 'ls-2',
@@ -401,6 +426,10 @@ export const lectureSessions: LectureSession[] = [
     entry_code: '735104',
     grade_band: 'middle',
     expected_students: 28,
+    duration_minutes: 100,
+    venue: '메이커실',
+    class_traits: ['통합학급 포함', '경험자 다수'],
+    equipment: ['3D 프린터 3대', '노트북 28대'],
   },
   // 배정 강사가 없다 → 강사가 QR·리포트를 못 본다 (E-23). 목록에서 눈에 띄게 표시한다.
   {
@@ -415,6 +444,10 @@ export const lectureSessions: LectureSession[] = [
     entry_code: '209457',
     grade_band: 'high',
     expected_students: 24,
+    duration_minutes: 50,
+    venue: '컴퓨터실',
+    class_traits: [],
+    equipment: ['PC 20대'],
   },
   {
     id: 'ls-4',
@@ -428,6 +461,10 @@ export const lectureSessions: LectureSession[] = [
     entry_code: '561238',
     grade_band: 'middle',
     expected_students: 40,
+    duration_minutes: 50,
+    venue: '강당',
+    class_traits: ['집중 지속이 짧은 편', '휠체어 사용 학생 있음'],
+    equipment: ['드론 6대'],
   },
 ]
 
@@ -483,6 +520,27 @@ type SessionPlan = {
 }
 
 const PLANS: SessionPlan[] = [
+  {
+    sessionId: 'ls-0',
+    seed: 20260821,
+    total: 21,
+    coded: 16,
+    grades: [g('middle', 1), g('middle', 2)],
+    satisfaction: [
+      [5, 9],
+      [4, 7],
+      [3, 3],
+      [2, 2],
+      [1, 0],
+    ],
+    followup: [
+      [4, 6],
+      [3, 8],
+      [2, 5],
+      [1, 2],
+    ],
+    primaryField: '드론',
+  },
   {
     sessionId: 'ls-1',
     seed: 20260904,
@@ -750,6 +808,7 @@ export const recruitmentRequests: RecruitmentRequest[] = [
     field: '드론',
     demand_count: 9,
     status: 'accepted',
+    close_reason: null,
     note: '중2~3 대상 8회 과정. 수련관 3층 다목적실, 평일 방과후 희망.',
     created_at: demoTime(-4, '11:00'),
   },
@@ -760,6 +819,7 @@ export const recruitmentRequests: RecruitmentRequest[] = [
     field: '3D 모델링·프린팅',
     demand_count: 7,
     status: 'sent',
+    close_reason: null,
     note: '중등 6회 과정 검토 중. 토요일 오전 가능 여부 확인 부탁드립니다.',
     created_at: demoTime(-1, '09:30'),
   },
@@ -770,6 +830,7 @@ export const recruitmentRequests: RecruitmentRequest[] = [
     field: '드론',
     demand_count: 5,
     status: 'declined',
+    close_reason: '장소 없음',
     note: '2학기 일정이 이미 차서 어렵습니다.',
     created_at: demoTime(-3, '14:10'),
   },
@@ -984,3 +1045,48 @@ export function supplyFacts() {
     uncoveredFields: FIELDS.filter((f) => !coveredFields.has(f)),
   }
 }
+
+/**
+ * 교안 시드.
+ *
+ * `ruleSkeleton()` 을 그대로 호출해 만든다 — 손으로 쓴 예시를 넣으면 실제 산출물과 달라지고,
+ * 그러면 데모가 제품을 속이는 것이 된다.
+ *
+ * ls-2 하나만 채워 둔다. 기관 담당자가 발주한 회차의 교안을 열람하는 화면(ADR-019)이
+ * 비어 있지 않아야 하기 때문이다. 데모 강사(in-2)가 배정된 ls-1 은 비워 둬서
+ * "교안 초안 만들기" 버튼을 직접 눌러 보게 한다.
+ */
+const seedSession = lectureSessions.find((s) => s.id === 'ls-2')!
+const seedProgram =
+  programs.find(
+    (p) => p.instructor_id === seedSession.instructor_id && p.field === seedSession.field,
+  ) ?? null
+
+const seedInputs: LessonPlanInputs = {
+  session_title: seedSession.title,
+  field: seedSession.field,
+  grade_band: seedSession.grade_band,
+  expected_students: seedSession.expected_students,
+  duration_minutes: seedSession.duration_minutes,
+  venue: seedSession.venue,
+  class_traits: seedSession.class_traits,
+  equipment: seedSession.equipment,
+  program_title: seedProgram?.title ?? null,
+  program_outline: seedProgram?.outline ?? [],
+  // 같은 기관·같은 분야의 지난 3D 회차가 아직 없다. 5건 미만이면 집계 자체를 만들지 않는다 (ADR-018).
+  prior: null,
+}
+
+export const lessonPlans: LessonPlan[] = [
+  {
+    id: 'lp-1',
+    session_id: seedSession.id,
+    instructor_id: seedSession.instructor_id!,
+    ...ruleSkeleton(seedInputs),
+    source: 'rule',
+    inputs_snapshot: seedInputs,
+    status: 'draft',
+    created_at: demoTime(-1, '21:10'),
+    updated_at: demoTime(-1, '21:10'),
+  },
+]

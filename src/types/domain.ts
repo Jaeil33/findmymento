@@ -15,6 +15,39 @@ export type Field = (typeof FIELDS)[number]
 /** 설문 Q4 전용. "아직 잘 모르겠어요"는 단독 선택이다. */
 export const FIELD_UNSURE = '아직 잘 모르겠어요'
 
+/**
+ * 학급 특성 — **고정 목록이다. 자유 텍스트 입력란을 만들지 말 것** (ADR-016).
+ *
+ * 입력란을 열어 두면 담당 교사가 "3번 자리 OO이 자폐스펙트럼"이라고 적는다. 악의가 아니라
+ * 친절 때문에 적는다. 장애·건강은 민감정보이고 학생 개인에 귀속되는 순간 별도 동의 의무가
+ * 생긴다. 선택지를 닫는 것이 유일하게 작동하는 방어다.
+ *
+ * 이 값은 `lecture_sessions`(= 한 반의 한 수업)에만 붙는다. `students`·`survey_responses`
+ * 에 붙이면 그 자체가 설계 위반이다.
+ */
+export const CLASS_TRAITS = [
+  '통합학급 포함',
+  '휠체어 사용 학생 있음',
+  '청각 보조 필요',
+  '시각 보조 필요',
+  '한국어 보조 필요',
+  '첫 경험 다수',
+  '경험자 다수',
+  '집중 지속이 짧은 편',
+] as const
+export type ClassTrait = (typeof CLASS_TRAITS)[number]
+
+export const VENUES = ['교실', '강당', '체육관', '운동장', '컴퓨터실', '메이커실'] as const
+export type Venue = (typeof VENUES)[number]
+
+export function isClassTrait(v: string): v is ClassTrait {
+  return (CLASS_TRAITS as readonly string[]).includes(v)
+}
+
+export function isVenue(v: string): v is Venue {
+  return (VENUES as readonly string[]).includes(v)
+}
+
 export type GradeBand = 'elementary' | 'middle' | 'high'
 
 export const GRADE_BAND_LABEL: Record<GradeBand, string> = {
@@ -77,6 +110,13 @@ export type LectureSession = {
   entry_code: string
   grade_band: GradeBand
   expected_students: number
+  /** ── 수업 조건. 기관이 입력하고 강사는 읽기만 한다 (ADR-015·ADR-016). ── */
+  duration_minutes: number
+  venue: Venue
+  /** 고정 목록 밖의 값은 DB 제약이 거부한다. */
+  class_traits: ClassTrait[]
+  /** 장비 목록. 사물만 적는다 — 학생에 대한 서술을 넣지 말 것. */
+  equipment: string[]
 }
 
 /** PII 없음. 가명코드·기관ID·학년까지다 (ADR-003). */
@@ -244,6 +284,17 @@ export const RECRUITMENT_STATUS_LABEL: Record<RecruitmentStatus, string> = {
   expired: '기한 만료',
 }
 
+/**
+ * 성사되지 않은 이유. **`장소 없음` 건수가 공간 사업 판단의 유일한 근거 데이터다** (ADR-023).
+ * 고정값이며 자유 텍스트를 쓰지 않는다 — 세어야 하는 값이기 때문이다.
+ */
+export const CLOSE_REASONS = ['공급 없음', '장소 없음', '예산 없음', '일정 불가'] as const
+export type CloseReason = (typeof CLOSE_REASONS)[number]
+
+export function isCloseReason(v: string): v is CloseReason {
+  return (CLOSE_REASONS as readonly string[]).includes(v)
+}
+
 export type RecruitmentRequest = {
   id: string
   org_id: string
@@ -252,6 +303,8 @@ export type RecruitmentRequest = {
   demand_count: number
   status: RecruitmentStatus
   note: string
+  /** `declined`·`expired` 일 때만 채워진다. */
+  close_reason: CloseReason | null
   created_at: string
 }
 
@@ -319,4 +372,99 @@ export type UnmetDemand = {
   grade_band: GradeBand | null
   interest_count: number
   supply_count: number
+}
+
+// ============================================================================
+// AI 수업 설계 도우미 (ADR-017·018·019)
+// ============================================================================
+
+/**
+ * 과거 회차 설문 집계. 같은 기관 + 같은 분야의 지난 회차에서 나온다.
+ *
+ * **응답이 5건 미만이면 이 값을 만들지 않는다 (`null`).** 응답 2건짜리 회차의
+ * "관심 분야 50% 코딩"은 분포가 아니라 특정 학생 한 명의 답이고, 담당 교사는 누가
+ * 응답했는지 대체로 알고 있다. 가명코드로 막아 둔 것을 집계가 우회하게 두지 않는다 (ADR-018).
+ */
+export type PriorFeedback = {
+  session_count: number
+  response_count: number
+  avg_satisfaction: number
+  /** 후속 의향 3 이상 비율 (0~1). */
+  followup_ratio: number
+  top_interests: { field: string; count: number }[]
+  /** `want_to_learn` 에서 반복된 표현. 마스킹을 통과한 텍스트에서만 뽑는다. */
+  repeated_phrases: string[]
+}
+
+/** 교안 생성에 들어간 조건. 재현과 검수를 위해 그대로 저장한다 (ADR-017). */
+export type LessonPlanInputs = {
+  session_title: string
+  field: Field
+  grade_band: GradeBand
+  expected_students: number
+  duration_minutes: number
+  venue: Venue
+  class_traits: ClassTrait[]
+  equipment: string[]
+  program_title: string | null
+  program_outline: string[]
+  /** 5건 미만이면 `null`. 화면에 "아직 반영할 응답이 없습니다"로 표시된다. */
+  prior: PriorFeedback | null
+}
+
+export type LessonPhase = '도입' | '전개' | '마무리'
+
+/**
+ * 차시 한 단계. **난이도 분기가 이 타입의 존재 이유다** — 강사가 가장 자주 포기하는 것이
+ * 진도 편차 대응이고, 그게 `fast`·`slow` 두 줄이다.
+ */
+export type LessonStep = {
+  phase: LessonPhase
+  title: string
+  minutes: number
+  base: string
+  /** 빨리 끝낸 학생. */
+  fast: string
+  /** 어려워하는 학생. */
+  slow: string
+  /** 그 회차에 해당 특성이 있을 때만 채워진다. 없으면 빈 배열. */
+  accommodations: { trait: ClassTrait; how: string }[]
+}
+
+export type LessonPlanStatus = 'draft' | 'final'
+
+/**
+ * 교안. **작성 강사 · 발주 기관 · 운영자 셋만 읽는다** (ADR-019).
+ * 다른 강사는 0행, anon 도 0행이며 학생·보호자에게 도달하는 경로를 만들지 않는다.
+ */
+export type LessonPlan = {
+  id: string
+  session_id: string
+  instructor_id: string
+  title: string
+  objectives: string[]
+  steps: LessonStep[]
+  materials: string[]
+  safety_notes: string[]
+  /** 무엇이 만들었는지. 화면에 "AI" 배지를 달기 위한 값이 아니라 검수·로그용이다. */
+  source: 'llm' | 'rule'
+  inputs_snapshot: LessonPlanInputs
+  status: LessonPlanStatus
+  created_at: string
+  updated_at: string
+}
+
+/** 기관용 회차 기획 초안 (ADR-021). 저장하지 않고 화면에서 폼으로 옮겨 담는다. */
+export type SessionPlanDraft = {
+  /** 규칙이 확정한 후보. LLM 은 이 목록 밖으로 나갈 수 없다. */
+  suggested_field: Field | null
+  suggested_title: string
+  suggested_duration: number
+  rationale: string
+  instructor_requirements: string[]
+  preparations: string[]
+  /** 관심은 있으나 관내 공급이 0인 분야. 예산 기안의 재료가 된다. */
+  unmet: { field: string; interest_count: number }[]
+  supply_by_field: Record<string, number>
+  source: 'llm' | 'rule'
 }

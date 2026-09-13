@@ -6,7 +6,7 @@ import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { approvedInstructors } from '@/lib/db/queries'
 import { regionName } from '@/lib/region'
-import { FIELDS } from '@/types/domain'
+import { CLASS_TRAITS, FIELDS, VENUES } from '@/types/domain'
 import { createSession } from '../../actions'
 import { IconAlert, IconArrowLeft } from '@/components/ui/Icons'
 
@@ -155,6 +155,72 @@ export default async function NewSessionPage({
                 <span className="block text-xs text-sub">응답률 계산에 쓰입니다.</span>
               </label>
             </div>
+          </div>
+        </Panel>
+
+        <Panel
+          title="수업 조건"
+          description="배정 강사가 이 조건으로 교안 초안을 받습니다. 학생 개인이 아니라 이 반 전체에 대한 정보만 받습니다."
+        >
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="block text-sm font-medium text-body">수업 시간 (분)</span>
+                <input
+                  type="number"
+                  name="durationMinutes"
+                  min={20}
+                  max={300}
+                  step={5}
+                  defaultValue={50}
+                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none tabular-nums"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="block text-sm font-medium text-body">장소</span>
+                <select name="venue" defaultValue="교실" className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none">
+                  {VENUES.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <fieldset className="space-y-2.5">
+              <legend className="text-sm font-medium text-body">학급 특성 (해당하는 것만)</legend>
+              <div className="flex flex-wrap gap-2">
+                {CLASS_TRAITS.map((t) => (
+                  <label
+                    key={t}
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-body has-checked:border-point has-checked:bg-point-bg has-checked:text-point"
+                  >
+                    <input type="checkbox" name="classTraits" value={t} className="accent-point" />
+                    {t}
+                  </label>
+                ))}
+              </div>
+              {/* 자유 입력란을 두지 않는다. 열어 두면 특정 학생의 진단명이 적힌다 (ADR-016). */}
+              <p className="rounded-md border border-line bg-muted px-3.5 py-2.5 text-xs leading-relaxed text-sub">
+                강사에게는 <strong className="font-medium text-body">이 반에 어떤 대응이 필요한지</strong>만
+                전달됩니다. 특정 학생을 알아볼 수 있는 내용은 적지 마세요 — 여기에는 적는 칸이 없습니다.
+              </p>
+            </fieldset>
+
+            <label className="block space-y-1.5">
+              <span className="block text-sm font-medium text-body">보유 장비</span>
+              <textarea
+                name="equipment"
+                rows={2}
+                placeholder="드론 10대, 태블릿 25대"
+                className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none resize-none"
+              />
+              <span className="block text-xs text-sub">
+                쉼표 또는 줄바꿈으로 구분합니다. 없는 장비를 전제한 교안이 나오지 않게 하는 데 쓰입니다.
+              </span>
+            </label>
           </div>
         </Panel>
 

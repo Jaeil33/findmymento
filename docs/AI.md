@@ -209,26 +209,35 @@ AI 기능이 늘어도 안전 설계는 그대로다. 오히려 여기가 제일
 
 TDD. 테스트를 먼저 쓴다.
 
-- [ ] `lecture_sessions`에 수업 조건 4컬럼 추가. `class_traits` 허용값을 DB 제약으로 강제
-- [ ] `lesson_plans` 테이블 + RLS (작성 강사 / 발주 기관 / 운영자)
-- [ ] 기관 회차 생성 화면에 수업 조건 입력 (체크박스만)
-- [ ] `lib/ai/lesson-plan.ts` — 규칙 입력 조립 + LLM 호출 + 규칙 폴백
-- [ ] `app/api/lesson-plan/route.ts` — 배정 강사 본인 확인 후 생성
-- [ ] `/instructor/sessions/[id]/plan` — 초안 표시 · 편집 · 저장
-- [ ] 기관 화면에서 발주 회차의 교안 열람
-- [ ] `lib/ai/session-plan.ts` + `app/api/session-plan/route.ts` — 기관 회차 기획 초안
+**기능 2 — 수업 설계 도우미 (강사용): 구현 완료**
+
+- [x] `lecture_sessions`에 수업 조건 4컬럼 추가. `class_traits` 허용값을 DB 제약으로 강제
+- [x] `lesson_plans` 테이블 + RLS (작성 강사 / 발주 기관 / 운영자)
+- [x] 기관 회차 생성 화면에 수업 조건 입력 (체크박스만)
+- [x] `lib/ai/lesson-plan.ts` — 규칙 입력 조립 + LLM 호출 + 규칙 폴백
+- [x] `app/api/lesson-plan/route.ts` — 배정 강사 본인 확인 후 생성
+- [x] `/instructor/sessions/[id]/plan` — 초안 생성·표시
+- [x] 기관 화면에서 발주 회차의 교안 열람
+
+**아직 안 된 것**
+
+- [ ] `lib/ai/session-plan.ts` + `app/api/session-plan/route.ts` — 기관 회차 기획 초안 (기능 3)
 - [ ] 회차 생성 화면에서 초안 → 폼 자동 채움
-- [ ] `recruitment_requests.close_reason` 추가 + 미충족 수요를 `공급 없음`/`장소 없음`으로 분리 집계 (ADR-023)
+- [ ] 교안 본문을 강사가 직접 고쳐 저장하는 편집 UI (지금은 재생성만 가능)
+- [ ] 미충족 수요를 `공급 없음`/`장소 없음`으로 분리 집계하는 화면 (컬럼·타입은 추가됨 — ADR-023)
 - [ ] 강사 화면 상단 "이번 달 받은 것" 집계 (배정·리드·교안·리포트) — 과금 근거 화면 (ADR-020)
 - [ ] 강사 리드에 "성사됨" 체크 — 성사율 기록 (수수료 모델의 유일한 대비)
 
 네거티브 테스트 (필수):
 
-- [ ] 타 강사가 남의 `lesson_plans` SELECT → **0행**
-- [ ] anon이 `lesson_plans` SELECT → **0행**
-- [ ] 배정되지 않은 강사가 `/api/lesson-plan` 호출 → **거부**
-- [ ] 응답 4건인 기관·분야의 집계가 프롬프트에 **들어가지 않음**
-- [ ] 연락처가 섞인 자유서술이 마스킹 없이 LLM 페이로드에 **들어가지 않음**
-- [ ] `ANTHROPIC_API_KEY` 없이 호출 → 규칙 템플릿으로 **200**
-- [ ] `class_traits`에 목록 밖 값 INSERT → **제약 위반**
-- [ ] 교안 API 응답에 강사 연락처 필드 **없음**
+- [x] 타 강사가 남의 `lesson_plans` SELECT → **0행** (정책 정적 검증)
+- [x] anon이 `lesson_plans` SELECT → **0행** (`to authenticated` 만 존재)
+- [x] 배정되지 않은 강사가 `/api/lesson-plan` 호출 → **거부** (라우트 검증 + 실측 404)
+- [x] 응답 4건인 기관·분야의 집계가 프롬프트에 **들어가지 않음**
+- [x] 연락처가 섞인 자유서술이 마스킹 없이 LLM 페이로드에 **들어가지 않음**
+- [x] `ANTHROPIC_API_KEY` 없이 호출 → 규칙 골격으로 **200**
+- [x] `class_traits`에 목록 밖 값 → **DB 제약 + 서버 액션 필터** 양쪽에서 차단
+- [x] 교안 API 응답에 강사 연락처 필드 **없음**
+- [x] LLM 이 단계를 추가·삭제·재배열하거나 QR 안내를 지워도 **구조가 깨지지 않음**
+
+테스트는 `tests/lesson-plan.test.ts`(30개), `tests/rls-policies.test.ts`, `tests/safety-invariants.test.ts` 에 나뉘어 있다.

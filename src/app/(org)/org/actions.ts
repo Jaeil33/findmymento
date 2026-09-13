@@ -14,7 +14,15 @@ import {
   setSessionStatus,
   updateInterestStatus,
 } from '@/lib/db/ops'
-import { FIELDS, type Field, type GradeBand, type InterestStatus } from '@/types/domain'
+import {
+  FIELDS,
+  isClassTrait,
+  isVenue,
+  type Field,
+  type GradeBand,
+  type InterestStatus,
+  type Venue,
+} from '@/types/domain'
 
 /**
  * 기관·학교 담당자 서버 액션.
@@ -48,6 +56,21 @@ export async function createSession(formData: FormData) {
   const expected = Number(formData.get('expectedStudents') ?? 0)
   const instructorId = String(formData.get('instructorId') ?? '') || null
 
+  // ── 수업 조건 (ADR-016).
+  const duration = Number(formData.get('durationMinutes') ?? 50)
+  const venueRaw = String(formData.get('venue') ?? '교실')
+  const venue: Venue = isVenue(venueRaw) ? venueRaw : '교실'
+  // **고정 목록 밖의 값은 여기서 전부 버린다.** 자유 텍스트가 DB 에 들어가는 경로를 만들지 않는다.
+  const classTraits = formData
+    .getAll('classTraits')
+    .map((v) => String(v))
+    .filter(isClassTrait)
+  const equipment = String(formData.get('equipment') ?? '')
+    .split(/[,\n]/)
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0 && v.length <= 40)
+    .slice(0, 10)
+
   if (!title || !field || !heldOn || !closesOn || !gradeBand || !Number.isFinite(expected)) {
     redirect('/org/sessions/new?error=1')
   }
@@ -68,6 +91,10 @@ export async function createSession(formData: FormData) {
     gradeBand,
     expectedStudents: Math.max(1, Math.min(500, Math.round(expected))),
     instructorId,
+    durationMinutes: Math.max(20, Math.min(300, Math.round(Number.isFinite(duration) ? duration : 50))),
+    venue,
+    classTraits,
+    equipment,
   })
 
   revalidatePath('/org/sessions')

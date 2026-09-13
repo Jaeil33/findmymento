@@ -11,6 +11,7 @@ import type {
   Interest,
   Invitation,
   LectureSession,
+  LessonPlan,
   OrgMember,
   Organization,
   Program,
@@ -44,6 +45,7 @@ export type Dataset = {
   instructorVerifications: InstructorVerification[]
   programs: Program[]
   lectureSessions: LectureSession[]
+  lessonPlans: LessonPlan[]
   students: Student[]
   surveyResponses: SurveyResponse[]
   interests: Interest[]
@@ -64,6 +66,7 @@ function demoDataset(): Dataset {
     instructorVerifications: demo.instructorVerifications,
     programs: demo.programs,
     lectureSessions: demo.lectureSessions,
+    lessonPlans: demo.lessonPlans,
     students: demo.students,
     surveyResponses: demo.surveyResponses,
     interests: demo.interests,
@@ -108,6 +111,7 @@ export const loadDataset = cache(async (): Promise<Dataset> => {
     instructorVerifications,
     programs,
     lectureSessions,
+    lessonPlans,
     students,
     surveyResponses,
     interests,
@@ -137,7 +141,19 @@ export const loadDataset = cache(async (): Promise<Dataset> => {
       target_grades: (r.target_grades as Program['target_grades']) ?? [],
       outline: (r.outline as string[]) ?? [],
     })),
-    table<LectureSession>('lecture_sessions', (r) => r as unknown as LectureSession),
+    table<LectureSession>('lecture_sessions', (r) => ({
+      ...(r as unknown as LectureSession),
+      class_traits: (r.class_traits as LectureSession['class_traits']) ?? [],
+      equipment: (r.equipment as string[]) ?? [],
+    })),
+    // RLS 가 작성 강사·발주 기관·운영자 외에는 0행을 준다 (ADR-019).
+    table<LessonPlan>('lesson_plans', (r) => ({
+      ...(r as unknown as LessonPlan),
+      objectives: (r.objectives as string[]) ?? [],
+      steps: (r.steps as LessonPlan['steps']) ?? [],
+      materials: (r.materials as string[]) ?? [],
+      safety_notes: (r.safety_notes as string[]) ?? [],
+    })),
     table<Student>('students', (r) => ({
       id: String(r.id),
       pseudo_code: String(r.pseudo_code),
@@ -198,6 +214,7 @@ export const loadDataset = cache(async (): Promise<Dataset> => {
     instructorVerifications,
     programs,
     lectureSessions,
+    lessonPlans,
     students,
     surveyResponses: responses,
     interests,

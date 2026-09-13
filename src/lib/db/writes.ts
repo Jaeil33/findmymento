@@ -1,7 +1,19 @@
 import * as demo from '@/data/demo'
 import { getServerSupabase } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/supabase/env'
-import type { Field, Grade, GradeBand, Inquiry, Interest, QnaQuestion, SurveyResponse } from '@/types/domain'
+import type {
+  Field,
+  Grade,
+  GradeBand,
+  Inquiry,
+  Interest,
+  LessonPlan,
+  LessonPlanInputs,
+  LessonPlanStatus,
+  LessonStep,
+  QnaQuestion,
+  SurveyResponse,
+} from '@/types/domain'
 
 /**
  * 쓰기. **전부 API 라우트에서만 호출한다** — 금칙어 필터·중복 제출·마감 검증·레이트 리밋을
@@ -223,6 +235,80 @@ export async function insertInquiry(input: InquiryInput): Promise<{ id: string }
       message: input.message,
       status: 'received',
     })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(error.message)
+  return { id: String(data!.id) }
+}
+
+/**
+ * 교안 저장. 한 회차에 강사 하나의 교안 하나이므로 **재생성은 덮어쓰기다.**
+ *
+ * 호출 전에 반드시 "그 회차에 배정된 강사 본인인가"를 확인할 것. 실 DB 에서는 RLS 가 한 번 더
+ * 막지만(ADR-015·019), 데모 모드에는 RLS 가 없으므로 애플리케이션 체크가 유일한 방어선이다.
+ */
+export type LessonPlanInput = {
+  sessionId: string
+  instructorId: string
+  title: string
+  objectives: string[]
+  steps: LessonStep[]
+  materials: string[]
+  safetyNotes: string[]
+  source: 'llm' | 'rule'
+  inputsSnapshot: LessonPlanInputs
+  status: LessonPlanStatus
+}
+
+export async function upsertLessonPlan(input: LessonPlanInput): Promise<{ id: string }> {
+  const now = new Date().toISOString()
+
+  if (isDemoMode()) {
+    const existing = demo.lessonPlans.find(
+      (p) => p.session_id === input.sessionId && p.instructor_id === input.instructorId,
+    )
+    const row: LessonPlan = {
+      id: existing?.id ?? nextId('lp'),
+      session_id: input.sessionId,
+      instructor_id: input.instructorId,
+      title: input.title,
+      objectives: input.objectives,
+      steps: input.steps,
+      materials: input.materials,
+      safety_notes: input.safetyNotes,
+      source: input.source,
+      inputs_snapshot: input.inputsSnapshot,
+      status: input.status,
+      created_at: existing?.created_at ?? now,
+      updated_at: now,
+    }
+    if (existing) demo.lessonPlans[demo.lessonPlans.indexOf(existing)] = row
+    else demo.lessonPlans.push(row)
+    return { id: row.id }
+  }
+
+  const sb = await getServerSupabase()
+  if (!sb) throw new Error('DB 연결이 없습니다.')
+
+  const { data, error } = await sb
+    .from('lesson_plans')
+    .upsert(
+      {
+        session_id: input.sessionId,
+        instructor_id: input.instructorId,
+        title: input.title,
+        objectives: input.objectives,
+        steps: input.steps,
+        materials: input.materials,
+        safety_notes: input.safetyNotes,
+        source: input.source,
+        inputs_snapshot: input.inputsSnapshot,
+        status: input.status,
+        updated_at: now,
+      },
+      { onConflict: 'session_id,instructor_id' },
+    )
     .select('id')
     .single()
 

@@ -108,18 +108,43 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
   it('학생이 강사에게 직접 도달하는 API 라우트가 없다', () => {
     const apiDir = join(SRC, 'app', 'api')
     const routes = walk(apiDir).map((f) => rel(f))
-    // 존재하는 쓰기 경로는 이 5개뿐이다. 새 경로를 추가하면 여기서 걸린다.
+    // 존재하는 경로는 이것뿐이다. 새 경로를 추가하면 여기서 걸린다.
     // `health` 는 쓰기 경로가 아니라 배포 확인용이고, 아래 테스트가 그 사실을 고정한다.
+    // `lesson-plan` 은 **강사 전용**이다 — 학생·보호자 경로가 아니며 아래에서 그 사실을 고정한다.
     expect(routes.sort()).toEqual(
       [
         'src/app/api/health/route.ts',
         'src/app/api/inquiry/route.ts',
         'src/app/api/interest/route.ts',
+        'src/app/api/lesson-plan/route.ts',
         'src/app/api/qna/route.ts',
         'src/app/api/recommend/route.ts',
         'src/app/api/survey/route.ts',
       ].sort(),
     )
+  })
+
+  it('교안 라우트는 배정된 강사 본인만 통과한다 (ADR-015·019)', () => {
+    const src = read(join(SRC, 'app', 'api', 'lesson-plan', 'route.ts'))
+    // 역할 확인이 없으면 anon 이 남의 회차 교안을 만들어 낼 수 있다.
+    expect(src).toContain("actor.role !== 'instructor'")
+    // 배정 확인이 없으면 아무 강사나 남의 회차에 교안을 만든다.
+    expect(src).toMatch(/instructor_id === actor\.instructorId/)
+    // 응답에 연락처·학생 식별 필드를 만들지 않는다.
+    for (const banned of ['phone', 'email', 'pseudo_code', 'student_id', 'guardian']) {
+      expect(src, banned).not.toContain(banned)
+    }
+  })
+
+  it('교안 생성 로직이 학생 개인 레코드를 읽지 않는다 (ADR-016·018)', () => {
+    const src = read(join(SRC, 'lib', 'ai', 'lesson-plan.ts'))
+    // 학급 특성은 회차에서만 온다.
+    expect(src).toContain('session.class_traits')
+    expect(src).not.toMatch(/ds\.students/)
+    // 자유서술은 마스킹을 통과한 것만 본다.
+    expect(src).toContain('maskForStorage')
+    // k-익명성 임계치가 코드에 박혀 있다.
+    expect(src).toMatch(/PRIOR_MIN_RESPONSES\s*=\s*5/)
   })
 
   it('health 라우트는 읽기 전용이고 DB 를 건드리지 않는다', () => {

@@ -2,6 +2,7 @@ import * as demo from '@/data/demo'
 import { getServerSupabase, getServiceSupabase } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/supabase/env'
 import type {
+  ClassTrait,
   Consent,
   Field,
   GradeBand,
@@ -12,6 +13,7 @@ import type {
   LectureSession,
   QnaAnswer,
   RecruitmentRequest,
+  Venue,
 } from '@/types/domain'
 
 /**
@@ -37,6 +39,12 @@ export type SessionInput = {
   expectedStudents: number
   /** 배정. nullable 이지만 화면에서 강하게 유도한다 — 미배정이면 강사가 QR·리포트를 못 본다 (E-23). */
   instructorId: string | null
+  /** ── 수업 조건. 배정 강사의 교안 입력이 된다 (ADR-016·017). ── */
+  durationMinutes: number
+  venue: Venue
+  /** **고정 목록 밖의 값을 받지 않는다.** 호출 전에 `isClassTrait` 로 거른다 (ADR-016). */
+  classTraits: ClassTrait[]
+  equipment: string[]
 }
 
 /** 6자리 입장 코드. 기존 코드와 겹치지 않게만 하면 충분하다. */
@@ -67,6 +75,10 @@ export async function insertLectureSession(
       entry_code: entryCode,
       grade_band: input.gradeBand,
       expected_students: input.expectedStudents,
+      duration_minutes: input.durationMinutes,
+      venue: input.venue,
+      class_traits: input.classTraits,
+      equipment: input.equipment,
     }
     demo.lectureSessions.push(row)
     return { id: row.id, entryCode }
@@ -88,6 +100,10 @@ export async function insertLectureSession(
       entry_code: entryCode,
       grade_band: input.gradeBand,
       expected_students: input.expectedStudents,
+      duration_minutes: input.durationMinutes,
+      venue: input.venue,
+      class_traits: input.classTraits,
+      equipment: input.equipment,
     })
     .select('id, entry_code')
     .single()
@@ -231,6 +247,7 @@ export async function insertRecruitmentRequest(input: {
       field: input.field,
       demand_count: input.demandCount,
       status: 'sent',
+      close_reason: null,
       note: input.note,
       created_at: new Date().toISOString(),
     }

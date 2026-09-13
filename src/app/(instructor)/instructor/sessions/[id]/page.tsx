@@ -58,10 +58,15 @@ export default async function InstructorSessionReportPage({
           </>
         }
         actions={
-          <Link href={`/project/${session.id}`} className={buttonClass({ variant: 'secondary' })}>
-            <IconQr width={16} height={16} />
-            교실에 QR 띄우기
-          </Link>
+          <>
+            <Link href={`/instructor/sessions/${session.id}/plan`} className={buttonClass()}>
+              수업 설계 도우미
+            </Link>
+            <Link href={`/project/${session.id}`} className={buttonClass({ variant: 'secondary' })}>
+              <IconQr width={16} height={16} />
+              교실에 QR 띄우기
+            </Link>
+          </>
         }
       />
 
@@ -77,6 +82,18 @@ export default async function InstructorSessionReportPage({
               · 학생 단위 원본 응답과 가명코드는 <strong className="font-semibold">보이지 않습니다</strong>{' '}
               — 기관만 열람합니다
             </li>
+          </ul>
+        </Panel>
+
+        <Panel title="이 반의 조건" description="기관이 입력한 값입니다.">
+          <ul className="space-y-2 text-sm leading-relaxed text-body">
+            <li>
+              · {session.expected_students}명 · {session.duration_minutes}분 · {session.venue}
+            </li>
+            <li>· 장비: {session.equipment.length > 0 ? session.equipment.join(', ') : '미입력'}</li>
+            {session.class_traits.length > 0 && (
+              <li className="font-medium text-ink">· {session.class_traits.join(' · ')}</li>
+            )}
           </ul>
         </Panel>
 
