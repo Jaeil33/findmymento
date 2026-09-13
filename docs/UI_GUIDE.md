@@ -131,7 +131,8 @@ Text:           text-neutral-500 hover:text-neutral-800
 
 ### 레이아웃
 ```
-디렉토리 목록:  max-w-5xl, 카드 그리드 (모바일 1열 / sm 2열 / lg 3열)
+랜딩·헤더·푸터: max-w-6xl — 섹션마다 흰 면(bg-card)과 페이지 면(bg-page)을 번갈아 둔다
+디렉토리 목록:  max-w-6xl, 카드 그리드 (모바일 1열 / sm 2열 / lg 3열) — 헤더와 좌우 끝을 맞춘다
 상세 페이지:    max-w-3xl — 읽는 화면이므로 본문 폭을 좁게 둔다
 문의 폼:        max-w-xl
 ```

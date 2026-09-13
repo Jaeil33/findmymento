@@ -131,3 +131,36 @@ export const IconSend = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 12 20 4l-8 16-2-6z" />
   </Svg>
 )
+
+export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Svg>
+)
+
+export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+)
+
+export const IconMinus = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M5 12h14" />
+  </Svg>
+)
+
+export const IconLock = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <rect x="5" y="10.5" width="14" height="10" rx="1.5" />
+    <path d="M8.5 10.5v-3a3.5 3.5 0 0 1 7 0v3" />
+  </Svg>
+)
+
+export const IconEyeOff = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M3.5 3.5l17 17" />
+    <path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9 6-.25.75-1.2 2.3-2.8 3.7M6.3 7.8C4.3 9.1 3.2 11 3 12c.5 1.5 4 6 9 6 1.5 0 2.9-.4 4.1-1" />
+    <path d="M9.9 10a3 3 0 0 0 4.1 4.1" />
+  </Svg>
+)

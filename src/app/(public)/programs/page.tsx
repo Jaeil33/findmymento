@@ -47,24 +47,28 @@ export default async function ProgramsPage({
   const regions = allRegions().map((r) => ({ code: r.code, label: r.label }))
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <PageHeader
-        eyebrow="공개 디렉토리"
-        title="우리 지역 프로그램 찾기"
-        description={
-          <>
-            로그인 없이 볼 수 있습니다. 지역에 결과가 없으면 인접 지역까지 자동으로 넓혀 찾습니다.
-            수업 신청은 보호자님의 문의로만 받습니다.
-          </>
-        }
-        actions={
-          <Link href="/inquiry" className={buttonClass({ variant: 'primary' })}>
-            보호자님, 문의 남기기
-          </Link>
-        }
-      />
+    <div className="break-keep">
+      <div className="border-b border-line bg-card">
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+          <PageHeader
+            eyebrow="공개 디렉토리"
+            title="우리 지역 프로그램 찾기"
+            description={
+              <>
+                로그인 없이 볼 수 있습니다. 지역에 결과가 없으면 인접 지역까지 자동으로 넓혀
+                찾습니다. 수업 신청은 보호자님의 문의로만 받습니다.
+              </>
+            }
+            actions={
+              <Link href="/inquiry" className={buttonClass({ variant: 'primary' })}>
+                보호자님, 문의 남기기
+              </Link>
+            }
+          />
+        </div>
+      </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
         <FactNote>
           {supply.sentence}. 파일럿 단계라 결과가 한 업체로 쏠릴 수 있습니다. 강사 연락처는 어느
           화면에도 표시되지 않으며, 평점·리뷰 기능은 없습니다.

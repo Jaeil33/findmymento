@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
+import { FieldIcon } from '@/components/ui/FieldIcon'
 import { GRADE_BAND_LABEL, PROGRAM_FORMAT_LABEL } from '@/types/domain'
-import { IconMapPin } from '@/components/ui/Icons'
+import { IconArrowRight, IconMapPin } from '@/components/ui/Icons'
 import type { ProgramCard } from '@/lib/db/queries'
 
 /**
@@ -18,42 +19,49 @@ export function ProgramCardView({ card, showDistance = true }: { card: ProgramCa
   return (
     <Link
       href={`/programs/${program.id}`}
-      className="group flex h-full flex-col rounded-lg border border-line bg-card p-5 transition-colors hover:border-line-strong hover:bg-muted/40"
+      className="group flex h-full flex-col rounded-lg border border-line bg-card p-5 break-keep transition-colors hover:border-point"
     >
-      <div className="flex items-start justify-between gap-3">
-        <Badge tone="point">{program.field}</Badge>
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-point">
+          <FieldIcon field={program.field} width={20} height={20} />
+          {program.field}
+        </span>
         {showDistance && distance === 0 ? <Badge tone="positive">우리 동네</Badge> : null}
       </div>
 
-      <h3 className="mt-3 text-base leading-snug font-semibold text-ink group-hover:underline group-hover:underline-offset-4">
+      <h3 className="mt-4 text-base leading-snug font-semibold text-ink group-hover:text-point sm:text-[1.0625rem]">
         {program.title}
       </h3>
       <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-body">{program.summary}</p>
 
-      <dl className="mt-4 space-y-1.5 text-xs text-sub">
-        <div className="flex items-center gap-1.5">
-          <IconMapPin width={14} height={14} className="shrink-0" />
+      {/* 보조 영역(#f5f5f5) 위에는 #737373 을 쓰지 않는다 (UI_GUIDE 접근성) — text-body 로 둔다. */}
+      <dl className="mt-4 flex flex-wrap gap-1.5 text-xs">
+        <div className="inline-flex items-center gap-1 rounded bg-muted px-2 py-1">
+          <IconMapPin width={13} height={13} className="shrink-0 text-body" />
           <dt className="sr-only">지역</dt>
-          <dd className="font-medium text-body">{regionLabel}</dd>
+          <dd className="font-semibold text-ink">{regionLabel}</dd>
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          <div>
-            <dt className="sr-only">대상</dt>
-            <dd>{program.target_grades.map((g) => GRADE_BAND_LABEL[g]).join('·')}</dd>
-          </div>
-          <div>
-            <dt className="sr-only">형태</dt>
-            <dd className="tabular-nums">
-              {PROGRAM_FORMAT_LABEL[program.format]} {program.session_count}회
-            </dd>
-          </div>
+        <div className="rounded bg-muted px-2 py-1">
+          <dt className="sr-only">대상</dt>
+          <dd className="text-body">{program.target_grades.map((g) => GRADE_BAND_LABEL[g]).join('·')}</dd>
+        </div>
+        <div className="rounded bg-muted px-2 py-1">
+          <dt className="sr-only">형태</dt>
+          <dd className="text-body tabular-nums">
+            {PROGRAM_FORMAT_LABEL[program.format]} {program.session_count}회
+          </dd>
         </div>
       </dl>
 
-      <p className="mt-4 border-t border-line pt-3 text-xs text-sub">
-        {instructor.name} 강사
-        {provider ? <span className="text-faint"> · {provider.name}</span> : <span className="text-faint"> · 프리랜서</span>}
-      </p>
+      <div className="mt-auto pt-5">
+        <div className="flex items-center justify-between gap-3 border-t border-line pt-3.5 text-xs">
+          <p className="min-w-0 truncate text-body">
+            {instructor.name} 강사
+            <span className="text-sub"> · {provider ? provider.name : '프리랜서'}</span>
+          </p>
+          <IconArrowRight width={16} height={16} className="shrink-0 text-faint group-hover:text-point" />
+        </div>
+      </div>
     </Link>
   )
 }

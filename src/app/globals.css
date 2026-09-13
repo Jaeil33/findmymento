@@ -26,6 +26,8 @@
   --color-point-hover: #115e59;
   --color-point-bg: #f0fdfa;
   --color-point-line: #99f6e4;
+  /* 포인트 색 면(랜딩 CTA) 위의 보조 텍스트. 같은 틸 계열의 밝은 단계라 두 번째 브랜드 색이 아니다. */
+  --color-point-soft: #ccfbf1;
 
   /* 데이터 / 시맨틱 — 라이트 배경이므로 600~700 계열 */
   --color-positive: #15803d;
@@ -101,6 +103,13 @@
   ::selection {
     background-color: var(--color-point-bg);
     color: var(--color-point-hover);
+  }
+
+  /* 한글 제목은 어절 중간에서 끊지 않는다 — "관심 / 을" 같은 줄바꿈을 막는다 */
+  h1,
+  h2,
+  h3 {
+    word-break: keep-all;
   }
 }
 
