@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "result-report",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-09-13T21:55:40+0900",
+      "summary": "src/lib/ai/result-report.ts 신규 — export: ruleResultReport(ds,sessionId) · allowedNumbers(ds,draft) · bannedNames(ds,sessionId) · buildLlmPayload(ds,draft)(표본 부족 null) · mergeLlmResultReport(draft,raw,{allowed,banned}) · generateResultReport(ds,sessionId)(throw 없음, 없는 회차만 null). src/types/domain.ts에 ResultReportDraft 추가. 제목·개요·지표·고지문은 sessionReport로 규칙 확정, 응답 5건 미만은 통계·학생 의견 비움+LLM 미호출+병합 무시, LLM 문장은 sanitizeText(120)→numbersWithin(FIELDS 무시)→이름 가드→학생 지목(학생 A) 가드, 창체 참고 문구는 숫자 0개·한 문장·150자, 인용은 재마스킹·금지 이름·[..삭제]·4자리 이상 숫자 제외 최대 5(인용 0이면 LLM 학생 의견도 거부). tests/result-report.test.ts 45개(SDK 모킹). 저장·라우트·화면 없음, guard.ts 무수정",
+      "completed_at": "2026-09-13T13:06:44+0000"
     },
     {
       "step": 3,

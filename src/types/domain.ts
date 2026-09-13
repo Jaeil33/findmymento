@@ -468,3 +468,46 @@ export type SessionPlanDraft = {
   supply_by_field: Record<string, number>
   source: 'llm' | 'rule'
 }
+
+/**
+ * 기관용 회차 결과보고서 초안 (ADR-024 기능 4). **저장하지 않는다** — 화면에 보여주고 복사할 뿐이다.
+ *
+ * 제목·개요·지표·고지문은 규칙이 확정한다. LLM 은 성과·학생 의견·개선점·후속 계획·창체 참고
+ * 문구의 문장만 쓰고, 숫자·이름 가드를 통과한 문장만 남는다.
+ */
+export type ResultReportDraft = {
+  session_id: string
+  /** 규칙: `${회차 제목} 운영 결과보고(초안)` */
+  title: string
+  /** 규칙: 일시 · 장소 · 대상(학년대) · 예상 인원 · 시수 · 분야 · 배정 강사(이름 또는 '미배정') */
+  overview: { label: string; value: string }[]
+  /** 응답 수 >= MIN_AGGREGATE_RESPONSES */
+  sample_sufficient: boolean
+  metrics: {
+    response_count: number
+    expected: number
+    /** 정수 % */
+    response_rate_pct: number
+    /** 소수 첫째 자리 반올림. 표본 부족이면 null */
+    satisfaction_avg: number | null
+    /** 후속 의향 3점 이상 응답 수. 표본 부족이면 null */
+    followup_high_count: number | null
+    /** 정수 %. 표본 부족이면 null */
+    followup_high_pct: number | null
+    /** 관심 분야 상위 3. 표본 부족이면 [] */
+    top_fields: { field: string; count: number }[]
+  }
+  /** 성과 요약 — 최대 4 */
+  outcomes: string[]
+  /** 학생 의견 요약 — 최대 4. 표본 부족이면 [] */
+  student_voice: string[]
+  /** 개선점 — 최대 4 */
+  improvements: string[]
+  /** 후속 계획 — 최대 4 */
+  next_steps: string[]
+  /** 창체 진로활동 기록 참고 문구 (회차 단위 활동 서술 한 문장, 150자 이내). 강사명·기관명·업체명 없음 */
+  record_reference: string
+  /** 규칙 고정 고지문 */
+  notices: string[]
+  source: 'llm' | 'rule'
+}
