@@ -13,6 +13,35 @@
 
 ---
 
+## 현재 배포 (2026-09-13 확인)
+
+| 항목 | 값 |
+|---|---|
+| **운영 URL** | https://findmymento.vercel.app |
+| 상태 확인 | https://findmymento.vercel.app/api/health |
+| 배포 방식 | GitHub 연동 · `main` 푸시하면 자동 배포 |
+| Function Region | **Seoul (icn1)** — 응답 헤더 `X-Vercel-Id`가 `icn1::`로 시작하면 정상 |
+| 현재 단계 | **1단계 · 데모** (환경변수 0개) |
+
+`/api/health`가 **현재 배포된 커밋 해시와 환경변수 설정 여부**를 그대로 돌려준다. 배포가 반영됐는지 확인할 때 대시보드를 열 필요 없이 이것만 보면 된다.
+
+```bash
+curl -s https://findmymento.vercel.app/api/health
+# {"ok":true,"mode":"demo","commit":"1947a11","config":{...}}
+```
+
+### 지금 꺼져 있는 것 — 읽고 넘어갈 것
+
+**`ANTHROPIC_API_KEY`가 설정돼 있지 않다. 그래서 AI 추천이 규칙 폴백으로만 동작한다.**
+
+학생 화면에 뜨는 추천 이유는 LLM이 만든 문장이 아니라 `ruleReason()`이 만든 템플릿 문장이다. 설계상 의도된 동작이고(E-06, ADR-004) 화면은 정상으로 보이지만, **지금 이 데모에서 AI는 한 줄도 돌지 않는다.**
+
+- 기관·심사 자리에서 이 화면을 "AI 추천"으로 소개하려면 **키를 먼저 넣어야 한다** (2-4절).
+- 키를 넣은 뒤에는 `/api/health`의 `config.anthropic_api_key`가 `true`로 바뀌는지 확인한다.
+- 넣지 않고 시연할 거라면 "규칙 기반으로 동작 중"이라고 말하는 편이 낫다. 물어보면 바로 드러난다.
+
+---
+
 ## 0. 사전 확인
 
 ```bash
