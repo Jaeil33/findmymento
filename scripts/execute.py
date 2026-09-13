@@ -234,10 +234,13 @@ class StepExecutor:
             print(f"  ERROR: {step_file} not found")
             sys.exit(1)
 
-        prompt = preamble + step_file.read_text()
+        prompt = preamble + step_file.read_text(encoding="utf-8")
+        # 프롬프트는 stdin 으로 넘긴다. 가드레일(CLAUDE.md + docs 전체)이 10만 자를 넘어
+        # 인자로 넘기면 Windows 명령줄 한도(32,767자)에서 실행 자체가 실패한다.
         result = subprocess.run(
-            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
-            cwd=self._root, capture_output=True, text=True, timeout=1800,
+            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json"],
+            input=prompt, cwd=self._root, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=1800,
         )
 
         if result.returncode != 0:
