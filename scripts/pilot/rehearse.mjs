@@ -157,7 +157,6 @@ await runMain(async () => {
 
     const submitted = results.filter((r) => r.surveyOk)
     const recommended = results.filter((r) => r.recOk)
-    const llm = recommended.filter((r) => r.source === 'llm')
     const avg = (xs) => (xs.length > 0 ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0)
 
     log.step('3. 결과')
@@ -167,19 +166,13 @@ await runMain(async () => {
         recommended.length === submitted.length,
         `추천 응답 ${recommended.length}/${submitted.length} (평균 ${(avg(recommended.map((r) => r.recMs)) / 1000).toFixed(1)}초 · 최대 ${(Math.max(0, ...recommended.map((r) => r.recMs)) / 1000).toFixed(1)}초)`,
       )
-      const aiOk = recommended.length > 0 && llm.length === recommended.length
-      check(
-        aiOk,
-        `AI 생성(llm) ${llm.length}/${recommended.length}` +
-          (aiOk ? '' : ' — 나머지는 규칙 문장이에요. 배포의 ANTHROPIC_API_KEY, 크레딧, 시간 초과를 확인하세요.'),
-        aiOk ? 'ok' : 'warn',
-      )
+      // 수업 추천이 0건인 회차는 진로 카드 3장이 나간다 (ADR-027). 둘 다 없을 때만 빈 화면이다.
       const empty = recommended.filter((r) => r.items === 0)
       if (empty.length > 0) {
-        check(false, `추천 카드가 0개인 응답 ${empty.length}건 — 프로그램의 대상 학년·분야·강사 지역을 확인하세요.`, 'warn')
+        check(false, `카드가 0개인 응답 ${empty.length}건 — 수업 추천도 진로 카드도 없어요. 회차 분야와 프로그램의 대상 학년·분야·강사 지역을 확인하세요.`, 'warn')
       }
       const sample = recommended.find((r) => r.firstReason)
-      if (sample) log.info(`추천 이유 예시 (${sample.source}): "${sample.firstReason}"`)
+      if (sample) log.info(`추천 이유 예시 (${sample.kind}): "${sample.firstReason}"`)
     }
 
     // ── 4. DB 에 실제로 남았는지
@@ -209,6 +202,19 @@ await runMain(async () => {
         logs.length >= recommended.length ? 'ok' : 'warn',
       )
     }
+    // AI 가 실제로 돌았는지는 **추천 기록의 source** 로 본다. 응답의 source 는 수업 추천 기준이라
+    // 진로 카드(ADR-027)를 보여 준 경우를 모른다. 기록 테이블이 없을 때만 응답으로 대신 센다.
+    if (recommended.length > 0) {
+      const judged = logs ?? recommended
+      const llm = judged.filter((r) => r.source === 'llm')
+      const aiOk = judged.length > 0 && llm.length === judged.length
+      check(
+        aiOk,
+        `AI 생성(llm) ${llm.length}/${judged.length}${logs ? ' (추천 기록 기준)' : ''}` +
+          (aiOk ? '' : ' — 나머지는 규칙 문장이에요. 배포의 ANTHROPIC_API_KEY·ANTHROPIC_WORKSPACE_ID, 크레딧, 시간 초과를 확인하세요.'),
+        aiOk ? 'ok' : 'warn',
+      )
+    }
   } finally {
     if (args.keep) log.warn(`--keep: 리허설 회차를 남겨 둡니다 (입장 코드 ${entryCode}). 지우려면 npm run pilot:rehearse -- --cleanup`)
     else await removeRehearsal(sb, created.id, check)
@@ -228,7 +234,7 @@ await runMain(async () => {
 // ============================================================================
 
 async function runStudent(site, { payload, probedMasking }, i) {
-  const row = { i: i + 1, probedMasking, surveyOk: false, recOk: false, surveyMs: 0, recMs: 0, items: 0, source: '-', firstReason: '' }
+  const row = { i: i + 1, probedMasking, surveyOk: false, recOk: false, surveyMs: 0, recMs: 0, items: 0, kind: '-', source: '-', firstReason: '' }
 
   const s = await http(`${site}/api/survey`, { method: 'POST', body: payload, timeoutMs: 30_000 })
   row.surveyOk = s.status === 200 && s.json?.ok === true
@@ -245,10 +251,14 @@ async function runStudent(site, { payload, probedMasking }, i) {
   })
   row.recOk = r.status === 200 && r.json?.ok === true
   row.recMs = r.ms
+  // 수업 추천(items)이 0건이면 진로 카드(careers)가 화면을 채운다 (ADR-027).
+  const items = Array.isArray(r.json?.items) ? r.json.items : []
+  const careers = Array.isArray(r.json?.careers) ? r.json.careers : []
   row.source = r.json?.source ?? '-'
-  row.items = Array.isArray(r.json?.items) ? r.json.items.length : 0
-  row.firstReason = r.json?.items?.[0]?.reason ?? ''
-  const line = `#${row.i} 설문 ${s.status} (${s.ms}ms) → 추천 ${r.status || r.error} (${(r.ms / 1000).toFixed(1)}초) source=${row.source} 카드 ${row.items}개 stage=${r.json?.stage ?? '-'}`
+  row.kind = items.length > 0 ? '수업' : careers.length > 0 ? '진로' : '-'
+  row.items = items.length > 0 ? items.length : careers.length
+  row.firstReason = (items[0] ?? careers[0])?.reason ?? ''
+  const line = `#${row.i} 설문 ${s.status} (${s.ms}ms) → 추천 ${r.status || r.error} (${(r.ms / 1000).toFixed(1)}초) 카드 ${row.items}개(${row.kind}) stage=${r.json?.stage ?? '-'}`
   if (row.recOk) log.info(line)
   else log.bad(`${line} ${r.json?.message ?? ''}`.trim())
   return row

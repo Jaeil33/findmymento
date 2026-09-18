@@ -180,7 +180,10 @@ function changes(current, next) {
   return Object.keys(patch).length > 0 ? patch : null
 }
 
-const describePatch = (patch) => (patch ? `수정 (${Object.keys(patch).join(', ')})` : '그대로')
+// 본문(runMain)이 이 줄보다 위에서 돈다 — const 로 쓰면 초기화 전(TDZ)이라 멈춘다. function 선언으로 둔다.
+function describePatch(patch) {
+  return patch ? `수정 (${Object.keys(patch).join(', ')})` : '그대로'
+}
 
 async function upsertOrg(sb, o) {
   const rows = await must(sb.from('organizations').select('id, name, type, region_code').eq('name', o.name), '기관 조회')
@@ -355,8 +358,9 @@ async function upsertOrgMember(sb, orgId, m, site) {
 // QR
 // ============================================================================
 
-const esc = (s) =>
-  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
 
 async function writeQr({ site, code, sessionTitle }) {
   mkdirSync(PILOT_DIR, { recursive: true })
