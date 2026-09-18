@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
+import { createAnthropic } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
 
@@ -127,7 +128,7 @@ export async function callJsonLlm(req: JsonLlmRequest): Promise<unknown | null> 
   }
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = createAnthropic(apiKey)
     const response = await client.messages.create(
       {
         model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',

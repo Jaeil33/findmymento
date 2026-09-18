@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropic } from '@/lib/ai/client'
 import { FIELD_UNSURE, type Field, type GradeBand, type Recommendation } from '@/types/domain'
 import { expandRegion, regionName } from '@/lib/region'
 import { maskForStorage } from '@/lib/moderation'
@@ -276,7 +277,7 @@ async function rankByLlm(items: Recommendation[], input: RecommendInput): Promis
     let text: string
     let stopReason: string | null = null
     if (hasKey) {
-      const client = new Anthropic({ apiKey })
+      const client = createAnthropic(apiKey)
       const response = await client.messages.create(
         {
           model,

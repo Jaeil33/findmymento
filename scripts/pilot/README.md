@@ -42,6 +42,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 NEXT_PUBLIC_SITE_URL=https://findmymento-pilot.vercel.app
 ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_WORKSPACE_ID=wrkspc_...   # 키가 조직 단위일 때만
 ```
 
 | 값 | 어디서 |
@@ -51,6 +52,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 | `SUPABASE_SERVICE_ROLE_KEY` | 같은 화면 → `service_role` `secret` 키 (Reveal). 새 프로젝트는 **Secret key** (`sb_secret_...`) |
 | `NEXT_PUBLIC_SITE_URL` | 파일럿 Vercel 프로젝트의 운영 주소. 끝에 `/` 를 붙이지 않는다. **QR 이 이 주소를 가리킨다** |
 | `ANTHROPIC_API_KEY` | Anthropic Console → API Keys |
+| `ANTHROPIC_WORKSPACE_ID` | 키가 작업공간에 묶이지 않은 조직 단위 키일 때만. Console → Settings → Workspaces 의 ID (`wrkspc_...`). 없으면 AI 호출이 전부 400 으로 거절된다 |
 
 같은 다섯 값을 **Vercel 파일럿 프로젝트 → Settings → Environment Variables** 에도 넣고 **재배포**한다.
 
@@ -134,5 +136,5 @@ npm run pilot:export -- --code 123456
 | `사이트가 데모 모드예요` | Vercel 파일럿 프로젝트에 Supabase 환경변수 없음 | 3단계 값을 Vercel 에 넣고 **재배포** |
 | 학생 화면이 회차를 못 찾음 | 배포가 다른 DB 를 보거나 학생 경로 수정이 배포 전 | Vercel 환경변수의 Supabase URL 확인, 최신 커밋 배포 확인 |
 | 401 / 403 | Vercel Deployment Protection | Settings → Deployment Protection 끄기, 또는 운영(Production) 주소 사용 |
-| AI 생성(llm) 0개 | 배포에 `ANTHROPIC_API_KEY` 없음 · 크레딧 소진 · 시간 초과 | Vercel 환경변수·Console 잔액 확인. 이때도 학생 화면은 규칙 문장으로 정상 동작한다 |
+| AI 생성(llm) 0개 | 배포에 `ANTHROPIC_API_KEY` 없음 · 조직 단위 키인데 `ANTHROPIC_WORKSPACE_ID` 없음(http_400) · 크레딧 소진 · 시간 초과 | Vercel 환경변수·Console 잔액 확인. 이때도 학생 화면은 규칙 문장으로 정상 동작한다 |
 | 추천 카드 0개 | 프로그램의 대상 학년·분야·강사 지역이 회차와 안 맞음 | `pilot:setup -- --dry-run` 경고 확인 |

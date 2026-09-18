@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
+import { createAnthropic } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled, demoSessionPlan } from '@/lib/ai/demo-writer'
 import type { Dataset } from '@/lib/db/dataset'
@@ -213,7 +214,7 @@ async function refineByLlm(
   try {
     let text: string
     if (hasKey) {
-      const client = new Anthropic({ apiKey })
+      const client = createAnthropic(apiKey)
       const response = await client.messages.create(
         {
           model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',

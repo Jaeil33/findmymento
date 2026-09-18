@@ -164,6 +164,7 @@ Project Settings → Environment Variables. Production·Preview 둘 다 체크.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 같은 화면 | 공개 키. 브라우저에 내려가는 게 정상이다 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 같은 화면 (Reveal) | **`NEXT_PUBLIC_` 접두사를 절대 붙이지 말 것.** 없으면 심사·초대·문의 배정이 안 된다 |
 | `ANTHROPIC_API_KEY` | 선택 | 없으면 추천이 규칙 기반으로 동작한다 (E-06, ADR-004) |
+| `ANTHROPIC_WORKSPACE_ID` | 키가 조직 단위일 때 | Console → Settings → Workspaces 의 ID(`wrkspc_...`). 작업공간에 묶이지 않은 키는 이 값이 없으면 **모든 AI 호출이 400** 이고 화면은 규칙 문장으로 조용히 떨어진다 |
 
 입력 후 **재배포해야 적용된다** (Deployments → 최신 → Redeploy).
 

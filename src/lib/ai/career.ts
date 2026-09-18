@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropic } from '@/lib/ai/client'
 import { CAREERS, type Career } from '@/data/careers'
 import { FIELD_UNSURE, GRADE_BAND_LABEL, type GradeBand } from '@/types/domain'
 import { maskForStorage } from '@/lib/moderation'
@@ -233,7 +233,7 @@ async function pickByLlm(
 
   const started = Date.now()
   try {
-    const client = new Anthropic({ apiKey })
+    const client = createAnthropic(apiKey)
     const response = await client.beta.messages.create(
       {
         model,
