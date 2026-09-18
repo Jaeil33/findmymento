@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { IconCheck, IconMapPin } from '@/components/ui/Icons'
 import { PROGRAM_FORMAT_LABEL, type Grade, type ProgramFormat } from '@/types/domain'
+import { CareerCards, type CareerCardItem } from './CareerCards'
 
 export type RecommendItem = {
   programId: string
@@ -30,6 +31,8 @@ export type RecommendResponse = {
   stageMessage?: string
   unmetFields?: string[]
   items?: RecommendItem[]
+  /** 추천할 수업이 0건일 때만 채워진다 (ADR-027). */
+  careers?: CareerCardItem[]
 }
 
 /**
@@ -39,6 +42,8 @@ export type RecommendResponse = {
  * "AI가 분석했어요" 같은 배지를 붙이지 않는다 (UI_GUIDE 안티패턴).
  *
  * 추천이 0건이면 Q&A 유도를 가장 크게 둔다 — 파일럿에서 과반으로 예상되는 경로다 (E-07).
+ * 단 진로 카드가 왔으면 진로 카드가 화면의 주인공이다 (ADR-027). 다음 행동은 교실의 선생님에게
+ * 말하는 것이고, 누를 버튼은 없다.
  */
 export function RecommendResultView({
   result,
@@ -56,6 +61,8 @@ export function RecommendResultView({
   sessionField: string
 }) {
   const items = result?.items ?? []
+  const careers = result?.careers ?? []
+  const showCareers = items.length === 0 && careers.length > 0
   const unmet = (result?.unmetFields ?? []).filter((f) => f !== '아직 잘 모르겠어요')
 
   return (
@@ -66,9 +73,17 @@ export function RecommendResultView({
           <p className="text-sm font-medium">답 고마워요</p>
         </div>
         <h1 className="text-xl leading-snug font-semibold tracking-tight text-ink">
-          {items.length > 0 ? '나에게 맞는 다음 교육' : '지금은 바로 들을 수업이 없어요'}
+          {items.length > 0
+            ? '나에게 맞는 다음 교육'
+            : showCareers
+              ? '오늘 수업과 이어지는 진로'
+              : '지금은 바로 들을 수업이 없어요'}
         </h1>
-        {result?.stageMessage ? (
+        {showCareers ? (
+          <p className="text-sm leading-relaxed text-body">
+            답해 준 내용을 보고 오늘 배운 {sessionField} 수업과 이어지는 직업을 골라 봤어요.
+          </p>
+        ) : result?.stageMessage ? (
           <p className="text-sm leading-relaxed text-body">{result.stageMessage}</p>
         ) : null}
       </header>
@@ -87,6 +102,15 @@ export function RecommendResultView({
             </li>
           ))}
         </ul>
+      ) : showCareers ? (
+        <div className="space-y-5">
+          <CareerCards items={careers} />
+          <div className="rounded-xl border border-line bg-muted px-5 py-4">
+            <p className="text-sm leading-relaxed text-body">
+              더 배우고 싶은 게 생기면 {orgName} 선생님께 말해 주세요.
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="space-y-5">
           <div className="rounded-xl border border-line bg-card p-5">
@@ -118,19 +142,25 @@ export function RecommendResultView({
         </div>
       )}
 
-      <footer className="space-y-2 border-t border-line pt-5 text-xs leading-relaxed text-sub">
-        <p>
-          선생님 연락처는 알려주지 않아요. 수업을 듣고 싶으면 {orgName} 선생님이 보호자님께 먼저
-          확인해요.
-        </p>
-        <p>
-          궁금한 건{' '}
-          <Link href="/qna" className="underline underline-offset-4 hover:text-ink">
-            공개 Q&amp;A
-          </Link>
-          에 남기면 돼요.
-        </p>
-      </footer>
+      {showCareers ? (
+        <footer className="border-t border-line pt-5 text-xs leading-relaxed text-sub">
+          <p>직업 소개는 누구나 확인할 수 있는 일반적인 내용을 담았어요.</p>
+        </footer>
+      ) : (
+        <footer className="space-y-2 border-t border-line pt-5 text-xs leading-relaxed text-sub">
+          <p>
+            선생님 연락처는 알려주지 않아요. 수업을 듣고 싶으면 {orgName} 선생님이 보호자님께 먼저
+            확인해요.
+          </p>
+          <p>
+            궁금한 건{' '}
+            <Link href="/qna" className="underline underline-offset-4 hover:text-ink">
+              공개 Q&amp;A
+            </Link>
+            에 남기면 돼요.
+          </p>
+        </footer>
+      )}
     </div>
   )
 }

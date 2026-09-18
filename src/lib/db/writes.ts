@@ -22,10 +22,19 @@ import type {
  * 데모 모드에서는 시드 배열에 append 한다. 서버 인스턴스 메모리이므로
  * 배포본에서는 재시작·스케일아웃 시 사라진다 — 검수용으로는 충분하고,
  * 실 DB 가 붙으면 같은 함수가 Supabase 로 들어간다.
+ *
+ * **anon 이 쓰는 테이블(설문·관심 표현·보호자 문의·추천 기록)은 INSERT 뒤에 행을 돌려받지 않는다.**
+ * anon 에게 SELECT 정책이 없으므로 `.select()` 를 붙이면 RETURNING 이 RLS 에 걸려 전부 실패한다.
+ * id 는 서버에서 `crypto.randomUUID()` 로 만든다.
  */
 
 let seq = 0
 const nextId = (prefix: string) => `${prefix}-rt-${Date.now().toString(36)}-${(seq += 1)}`
+
+/** PostgREST 에러를 던지되 분류 코드(예: 42501 = RLS 거부)를 남긴다. 라우트는 코드만 로그에 쓴다. */
+function dbError(e: { message: string; code?: string }): Error & { code: string | null } {
+  return Object.assign(new Error(e.message), { code: e.code ?? null })
+}
 
 export type SurveyInput = {
   sessionId: string
@@ -65,25 +74,25 @@ export async function insertSurveyResponse(input: SurveyInput): Promise<{ id: st
     return { id: row.id }
   }
 
-  const { data, error } = await sb
-    .from('survey_responses')
-    .insert({
-      session_id: input.sessionId,
-      student_id: input.studentId,
-      grade_band: input.grade.band,
-      grade_year: input.grade.year,
-      satisfaction: input.satisfaction,
-      followup_intent: input.followupIntent,
-      interest_fields: input.interestFields,
-      want_to_learn: input.wantToLearn,
-      desired_job: input.desiredJob,
-      available_times: input.availableTimes,
-    })
-    .select('id')
-    .single()
+  // anon 은 survey_responses 를 읽을 수 없다. `.select()` 로 행을 돌려받으면 RETURNING 이
+  // SELECT 정책에 걸려 **모든 제출이 실패한다.** id 는 서버에서 만들고 행을 돌려받지 않는다.
+  const id = crypto.randomUUID()
+  const { error } = await sb.from('survey_responses').insert({
+    id,
+    session_id: input.sessionId,
+    student_id: input.studentId,
+    grade_band: input.grade.band,
+    grade_year: input.grade.year,
+    satisfaction: input.satisfaction,
+    followup_intent: input.followupIntent,
+    interest_fields: input.interestFields,
+    want_to_learn: input.wantToLearn,
+    desired_job: input.desiredJob,
+    available_times: input.availableTimes,
+  })
 
-  if (error) throw new Error(error.message)
-  return { id: String(data!.id) }
+  if (error) throw dbError(error)
+  return { id }
 }
 
 export type InterestInput = {
@@ -117,21 +126,20 @@ export async function insertInterest(input: InterestInput): Promise<{ id: string
     return { id: row.id }
   }
 
-  const { data, error } = await sb
-    .from('interests')
-    .insert({
-      student_id: input.studentId,
-      target_type: input.targetType,
-      target_id: input.targetId,
-      session_id: input.sessionId,
-      status: 'expressed',
-      student_alias: input.alias,
-    })
-    .select('id')
-    .single()
+  // anon 은 interests 를 읽을 수 없다 — 행을 돌려받지 않는다 (설문과 같은 이유).
+  const id = crypto.randomUUID()
+  const { error } = await sb.from('interests').insert({
+    id,
+    student_id: input.studentId,
+    target_type: input.targetType,
+    target_id: input.targetId,
+    session_id: input.sessionId,
+    status: 'expressed',
+    student_alias: input.alias,
+  })
 
-  if (error) throw new Error(error.message)
-  return { id: String(data!.id) }
+  if (error) throw dbError(error)
+  return { id }
 }
 
 export type QuestionInput = {
@@ -222,24 +230,69 @@ export async function insertInquiry(input: InquiryInput): Promise<{ id: string }
     return { id: row.id }
   }
 
-  const { data, error } = await sb
-    .from('inquiries')
-    .insert({
-      guardian_name: input.guardianName,
-      guardian_contact: input.guardianContact,
-      region_code: input.regionCode,
-      grade_band: input.gradeBand,
-      field: input.field,
-      target_type: input.targetType,
-      target_id: input.targetId,
-      message: input.message,
-      status: 'received',
-    })
-    .select('id')
-    .single()
+  // anon 은 inquiries 를 **절대** 읽을 수 없다 (ADR-014). 행을 돌려받지 않는다.
+  const id = crypto.randomUUID()
+  const { error } = await sb.from('inquiries').insert({
+    id,
+    guardian_name: input.guardianName,
+    guardian_contact: input.guardianContact,
+    region_code: input.regionCode,
+    grade_band: input.gradeBand,
+    field: input.field,
+    target_type: input.targetType,
+    target_id: input.targetId,
+    message: input.message,
+    status: 'received',
+  })
 
-  if (error) throw new Error(error.message)
-  return { id: String(data!.id) }
+  if (error) throw dbError(error)
+  return { id }
+}
+
+/**
+ * 추천 기록 — 학생에게 **실제로 보여 준** 카드와 그 출처(llm/rule)·지연·토큰.
+ *
+ * LLM 실패는 규칙 문장으로 조용히 떨어진다(E-06). 이 기록이 없으면 교실에서 AI 가 돌았는지 알 수 없다.
+ * 학생 자유서술 원문·가명코드·LLM 입력 전체·에러 메시지 본문은 남기지 않는다.
+ *
+ * anon 은 이 테이블을 읽을 수 없다 — 행을 돌려받지 않는다. 데모 모드에는 DB 가 없으므로 남기지 않는다.
+ * 실패하면 던진다. **호출자(추천 라우트)가 삼키고 학생 응답은 그대로 내보낸다.**
+ */
+export type RecommendationLogInput = {
+  sessionId: string
+  responseId: string | null
+  source: 'llm' | 'rule'
+  stage: 'same' | 'adjacent' | 'two_hop' | 'none'
+  /** 보여 준 카드. 수업 추천이면 program_id, 추천할 수업이 0건일 때의 진로 카드면 career_id (ADR-027). */
+  items: ({ program_id: string; reason: string } | { career_id: string; reason: string })[]
+  model: string | null
+  latencyMs: number | null
+  inputTokens: number | null
+  outputTokens: number | null
+  error: string | null
+}
+
+export async function insertRecommendationLog(input: RecommendationLogInput): Promise<void> {
+  if (isDemoMode()) return
+
+  const sb = await getServerSupabase()
+  if (!sb) return
+
+  const { error } = await sb.from('recommendation_logs').insert({
+    id: crypto.randomUUID(),
+    session_id: input.sessionId,
+    response_id: input.responseId,
+    source: input.source,
+    stage: input.stage,
+    items: input.items,
+    model: input.model,
+    latency_ms: input.latencyMs,
+    input_tokens: input.inputTokens,
+    output_tokens: input.outputTokens,
+    error: input.error,
+  })
+
+  if (error) throw dbError(error)
 }
 
 /**

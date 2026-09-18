@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { SurveyFlow } from '@/components/survey/SurveyFlow'
-import { loadDataset } from '@/lib/db/dataset'
-import { sessionByEntryCode } from '@/lib/db/queries'
+import { loadEntryContext } from '@/lib/db/student-gate'
 import { IconAlert } from '@/components/ui/Icons'
 
 export const metadata = { title: '나에게 맞는 다음 교육 찾기' }
@@ -11,11 +10,13 @@ export const metadata = { title: '나에게 맞는 다음 교육 찾기' }
  *
  * 코드를 못 찾거나 마감된 회차여도 **404 를 보여주지 않는다** — 안내와 Q&A 유도로 보낸다
  * (E-01·E-17). 교실에서 404 를 본 학생은 그대로 이탈한다.
+ *
+ * 코드 확인은 서버 게이트가 한다 — anon 은 회차를 읽을 수 없다(RLS). 기관이 가명코드를 발급하지 않았으면
+ * 설문은 코드 입력 없이 익명으로 바로 시작한다.
  */
 export default async function StudentEntryPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
-  const ds = await loadDataset()
-  const ctx = sessionByEntryCode(ds, code)
+  const ctx = await loadEntryContext(code)
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-7">
@@ -36,6 +37,7 @@ export default async function StudentEntryPage({ params }: { params: Promise<{ c
           sessionField={ctx.session.field}
           orgName={ctx.orgName}
           instructorName={ctx.instructorName}
+          pseudoCodeEnabled={ctx.pseudoCodesIssued}
         />
       )}
 

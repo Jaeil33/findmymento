@@ -40,6 +40,29 @@ export type RecommendResult = {
   source: 'llm' | 'rule'
   /** 관심은 있었는데 공급이 없던 분야. 미충족 수요로 기록한다 (E-16). */
   unmetFields: string[]
+  /**
+   * 이 추천을 LLM 이 만들었는지 확인하는 기록. 학생 화면에는 내려가지 않는다 — 로그·추천 기록 전용이다.
+   * LLM 실패는 규칙 문장으로 조용히 떨어지므로(E-06), 이게 없으면 교실에서 AI 가 돌았는지 알 수 없다.
+   */
+  meta: RecommendMeta
+}
+
+export type RecommendMeta = {
+  /** 호출한 모델. 데모 시연 응답이면 'demo', LLM 을 부르지 않았으면 null. */
+  model: string | null
+  latencyMs: number | null
+  inputTokens: number | null
+  outputTokens: number | null
+  /** 실패 분류 — 분류명과 HTTP 상태만 (`RateLimitError:429`). **에러 메시지 본문은 넣지 않는다.** */
+  error: string | null
+}
+
+const EMPTY_META: RecommendMeta = {
+  model: null,
+  latencyMs: null,
+  inputTokens: null,
+  outputTokens: null,
+  error: null,
 }
 
 const MAX_ITEMS = 5
@@ -144,17 +167,25 @@ export async function recommend(ds: Dataset, input: RecommendInput): Promise<Rec
   const { items, expansion, unmetFields } = candidates(ds, input)
 
   if (items.length === 0) {
-    return { items: [], stage: expansion.stage, stageCodes: expansion.codes, source: 'rule', unmetFields }
+    return {
+      items: [],
+      stage: expansion.stage,
+      stageCodes: expansion.codes,
+      source: 'rule',
+      unmetFields,
+      meta: { ...EMPTY_META },
+    }
   }
 
   const ranked = await rankByLlm(items, input)
 
   return {
-    items: ranked?.items ?? items,
+    items: ranked.items ?? items,
     stage: expansion.stage,
     stageCodes: expansion.codes,
-    source: ranked ? 'llm' : 'rule',
+    source: ranked.items ? 'llm' : 'rule',
     unmetFields,
+    meta: ranked.meta,
   }
 }
 
@@ -173,15 +204,47 @@ const SYSTEM = `너는 초·중·고 학생에게 다음에 들을 교육을 추
 
 type LlmRanking = { ranking: { id: string; reason: string }[] }
 
-/** 실패하면 `null`. 호출자는 규칙 순위로 그대로 진행한다 (E-06). */
-async function rankByLlm(
-  items: Recommendation[],
-  input: RecommendInput,
-): Promise<{ items: Recommendation[] } | null> {
+type LlmOutcome = { items: Recommendation[] | null; meta: RecommendMeta }
+
+/** HTTP 상태 → 분류명. SDK 클래스 이름은 빌드에서 줄어들 수 있으므로 상태로 정한다. */
+const STATUS_LABEL: Record<number, string> = {
+  400: 'BadRequestError',
+  401: 'AuthenticationError',
+  403: 'PermissionDeniedError',
+  404: 'NotFoundError',
+  408: 'RequestTimeoutError',
+  413: 'RequestTooLargeError',
+  422: 'UnprocessableEntityError',
+  429: 'RateLimitError',
+  500: 'InternalServerError',
+  529: 'OverloadedError',
+}
+
+/** 실패 분류. **메시지 본문은 쓰지 않는다** — 분류명과 HTTP 상태만. */
+function errorLabel(err: unknown): string {
+  const sdk = Anthropic as unknown as Record<string, unknown>
+  const isA = (key: string) =>
+    typeof sdk[key] === 'function' && err instanceof (sdk[key] as abstract new (...args: never[]) => unknown)
+  // 타임아웃은 연결 에러의 하위 클래스다 — 먼저 본다.
+  if (isA('APIConnectionTimeoutError')) return 'APIConnectionTimeoutError'
+  if (isA('APIConnectionError')) return 'APIConnectionError'
+  const status = (err as { status?: unknown } | null)?.status
+  if (typeof status === 'number') {
+    return `${STATUS_LABEL[status] ?? (status >= 500 ? 'ServerError' : 'APIError')}:${status}`
+  }
+  return 'Error'
+}
+
+/** 실패하면 `items: null`. 호출자는 규칙 순위로 그대로 진행한다 (E-06). 어떤 경우든 meta 는 채운다. */
+async function rankByLlm(items: Recommendation[], input: RecommendInput): Promise<LlmOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   const hasKey = Boolean(apiKey && apiKey.trim() !== '')
   // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
-  if (!hasKey && !demoAiEnabled()) return null
+  if (!hasKey && !demoAiEnabled()) return { items: null, meta: { ...EMPTY_META, error: 'NoApiKey' } }
+
+  const model = hasKey ? process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5' : 'demo'
+  const meta: RecommendMeta = { ...EMPTY_META, model }
+  const started = Date.now()
 
   const byId = new Map(items.map((i) => [i.program.id, i]))
 
@@ -211,12 +274,15 @@ async function rankByLlm(
 
   try {
     let text: string
+    let stopReason: string | null = null
     if (hasKey) {
       const client = new Anthropic({ apiKey })
       const response = await client.messages.create(
         {
-          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
-          max_tokens: 2000,
+          model,
+          // Opus 5 는 적응형 사고가 기본으로 켜져 있고 사고 토큰도 이 한도를 쓴다.
+          // 한도가 빠듯하면 JSON 이 잘리고, 잘린 JSON 은 규칙 문장으로 조용히 떨어진다.
+          max_tokens: 4000,
           // 짧은 순위·문구 생성이므로 낮은 effort 로 충분하다.
           output_config: { effort: 'low' },
           system: SYSTEM,
@@ -225,6 +291,9 @@ async function rankByLlm(
         { timeout: 8_000, maxRetries: 1 },
       )
 
+      meta.inputTokens = response.usage?.input_tokens ?? null
+      meta.outputTokens = response.usage?.output_tokens ?? null
+      stopReason = response.stop_reason ?? null
       text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
@@ -232,9 +301,13 @@ async function rankByLlm(
     } else {
       text = JSON.stringify(demoRanking(payload))
     }
+    meta.latencyMs = Date.now() - started
 
     const parsed = parseRanking(text)
-    if (!parsed) return null
+    if (!parsed) {
+      meta.error = stopReason && stopReason !== 'end_turn' ? `ParseError:${stopReason}` : 'ParseError'
+      return { items: null, meta }
+    }
 
     // 순서 확인은 **프로그램 id 로** 한다. 객체 비교로 하면 아래에서 이유를 붙이며 만든
     // 복사본이 원본과 다른 객체가 되어 같은 프로그램이 두 번 들어간다.
@@ -250,10 +323,16 @@ async function rankByLlm(
     // LLM 이 일부만 돌려줬으면 남은 후보를 규칙 순위로 뒤에 붙인다.
     for (const item of items) if (!used.has(item.program.id)) ordered.push(item)
 
-    return ordered.length > 0 ? { items: ordered.slice(0, MAX_ITEMS) } : null
-  } catch {
+    if (ordered.length === 0) {
+      meta.error = 'EmptyRanking'
+      return { items: null, meta }
+    }
+    return { items: ordered.slice(0, MAX_ITEMS), meta }
+  } catch (err) {
     // 키 만료·한도·타임아웃·스키마 변경 전부 여기로 떨어진다. 화면은 규칙 결과로 정상 동작한다.
-    return null
+    meta.latencyMs = Date.now() - started
+    meta.error = errorLabel(err)
+    return { items: null, meta }
   }
 }
 

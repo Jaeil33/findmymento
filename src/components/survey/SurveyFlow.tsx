@@ -75,12 +75,18 @@ export function SurveyFlow({
   sessionField,
   orgName,
   instructorName,
+  pseudoCodeEnabled = true,
 }: {
   entryCode: string
   sessionTitle: string
   sessionField: string
   orgName: string
   instructorName: string | null
+  /**
+   * 기관이 가명코드를 발급했는지. false 면 코드 입력 없이 "시작하기" 하나로 익명 참여한다 —
+   * 교실 화면의 입장 코드 6자리를 학생이 "참여 코드" 칸에 그대로 넣는 혼동을 없앤다.
+   */
+  pseudoCodeEnabled?: boolean
 }) {
   const storageKey = `fmm.survey.${entryCode}`
   const [answers, setAnswers] = useState<Answers>(EMPTY)
@@ -187,7 +193,12 @@ export function SurveyFlow({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = (await res.json()) as { ok: boolean; reason?: string; message?: string }
+      const data = (await res.json()) as {
+        ok: boolean
+        reason?: string
+        message?: string
+        responseId?: string
+      }
 
       if (!data.ok) {
         if (data.reason === 'duplicate') {
@@ -199,7 +210,8 @@ export function SurveyFlow({
         return
       }
 
-      await loadRecommendation(payload)
+      // 응답 id 를 추천 요청에 싣는다 — 학생에게 무엇을 보여 줬는지 기록이 이 응답에 이어진다.
+      await loadRecommendation({ ...payload, responseId: data.responseId ?? null })
     } catch {
       setError('인터넷 연결이 끊긴 것 같아요. 답은 저장해 뒀으니 다시 시도해 주세요.')
       setPhase('form')
@@ -297,7 +309,19 @@ export function SurveyFlow({
       </header>
 
       <div key={step} className="animate-slide-up space-y-5">
-        {step === 'entry' ? (
+        {step === 'entry' && !pseudoCodeEnabled ? (
+          <Button
+            size="student"
+            onClick={() => {
+              patch({ anonymous: true, pseudoCode: '' })
+              setStepIndex(1)
+            }}
+          >
+            시작하기
+          </Button>
+        ) : null}
+
+        {step === 'entry' && pseudoCodeEnabled ? (
           <div className="space-y-4">
             <Input
               label="참여 코드 6자리"
@@ -512,7 +536,7 @@ export function SurveyFlow({
         </p>
       ) : null}
 
-      {step !== 'entry' || answers.pseudoCode.length > 0 ? (
+      {step !== 'entry' || (pseudoCodeEnabled && answers.pseudoCode.length > 0) ? (
         <div className="space-y-3">
           <Button
             size="student"

@@ -92,7 +92,11 @@ src/
 | `moderation_reports` | target_type, target_id, reason, handled_by | |
 | `lesson_plans` | session_id, instructor_id, content(jsonb), inputs_snapshot(jsonb), source(`llm`/`rule`), status(`draft`/`final`) | **AI 수업 설계 도우미 산출물.** 열람은 작성 강사·발주 기관·운영자뿐 (ADR-019). `inputs_snapshot`은 어떤 조건으로 생성했는지의 기록 — 재현과 검수에 쓴다 |
 
-테이블 20개. `lesson_plans`가 추가되고 `lecture_sessions`에 수업 조건 4컬럼(`duration_minutes`·`venue`·`class_traits[]`·`equipment[]`)이 들어온다 (ADR-016).
+| `recommendation_logs` | session_id, response_id(nullable), source(`llm`/`rule`), stage, items(jsonb: `{program_id|career_id, reason}`), model, latency_ms, input/output_tokens, error | **학생에게 실제로 보여 준 추천·진로 카드와 그 출처.** LLM 실패는 규칙 문장으로 조용히 떨어지므로, 이 기록이 없으면 교실에서 AI가 돌았는지 알 수 없다. anon은 열린 회차에 INSERT만, 읽기는 자기 기관·운영자뿐. 자유서술 원문·가명코드·에러 본문은 남기지 않는다 |
+
+테이블 21개. `lesson_plans`가 추가되고 `lecture_sessions`에 수업 조건 4컬럼(`duration_minutes`·`venue`·`class_traits[]`·`equipment[]`)이 들어온다 (ADR-016). `recommendation_logs`는 첫 실제 파일럿 전에 추가됐다 (ADR-027).
+
+**학생(비로그인) 경로의 코드 확인은 서버 게이트가 한다** (`src/lib/db/student-gate.ts`). anon은 `lecture_sessions`·`students`·`survey_responses`를 읽을 수 없으므로, 입장 코드·가명코드 확인만 service_role로 **정확히 일치하는 한 건**을 읽는다. 쓰기(설문·관심 표현·추천 기록)는 anon 클라이언트로 하되 행을 돌려받지 않는다 — RLS INSERT 정책(열린 회차만)이 그대로 경계다.
 
 수업 후 AI(결과보고서·후속 과정 제안·수업 회고)는 저장하지 않으므로 테이블이 늘지 않는다 (ADR-024).
 

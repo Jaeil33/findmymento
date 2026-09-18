@@ -232,6 +232,15 @@ export function validateInquiry(body: unknown): Validated<InquiryBody> {
 const buckets = new Map<string, number[]>()
 
 /**
+ * 학생 경로의 IP 당 1분 한도.
+ *
+ * 한 반은 학교 와이파이 하나 = **공인 IP 하나**로 들어온다. 예전 한도(설문 12 · 추천 20 · 관심 15)로는
+ * 13번째 학생부터 "잠시 후 다시 시도해 주세요"를 봤다. 한 반(최대 40명)이 1분 안에 제출해도 넉넉하고,
+ * 관심 표현은 한 학생이 카드 여러 장에 누를 수 있으므로 더 높다.
+ */
+export const STUDENT_RATE_LIMITS = { survey: 60, recommend: 60, interest: 120 } as const
+
+/**
  * 아주 단순한 슬라이딩 윈도. 서버 인스턴스 메모리이므로 완벽한 방어는 아니지만,
  * 폼 도배를 막는 1차 장벽으로는 충분하다. 운영 단계에서 필요하면 DB·엣지로 옮긴다.
  */

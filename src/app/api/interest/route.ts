@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { loadDataset } from '@/lib/db/dataset'
-import { isClosed, sessionByEntryCode, studentByPseudoCode, gradeLabel } from '@/lib/db/queries'
+import { gradeLabel } from '@/lib/db/queries'
+import { findStudentByPseudoCode, loadEntryContext } from '@/lib/db/student-gate'
 import { insertInterest } from '@/lib/db/writes'
 import { studentAlias } from '@/lib/moderation'
-import { clientKey, parseGrade, rateLimit } from '@/lib/validation'
+import { STUDENT_RATE_LIMITS, clientKey, parseGrade, rateLimit } from '@/lib/validation'
 
 /**
  * 학생의 "관심 표현".
@@ -13,7 +14,8 @@ import { clientKey, parseGrade, rateLimit } from '@/lib/validation'
  * 학생이 누르는 버튼 중 강사에게 직접 닿는 것은 하나도 없다 (PRD 안전 설계 3).
  */
 export async function POST(request: Request) {
-  if (!rateLimit(clientKey(request.headers, 'interest'), 15, 60_000)) {
+  // 한 반 = 공인 IP 하나. 한 학생이 카드 여러 장에 누를 수 있으므로 설문보다 높다.
+  if (!rateLimit(clientKey(request.headers, 'interest'), STUDENT_RATE_LIMITS.interest, 60_000)) {
     return NextResponse.json({ ok: false, message: '잠시 후 다시 시도해 주세요.' }, { status: 429 })
   }
 
@@ -32,12 +34,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: '요청 값이 올바르지 않아요.' }, { status: 400 })
   }
 
-  const ds = await loadDataset()
-  const ctx = sessionByEntryCode(ds, entryCode)
+  // 입장 코드 확인은 서버 게이트가 한다. anon 은 회차를 읽을 수 없다.
+  const ctx = await loadEntryContext(entryCode)
   if (!ctx) {
     return NextResponse.json({ ok: false, message: '참여 코드를 찾을 수 없어요.' }, { status: 404 })
   }
-  if (isClosed(ctx.session)) {
+  if (ctx.closed) {
     return NextResponse.json(
       { ok: false, message: '이 수업의 응답 기간이 끝났어요.' },
       { status: 409 },
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
   }
 
   // 승인된 강사의 프로그램만 대상이 될 수 있다 (E-11).
+  const ds = await loadDataset()
   const program = ds.programs.find((p) => p.id === programId)
   const instructor = program
     ? ds.instructors.find((i) => i.id === program.instructor_id && i.status === 'approved')
@@ -54,16 +57,33 @@ export async function POST(request: Request) {
   }
 
   const pseudoCode = typeof body.pseudoCode === 'string' ? body.pseudoCode.trim() : ''
-  const student = pseudoCode ? studentByPseudoCode(ds, ctx.session.org_id, pseudoCode) : null
+  const student = pseudoCode ? await findStudentByPseudoCode(ctx.session.org_id, pseudoCode) : null
 
   const ordinal = ds.interests.length % 26
-  const { id } = await insertInterest({
-    sessionId: ctx.session.id,
-    studentId: student?.id ?? null,
-    targetType: 'program',
-    targetId: program.id,
-    alias: studentAlias(gradeLabel(grade), ordinal),
-  })
+  let id: string
+  try {
+    const saved = await insertInterest({
+      sessionId: ctx.session.id,
+      studentId: student?.id ?? null,
+      targetType: 'program',
+      targetId: program.id,
+      alias: studentAlias(gradeLabel(grade), ordinal),
+    })
+    id = saved.id
+  } catch (err) {
+    // 크래시 대신 JSON 안내 — 카드의 버튼은 다시 누를 수 있다.
+    console.error(
+      JSON.stringify({
+        event: 'interest_insert_failed',
+        sessionId: ctx.session.id,
+        code: (err as { code?: unknown } | null)?.code ?? null,
+      }),
+    )
+    return NextResponse.json(
+      { ok: false, message: '전달하지 못했어요. 잠시 후 다시 눌러 주세요.' },
+      { status: 503 },
+    )
+  }
 
   return NextResponse.json({
     ok: true,
