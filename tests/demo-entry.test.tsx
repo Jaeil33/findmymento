@@ -58,38 +58,38 @@ function goLive() {
 }
 
 describe('데모 로그인 화면', () => {
-  it('역할 버튼은 기관·학교·강사·운영자 넷 그대로다', () => {
-    const { container } = render(LoginPage())
+  it('역할 버튼은 기관·학교·강사·운영자 넷 그대로다', async () => {
+    const { container } = render(await LoginPage({ searchParams: Promise.resolve({}) }))
     const keys = [...container.querySelectorAll<HTMLInputElement>('input[type="hidden"][name="actor"]')].map(
       (i) => i.value,
     )
     expect(keys).toEqual(['org', 'school', 'instructor', 'admin'])
   })
 
-  it('학생 입구는 로그인 없이 QR 설문 화면으로 간다', () => {
-    render(LoginPage())
+  it('학생 입구는 로그인 없이 QR 설문 화면으로 간다', async () => {
+    render(await LoginPage({ searchParams: Promise.resolve({}) }))
     const link = screen.getByRole('link', { name: /학생 · 계정 없음/ })
     expect(link).toHaveAttribute('href', `/s/${DEMO_STUDENT_ENTRY_CODE}`)
     expect(link.closest('form')).toBeNull()
     expect(link.textContent).toContain(DEMO_STUDENT_PSEUDO_CODE)
   })
 
-  it('보호자 입구는 비로그인 문의 폼으로 간다', () => {
-    render(LoginPage())
+  it('보호자 입구는 비로그인 문의 폼으로 간다', async () => {
+    render(await LoginPage({ searchParams: Promise.resolve({}) }))
     const link = screen.getByRole('link', { name: /보호자 · 계정 없음/ })
     expect(link).toHaveAttribute('href', '/inquiry')
     expect(link.closest('form')).toBeNull()
   })
 
-  it('학생·보호자는 계정이 없다는 이유를 적어 둔다', () => {
-    render(LoginPage())
+  it('학생·보호자는 계정이 없다는 이유를 적어 둔다', async () => {
+    render(await LoginPage({ searchParams: Promise.resolve({}) }))
     expect(screen.getByText('계정 없이 쓰는 사람')).toBeInTheDocument()
     expect(screen.getByText(/학생과 보호자는 계정을 만들지 않습니다/)).toBeInTheDocument()
   })
 
-  it('실 DB 가 붙으면 데모 입구가 전부 사라진다', () => {
+  it('실 DB 가 붙으면 데모 입구가 전부 사라진다', async () => {
     goLive()
-    render(LoginPage())
+    render(await LoginPage({ searchParams: Promise.resolve({}) }))
     expect(screen.queryByText('계정 없이 쓰는 사람')).toBeNull()
     expect(screen.queryByRole('link', { name: /학생 · 계정 없음/ })).toBeNull()
     expect(screen.queryByRole('link', { name: /보호자 · 계정 없음/ })).toBeNull()

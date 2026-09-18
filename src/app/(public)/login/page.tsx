@@ -1,15 +1,21 @@
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui/Section'
-import { MagicLinkForm } from '@/components/auth/MagicLinkForm'
+import { PasswordLoginForm } from '@/components/auth/PasswordLoginForm'
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/env'
 import { demoActorKeys, demoActorLabel } from '@/lib/auth/actor'
 import { demoGuestEntries } from '@/lib/demo/guests'
-import { enterDemo } from './actions'
+import { enterDemo, signInWithPassword } from './actions'
 import { IconArrowRight } from '@/components/ui/Icons'
 
 export const metadata = { title: '로그인' }
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const { error } = await searchParams
+
   return (
     <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
       <PageHeader
@@ -28,7 +34,7 @@ export default function LoginPage() {
       />
 
       <div className="mt-8">
-        <MagicLinkForm enabled={isSupabaseConfigured()} />
+        <PasswordLoginForm action={signInWithPassword} enabled={isSupabaseConfigured()} error={error} />
       </div>
 
       {isDemoMode() ? (
@@ -36,7 +42,7 @@ export default function LoginPage() {
           <h2 className="text-sm font-semibold text-caution">데모 데이터 모드</h2>
           <p className="mt-1.5 text-sm leading-relaxed text-body">
             Supabase 키가 설정되지 않아 데모 데이터로 동작하고 있습니다. 아래에서 둘러볼 사람을 골라
-            주세요. 실제 계정 연결 뒤에는 이 블록이 사라지고 이메일 로그인만 남습니다.
+            주세요. 실제 계정 연결 뒤에는 이 블록이 사라지고 아이디·비밀번호 로그인만 남습니다.
           </p>
 
           <h3 className="mt-5 text-xs font-semibold text-ink">계정으로 들어가는 사람</h3>
@@ -84,8 +90,7 @@ export default function LoginPage() {
       ) : null}
 
       <p className="mt-8 text-xs leading-relaxed text-sub">
-        초대 메일을 받으셨다면 메일 안의 링크로 먼저 계정을 만들어 주세요. 초대 링크는 1회용이고
-        만료 시각이 있습니다.
+        아이디가 없거나 비밀번호를 잊으셨다면 운영자에게 알려 주세요. 계정은 운영자가 만들어 드립니다.
       </p>
     </div>
   )

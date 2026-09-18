@@ -229,11 +229,19 @@ describe('공개 회원가입 금지 (ADR-011)', () => {
     }
   })
 
-  it('비밀번호 가입 API 를 쓰지 않는다', () => {
+  it('셀프 가입 API(signUp)를 쓰지 않는다', () => {
     for (const f of files) {
       expect(codeOnly(read(f))).not.toContain('signUp(')
-      expect(codeOnly(read(f))).not.toContain('signInWithPassword')
     }
+  })
+
+  // ADR-011 개정(2026-09-19): 로그인은 아이디·비밀번호다. 계정은 여전히 운영자·초대로만 생긴다.
+  // 비밀번호 로그인은 로그인 액션 한 곳에서만 부른다 — 다른 경로에서 로그인 방식을 늘리지 않는다.
+  it('비밀번호 로그인은 로그인 액션 한 곳에서만 쓴다', () => {
+    const users = files
+      .filter((f) => codeOnly(read(f)).includes('signInWithPassword('))
+      .map((f) => rel(f))
+    expect(users).toEqual(['src/app/(public)/login/actions.ts'])
   })
 })
 
