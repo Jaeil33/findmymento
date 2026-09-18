@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { loadDataset } from '@/lib/db/dataset'
-import { sessionByEntryCode } from '@/lib/db/queries'
+import { loadEntryContext } from '@/lib/db/student-gate'
 import { insertQuestion } from '@/lib/db/writes'
 import { moderate, studentAlias } from '@/lib/moderation'
 import { clientKey, rateLimit, validateQuestion } from '@/lib/validation'
@@ -39,9 +39,10 @@ export async function POST(request: Request) {
   }
 
   // 질문은 회차 코드가 있으면 그 기관에 묶인다 — 기관 담당자가 모더레이터이기 때문이다 (UC-22).
-  const ds = await loadDataset()
-  const ctx = input.entryCode ? sessionByEntryCode(ds, input.entryCode) : null
+  // 입장 코드 확인은 서버 게이트가 한다. anon 은 회차를 읽을 수 없다.
+  const ctx = input.entryCode ? await loadEntryContext(input.entryCode) : null
   const orgId = ctx?.session.org_id ?? null
+  const ds = await loadDataset()
 
   // 화면에는 가명만 남는다. 가명코드 원문은 저장·노출하지 않는다 (UI_GUIDE 안전규칙 2).
   const ordinal = ds.qnaQuestions.length % 26

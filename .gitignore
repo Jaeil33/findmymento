@@ -10,5 +10,11 @@ phases/**/step*-output.json
 
 .env*.local
 .env.local
+
+# 파일럿 실데이터·설정·QR (scripts/pilot). 학생 응답이 GitHub 에 올라가면 안 된다.
+pilot-data/
 .vercel
 coverage/
+
+# Supabase CLI 상태 폴더
+supabase/.temp/

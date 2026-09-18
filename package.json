@@ -14,7 +14,11 @@
     "verify": "npm run lint && npm run build && npm run test",
     "test:watch": "vitest",
     "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --linked --schema public > src/types/database.ts"
+    "db:types": "supabase gen types typescript --linked --schema public > src/types/database.ts",
+    "pilot:sql": "node scripts/pilot/sql-bundle.mjs",
+    "pilot:setup": "node scripts/pilot/setup.mjs",
+    "pilot:export": "node scripts/pilot/export.mjs",
+    "pilot:rehearse": "node scripts/pilot/rehearse.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

@@ -18,8 +18,12 @@ const sql = readdirSync(MIGRATIONS_DIR)
   .map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf8'))
   .join('\n')
 
-/** docs/ARCHITECTURE.md 데이터 모델 표의 20개 테이블. */
+/**
+ * docs/ARCHITECTURE.md 데이터 모델 표의 20개 테이블 + 파일럿 추천 기록(`recommendation_logs`).
+ * 학생에게 실제로 보여 준 추천 카드와 출처(llm/rule)를 남긴다 — 20260918 마이그레이션.
+ */
 const TABLES = [
+  'recommendation_logs',
   'organizations',
   'org_members',
   'admins',
@@ -76,14 +80,14 @@ function policiesFor(table: string): string[] {
 }
 
 describe('테이블 구성', () => {
-  it('20개 테이블이 정확히 정의돼 있다', () => {
-    expect(TABLES).toHaveLength(20)
+  it('21개 테이블이 정확히 정의돼 있다', () => {
+    expect(TABLES).toHaveLength(21)
     for (const t of TABLES) {
       expect(sql).toContain(`create table public.${t} (`)
     }
   })
 
-  it('20개 테이블 전부 RLS 가 켜져 있다 — 예외 없음', () => {
+  it('21개 테이블 전부 RLS 가 켜져 있다 — 예외 없음', () => {
     const missing = TABLES.filter(
       (t) => !new RegExp(`alter table public\\.${t}\\s+enable row level security`).test(sql),
     )
@@ -387,6 +391,93 @@ describe('섭외 종료 사유 — 공간 사업의 근거 데이터 (ADR-023)',
   it('네 가지 사유가 모두 있다', () => {
     for (const r of ['공급 없음', '장소 없음', '예산 없음', '일정 불가']) {
       expect(sql).toContain(`'${r}'`)
+    }
+  })
+})
+
+describe('recommendation_logs — 학생에게 보여 준 추천 기록 (파일럿)', () => {
+  const policies = policiesFor('recommendation_logs')
+  const body = tableBody('recommendation_logs')
+
+  it('INSERT 는 열린 회차에만 — 설문과 같은 조건 (E-17)', () => {
+    const inserts = policies.filter((p) => /for insert/.test(p))
+    expect(inserts.length).toBeGreaterThan(0)
+    for (const p of inserts) expect(p).toContain('app.session_accepts_responses(session_id)')
+  })
+
+  it('anon SELECT 정책이 **없다** — 기록은 자기 기관 담당자와 운영자만 읽는다', () => {
+    const selects = policies.filter((p) => /for select/.test(p))
+    expect(selects.length).toBeGreaterThan(0)
+    for (const p of selects) {
+      expect(p).not.toMatch(/to\s+[^;]*\banon\b/)
+      expect(p).toContain('app.current_org_id()')
+      expect(p).toContain('app.is_admin()')
+    }
+  })
+
+  it('강사 경로가 없다 — 학생 단위 기록은 강사에게 가지 않는다', () => {
+    for (const p of policies) expect(p).not.toContain('app.current_instructor_id()')
+  })
+
+  it('수정·삭제 정책이 없다 — 기록은 덧붙이기만 한다', () => {
+    for (const p of policies) expect(p).not.toMatch(/for (update|delete|all)\b/)
+  })
+
+  it('학생 자유서술·식별 컬럼과 LLM 페이로드 컬럼이 없다', () => {
+    for (const forbidden of [
+      'want_to_learn',
+      'desired_job',
+      'pseudo_code',
+      'student_id',
+      'payload',
+      'prompt',
+      'name',
+      'phone',
+      'email',
+      'school',
+    ]) {
+      expect(body, forbidden).not.toMatch(new RegExp(String.raw`\b${forbidden}\b`))
+    }
+  })
+
+  it('출처는 llm/rule 둘 중 하나다', () => {
+    expect(body).toMatch(/source text not null check \(source in \('llm', 'rule'\)\)/)
+  })
+})
+
+describe('anon 이 평가하는 정책의 함수 권한', () => {
+  /**
+   * PostgreSQL 은 함수 EXECUTE 권한을 **식을 준비할 때** 확인한다. `status = 'approved' or app.is_admin()`
+   * 처럼 앞 조건이 참이어도, anon 에게 `app.is_admin()` 실행 권한이 없으면 SELECT 전체가
+   * "permission denied for function" 으로 실패한다. loadDataset 은 에러를 0행으로 삼키므로
+   * 화면에는 "프로그램 0개"로만 보인다 — 추천 후보가 사라지고 AI 는 한 번도 불리지 않는다.
+   */
+  const anonPolicies = (sql.match(/create policy[\s\S]*?;/g) ?? []).filter((p) =>
+    /\bto\s+[^;]*\banon\b/.test(p),
+  )
+
+  it('anon 에게 열린 정책이 있다 (공개 디렉토리·설문·문의)', () => {
+    expect(anonPolicies.length).toBeGreaterThan(0)
+  })
+
+  it('그 정책들이 부르는 app.* 함수는 전부 anon 에게 EXECUTE 가 있다', () => {
+    const fns = new Set(anonPolicies.flatMap((p) => [...p.matchAll(/app\.(\w+)\(/g)].map((m) => m[1]!)))
+    expect(fns.size).toBeGreaterThan(0)
+    const missing = [...fns].filter(
+      (fn) =>
+        !new RegExp(
+          String.raw`grant execute on function app\.${fn}\([^)]*\)[^;]*\bto\s+[^;]*\banon\b`,
+        ).test(sql),
+    )
+    expect(missing).toEqual([])
+  })
+
+  it('역할 함수는 호출자 자신(auth.uid())만 본다 — anon 에게 열어도 null/false 만 나온다', () => {
+    for (const fn of ['current_org_id', 'current_instructor_id', 'is_admin']) {
+      const start = sql.indexOf(`create or replace function app.${fn}()`)
+      expect(start, fn).toBeGreaterThan(-1)
+      const bodyEnd = sql.indexOf('$$;', start)
+      expect(sql.slice(start, bodyEnd), fn).toContain('auth.uid()')
     }
   })
 })
