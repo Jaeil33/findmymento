@@ -79,7 +79,7 @@ afterEach(() => {
 
 describe('수업 추천 0건 → 진로 카드', () => {
   it('목록에 없는 꿈을 적으면 응원 한 줄(dreamNote)이 함께 내려간다', async () => {
-    const res = await recommendRoute(post({ ...noProgramBody, desiredJob: '축구선수' }))
+    const res = await recommendRoute(post({ ...noProgramBody, desiredJob: '마술사' }))
     const data = (await res.json()) as { dreamNote: string | null; careers: CareerOut[] }
     expect(data.careers).toHaveLength(3)
     expect(typeof data.dreamNote).toBe('string')

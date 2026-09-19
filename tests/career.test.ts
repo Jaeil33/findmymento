@@ -268,6 +268,40 @@ describe('관심 직업(꿈)', () => {
     expect(ids(list)).toEqual(expect.arrayContaining(['food-tech', 'cooking-robot']))
   })
 
+  it('꿈 잇기 직업은 그 꿈(또는 관련 말)을 쓴 학생에게만 후보가 된다', () => {
+    const bridge = CAREERS.filter((c) => c.dreamOnly).map((c) => c.id)
+    expect(bridge).toEqual(expect.arrayContaining(['legal-tech', 'sports-analyst', 'medical-ai', 'drone-show', 'animator-3d', 'eco-researcher', 'food-tech', 'cooking-robot']))
+    for (const input of [base, { ...base, interestFields: FIELDS.slice() }, { ...base, sessionField: '3D 모델링·프린팅' }]) {
+      expect(ids(careerCandidates(input)).filter((id) => bridge.includes(id))).toEqual([])
+    }
+  })
+
+  it.each([
+    ['변호사', 'legal-tech'],
+    ['판사', 'legal-tech'],
+    ['야구선수', 'sports-analyst'],
+    ['축구선수', 'sports-analyst'],
+    ['의사', 'medical-ai'],
+    ['간호사', 'medical-ai'],
+    ['아이돌', 'drone-show'],
+    ['배우', 'drone-show'],
+    ['웹툰작가', 'animator-3d'],
+    ['수의사', 'eco-researcher'],
+    ['프로게이머', 'game-developer'],
+  ])('꿈 %s → %s 가 맨 앞 후보', (desiredJob, id) => {
+    expect(careerCandidates({ ...base, desiredJob })[0]!.id).toBe(id)
+  })
+
+  it('관심 직업 칸의 "배우"만 직업으로 읽는다 — "배우고 싶어요"에는 걸리지 않는다', () => {
+    const list = careerCandidates({
+      ...base,
+      sessionField: '뷰티',
+      interestFields: ['뷰티'],
+      wantToLearn: '메이크업 배우고 싶어요',
+    })
+    expect(ids(list)).not.toContain('drone-show')
+  })
+
   it('관심 직업이 없으면 꿈 안내가 없다', async () => {
     expect((await pickCareers(base)).dream).toBeNull()
   })
@@ -277,7 +311,7 @@ describe('관심 직업(꿈)', () => {
   })
 
   it('목록에 없는 꿈이면 규칙 응원 문장이 반드시 나온다 (키 없음)', async () => {
-    const r = await pickCareers({ ...base, desiredJob: '축구선수' })
+    const r = await pickCareers({ ...base, desiredJob: '마술사' })
     expect(r.dream?.matched).toBe(false)
     expect(r.dream?.note).toMatch(/꿈/)
     expect(r.dream?.note).not.toMatch(/d/)
@@ -289,15 +323,15 @@ describe('관심 직업(꿈)', () => {
     })
 
     it('목록에 없는 꿈이면 AI 가 쓴 한 줄(dream_note)을 쓴다', async () => {
-      createMock.mockResolvedValue(reply({ picks: [], dream_note: '축구 경기도 드론으로 찍어 선수들의 움직임을 분석해요.' }))
-      const r = await pickCareers({ ...base, desiredJob: '축구선수' })
-      expect(r.dream).toEqual({ matched: false, note: '축구 경기도 드론으로 찍어 선수들의 움직임을 분석해요.' })
+      createMock.mockResolvedValue(reply({ picks: [], dream_note: '마술 공연에서도 드론이 밤하늘에 불빛 그림을 그려요.' }))
+      const r = await pickCareers({ ...base, desiredJob: '마술사' })
+      expect(r.dream).toEqual({ matched: false, note: '마술 공연에서도 드론이 밤하늘에 불빛 그림을 그려요.' })
     })
 
     it('dream_note 에 숫자·연락처·수준 평가가 섞이면 규칙 문장으로 바꾼다', async () => {
-      for (const bad of ['축구선수는 연봉이 10억이에요.', '실력이 부족해도 괜찮아요.', '010-1234-5678 로 물어봐요.']) {
+      for (const bad of ['마술사는 연봉이 10억이에요.', '실력이 부족해도 괜찮아요.', '010-1234-5678 로 물어봐요.']) {
         createMock.mockResolvedValue(reply({ picks: [], dream_note: bad }))
-        const r = await pickCareers({ ...base, desiredJob: '축구선수' })
+        const r = await pickCareers({ ...base, desiredJob: '마술사' })
         expect(r.dream?.note, bad).not.toBe(bad)
         expect(r.dream?.note).toMatch(/꿈/)
       }

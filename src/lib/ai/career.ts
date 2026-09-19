@@ -105,7 +105,7 @@ function scoreAll(input: CareerInput): Scored[] {
 
   return CAREERS.map((career, index) => {
     const overlap = career.fields.filter((f) => fields.has(f)).length
-    const jobHit = hits(job, career.keywords)
+    const jobHit = hits(job, [...career.keywords, ...(career.jobKeywords ?? [])])
     const learnHit = hits(learn, career.keywords)
     const chosenField =
       career.fields.find((f) => chosen.includes(f) && f !== input.sessionField) ?? null
@@ -114,7 +114,9 @@ function scoreAll(input: CareerInput): Scored[] {
       (learnHit ? 2 : 0) +
       overlap +
       ((career.fields as string[]).includes(input.sessionField) ? 1 : 0)
-    return { career, score, jobHit, learnHit, chosenField, index, related: overlap > 0 || jobHit || learnHit }
+    // 꿈 잇기 직업은 분야가 겹친다는 이유만으로는 후보가 되지 않는다.
+    const related = career.dreamOnly ? jobHit || learnHit : overlap > 0 || jobHit || learnHit
+    return { career, score, jobHit, learnHit, chosenField, index, related }
   })
     .filter((s) => s.related)
     .sort((a, b) => b.score - a.score || a.index - b.index)

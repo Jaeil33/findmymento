@@ -22,6 +22,15 @@ export type Career = {
   /** 설문 Q4 분야 중 이 진로와 이어지는 것. */
   fields: Field[]
   keywords: string[]
+  /**
+   * 관심 직업 칸에서만 맞춰 보는 말. 일반 문장에도 흔한 말(예: '배우' ← "배우고 싶어요")은 여기 둔다.
+   */
+  jobKeywords?: string[]
+  /**
+   * 꿈 잇기 직업. 학생이 그 꿈(관심 직업)이나 관련 말(배우고 싶은 것)을 썼을 때만 후보가 된다.
+   * 분야만 겹친다고 꿈을 안 쓴 학생에게 '기술 전문 변호사'가 나가면 안 된다.
+   */
+  dreamOnly?: boolean
 }
 
 /** 요리·음식 꿈을 적은 학생을 요리와 이어지는 기술 직업으로 잇는다. '요리'는 '요리사'도 잡는다. */
@@ -50,7 +59,7 @@ export const CAREERS: Career[] = [
     summary: '드론으로 방송·영화·광고에 쓰일 장면을 하늘에서 찍고 편집해요.',
     related: '영상·미디어 관련 학과 · 드론 조종자 증명',
     fields: ['드론'],
-    keywords: ['촬영', '영상', '사진', '카메라', '편집', '유튜브', '유튜버', '감독', '영화'],
+    keywords: ['촬영', '영상', '사진', '카메라', '편집', '유튜브', '유튜버', '감독', '영화', '크리에이터', '스트리머'],
   },
   {
     id: 'drone-mechanic',
@@ -107,6 +116,7 @@ export const CAREERS: Career[] = [
     related: '식품공학 · 조리과학 · 컴퓨터공학',
     fields: ['AI·코딩'],
     keywords: FOOD_KEYWORDS,
+    dreamOnly: true,
   },
   {
     id: 'cooking-robot',
@@ -115,6 +125,63 @@ export const CAREERS: Career[] = [
     related: '로봇공학 · 기계공학 · 조리과학',
     fields: ['AI·코딩'],
     keywords: FOOD_KEYWORDS,
+    dreamOnly: true,
+  },
+  // ── 아이들이 많이 적는 꿈과 오늘 기술을 잇는 직업 (2026-09-19 파일럿 피드백: 변호사·야구선수 등)
+  {
+    id: 'legal-tech',
+    title: '기술 전문 변호사',
+    summary: '드론 비행 규칙, 인공지능, 개인정보처럼 새로운 기술을 둘러싼 법 문제를 다루고 사람과 회사를 도와요.',
+    related: '법학 · 로스쿨 · 변호사 자격',
+    fields: ['드론', 'AI·코딩'],
+    keywords: ['변호사', '판사', '검사', '법률', '법조', '재판', '법학', '로스쿨'],
+    dreamOnly: true,
+  },
+  {
+    id: 'sports-analyst',
+    title: '스포츠 데이터 분석가',
+    summary: '경기 영상과 센서 기록을 분석해 선수의 움직임과 팀 전술을 살피고 경기력을 높이도록 도와요.',
+    related: '스포츠과학 · 체육학 · 데이터과학',
+    fields: ['AI·코딩', '드론'],
+    keywords: ['선수', '운동', '스포츠', '축구', '야구', '농구', '배구', '수영', '태권도', '체육', '골프', '육상', '코치'],
+    dreamOnly: true,
+  },
+  {
+    id: 'medical-ai',
+    title: '의료 인공지능 개발자',
+    summary: '병원의 영상과 기록을 학습한 인공지능으로 의사가 병을 더 빨리 찾도록 돕는 프로그램을 만들어요.',
+    related: '의공학 · 컴퓨터공학 · 의료정보학',
+    fields: ['AI·코딩'],
+    keywords: ['의사', '간호사', '약사', '병원', '의료', '한의사', '치과', '치료'],
+    dreamOnly: true,
+  },
+  {
+    id: 'drone-show',
+    title: '드론 라이트쇼 연출가',
+    summary: '수많은 드론에 불빛을 달아 밤하늘에 그림과 글자를 그리는 공연을 기획하고 비행을 프로그래밍해요.',
+    related: '공연예술 · 미디어아트 · 드론 조종자 증명',
+    fields: ['드론', 'AI·코딩'],
+    keywords: ['가수', '아이돌', '연예인', '공연', '무대', '댄서', '춤', '음악', '콘서트', '뮤지컬', '연기'],
+    jobKeywords: ['배우'],
+    dreamOnly: true,
+  },
+  {
+    id: 'animator-3d',
+    title: '3D 애니메이터',
+    summary: '캐릭터와 배경을 3D로 만들고 움직임을 입혀 애니메이션·게임·영화 장면을 만들어요.',
+    related: '애니메이션 · 영상디자인 · 컴퓨터그래픽스',
+    fields: ['3D 모델링·프린팅', 'VR·AR'],
+    keywords: ['만화', '웹툰', '그림', '화가', '애니메이션', '일러스트', '캐릭터'],
+    dreamOnly: true,
+  },
+  {
+    id: 'eco-researcher',
+    title: '생태 조사 연구원',
+    summary: '드론과 센서로 숲·강·바다와 야생동물을 살펴보고 자연을 지키는 방법을 찾아요.',
+    related: '생명과학 · 환경공학 · 산림·해양 관련 학과',
+    fields: ['드론'],
+    keywords: ['동물', '수의사', '사육사', '생물', '자연', '환경', '곤충', '바다', '숲'],
+    dreamOnly: true,
   },
   {
     id: 'rescue-drone',
@@ -138,7 +205,7 @@ export const CAREERS: Career[] = [
     summary: '드론 비행 연습 같은 가상 체험이나 게임을 프로그래밍으로 만들어요.',
     related: '게임공학 · 컴퓨터공학',
     fields: ['AI·코딩', 'VR·AR'],
-    keywords: ['게임', '시뮬레이션', '시뮬레이터', '가상', '메타버스', '마인크래프트'],
+    keywords: ['게임', '게이머', '시뮬레이션', '시뮬레이터', '가상', '메타버스', '마인크래프트'],
   },
   {
     id: 'tech-instructor',
