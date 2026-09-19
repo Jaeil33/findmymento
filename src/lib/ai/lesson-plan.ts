@@ -1,4 +1,3 @@
-import type Anthropic from '@anthropic-ai/sdk'
 import { createAnthropic } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled, demoLessonSteps } from '@/lib/ai/demo-writer'
@@ -412,20 +411,24 @@ async function refineByLlm(
     let text: string
     if (hasKey) {
       const client = createAnthropic(apiKey)
-      const response = await client.messages.create(
+      const response = await client.beta.messages.create(
         {
           model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
           max_tokens: 4000,
+          // Opus 5 는 effort 를 비우면 high 로 생각한다. 같은 입력이 high 23.8초 · low 10.5초였고,
+          // 20초 제한에 걸리면 강사는 기본 템플릿만 본다 (2026-09-19 첫 파일럿 실측).
+          output_config: { effort: 'low' },
           system: SYSTEM,
           messages: [{ role: 'user', content: JSON.stringify(payload) }],
+          // 모델이 거절하면 서버가 같은 요청을 대체 모델로 다시 돌린다 (refusal fallback).
+          betas: ['server-side-fallback-2026-07-01'],
+          fallbacks: 'default',
         },
         { timeout: 20_000, maxRetries: 1 },
       )
+      if (response.stop_reason === 'refusal') return null
 
-      text = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-        .map((b) => b.text)
-        .join('')
+      text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
     } else {
       text = JSON.stringify(demoLessonSteps(payload))
     }
