@@ -4,6 +4,7 @@ import { getActor } from '@/lib/auth/actor'
 
 const NAV: NavItem[] = [
   { href: '/admin', label: '요약' },
+  { href: '/admin/sessions', label: '수업·설문' },
   { href: '/admin/instructors', label: '강사 심사' },
   { href: '/admin/inquiries', label: '보호자 문의' },
   { href: '/admin/qna', label: '미답변 큐' },
