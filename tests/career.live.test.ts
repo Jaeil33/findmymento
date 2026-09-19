@@ -75,6 +75,8 @@ describe.skipIf(!live)('진로 카드 — 실제 API', () => {
   it.each([
     ['자유서술 없음', base],
     ['자유서술 있음', { ...base, wantToLearn: '드론으로 하늘에서 영상 찍는 거', desiredJob: '유튜버' }],
+    ['꿈 요리사', { ...base, gradeBand: 'elementary' as const, interestFields: ['AI·코딩'], wantToLearn: '드론미션수행', desiredJob: '요리사' }],
+    ['꿈 축구선수', { ...base, desiredJob: '축구선수' }],
   ])('%s — AI 가 후보 안에서 3개를 고르고 이유를 쓴다', async (label, input) => {
     const r = await pickCareers(input)
     console.log(
@@ -86,6 +88,7 @@ describe.skipIf(!live)('진로 카드 — 실제 API', () => {
         inputTokens: r.meta.inputTokens,
         outputTokens: r.meta.outputTokens,
         error: r.meta.error,
+        dream: r.dream,
         usd: usd(r.meta.inputTokens, r.meta.outputTokens).toFixed(4),
       }),
     )

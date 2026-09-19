@@ -164,6 +164,8 @@ export async function POST(request: Request) {
       reason: i.reason,
       // 연락처·사진·평점은 이 응답에 존재하지 않는다. 필드 자체를 만들지 않는다.
     })),
+    // 목록에 없는 꿈을 적은 학생에게 카드 위에 보여 줄 응원 한 줄. 진로 카드를 보여 줄 때만.
+    dreamNote: careers.length > 0 && career?.dream && !career.dream.matched ? career.dream.note : null,
     // 진로 카드. 정해진 다섯 필드만 내려간다 — 강사·기관으로 이어지는 값은 없다.
     careers: careers.map((c) => ({
       id: c.id,

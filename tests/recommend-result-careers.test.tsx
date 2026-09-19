@@ -61,6 +61,17 @@ describe('결과 화면 — 진로 카드', () => {
     expect(screen.getByText(/부천 소사 청소년센터 선생님/)).toBeInTheDocument()
   })
 
+  it('꿈 응원 한 줄이 있으면 카드 위에 보여 준다', () => {
+    const note = '축구 경기도 드론으로 찍어 선수들의 움직임을 분석해요.'
+    render(<RecommendResultView {...props} result={{ ...zero, careers, dreamNote: note }} />)
+    expect(screen.getByText(note)).toBeInTheDocument()
+  })
+
+  it('꿈 응원 한 줄이 없으면 그 칸이 없다', () => {
+    render(<RecommendResultView {...props} result={{ ...zero, careers, dreamNote: null }} />)
+    expect(screen.queryByTestId('dream-note')).toBeNull()
+  })
+
   it('진로 카드도 없으면 기존 0건 화면을 그대로 쓴다', () => {
     render(<RecommendResultView {...props} result={{ ...zero, careers: [] }} />)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('지금은 바로 들을 수업이 없어요')

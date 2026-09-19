@@ -259,3 +259,67 @@ describe('LLM 경로', () => {
     }
   })
 })
+
+// ────────────────────────────────────────────────────────────
+describe('관심 직업(꿈)', () => {
+  it('요리사를 적으면 요리와 이어지는 기술 직업이 맨 앞 후보가 된다', () => {
+    const list = careerCandidates({ ...base, desiredJob: '요리사' })
+    expect(['food-tech', 'cooking-robot']).toContain(list[0]!.id)
+    expect(ids(list)).toEqual(expect.arrayContaining(['food-tech', 'cooking-robot']))
+  })
+
+  it('관심 직업이 없으면 꿈 안내가 없다', async () => {
+    expect((await pickCareers(base)).dream).toBeNull()
+  })
+
+  it('관심 직업이 목록과 이어지면 matched — 안내 문장을 따로 붙이지 않는다', async () => {
+    expect((await pickCareers({ ...base, desiredJob: '유튜버' })).dream).toEqual({ matched: true, note: null })
+  })
+
+  it('목록에 없는 꿈이면 규칙 응원 문장이 반드시 나온다 (키 없음)', async () => {
+    const r = await pickCareers({ ...base, desiredJob: '축구선수' })
+    expect(r.dream?.matched).toBe(false)
+    expect(r.dream?.note).toMatch(/꿈/)
+    expect(r.dream?.note).not.toMatch(/d/)
+  })
+
+  describe('LLM', () => {
+    beforeEach(() => {
+      process.env.ANTHROPIC_API_KEY = 'test-key'
+    })
+
+    it('목록에 없는 꿈이면 AI 가 쓴 한 줄(dream_note)을 쓴다', async () => {
+      createMock.mockResolvedValue(reply({ picks: [], dream_note: '축구 경기도 드론으로 찍어 선수들의 움직임을 분석해요.' }))
+      const r = await pickCareers({ ...base, desiredJob: '축구선수' })
+      expect(r.dream).toEqual({ matched: false, note: '축구 경기도 드론으로 찍어 선수들의 움직임을 분석해요.' })
+    })
+
+    it('dream_note 에 숫자·연락처·수준 평가가 섞이면 규칙 문장으로 바꾼다', async () => {
+      for (const bad of ['축구선수는 연봉이 10억이에요.', '실력이 부족해도 괜찮아요.', '010-1234-5678 로 물어봐요.']) {
+        createMock.mockResolvedValue(reply({ picks: [], dream_note: bad }))
+        const r = await pickCareers({ ...base, desiredJob: '축구선수' })
+        expect(r.dream?.note, bad).not.toBe(bad)
+        expect(r.dream?.note).toMatch(/꿈/)
+      }
+    })
+
+    it('꿈과 이어지는 카드는 AI 가 뒤에 골라도 맨 앞에 둔다', async () => {
+      createMock.mockResolvedValue(
+        reply({
+          picks: [
+            { id: 'drone-software', reason: '드론 미션을 코딩하는 일이에요.' },
+            { id: 'autonomous-engineer', reason: '스스로 판단하는 기술을 만들어요.' },
+            { id: 'food-tech', reason: '요리사 꿈과 코딩이 만나는 일이에요.' },
+          ],
+        }),
+      )
+      const r = await pickCareers({ ...base, desiredJob: '요리사' })
+      expect(ids(r.items)).toEqual(['food-tech', 'drone-software', 'autonomous-engineer'])
+    })
+
+    it('꿈이 목록과 이어지면 AI 가 dream_note 를 써도 붙이지 않는다', async () => {
+      createMock.mockResolvedValue(reply({ picks: [], dream_note: '요리도 드론과 만나요.' }))
+      expect((await pickCareers({ ...base, desiredJob: '요리사' })).dream).toEqual({ matched: true, note: null })
+    })
+  })
+})

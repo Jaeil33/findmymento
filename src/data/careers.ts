@@ -24,6 +24,9 @@ export type Career = {
   keywords: string[]
 }
 
+/** 요리·음식 꿈을 적은 학생을 요리와 이어지는 기술 직업으로 잇는다. '요리'는 '요리사'도 잡는다. */
+const FOOD_KEYWORDS = ['요리', '셰프', '쉐프', '음식', '조리', '레시피', '식품', '푸드', '제과', '제빵', '파티시에', '베이킹', '디저트', '바리스타', '식당']
+
 export const CAREERS: Career[] = [
   {
     id: 'drone-pilot',
@@ -95,7 +98,23 @@ export const CAREERS: Career[] = [
     summary: '드론으로 논밭에 비료나 방제약을 뿌리고, 하늘에서 작물 상태를 살펴요.',
     related: '농업·스마트팜 관련 학과 · 드론 조종자 증명',
     fields: ['드론'],
-    keywords: ['농업', '농사', '스마트팜', '작물', '식물', '농부'],
+    keywords: ['농업', '농사', '스마트팜', '작물', '식물', '농부', '식재료'],
+  },
+  {
+    id: 'food-tech',
+    title: '푸드테크 개발자',
+    summary: '인공지능과 코딩으로 새로운 레시피를 찾고, 음식 주문·배달·주방 일을 더 똑똑하게 바꿔요.',
+    related: '식품공학 · 조리과학 · 컴퓨터공학',
+    fields: ['AI·코딩'],
+    keywords: FOOD_KEYWORDS,
+  },
+  {
+    id: 'cooking-robot',
+    title: '조리 로봇 엔지니어',
+    summary: '주방에서 재료를 손질하고 볶고 담는 일을 돕는 조리 로봇을 설계하고 프로그래밍해요.',
+    related: '로봇공학 · 기계공학 · 조리과학',
+    fields: ['AI·코딩'],
+    keywords: FOOD_KEYWORDS,
   },
   {
     id: 'rescue-drone',

@@ -51,8 +51,17 @@ export type LlmMeta = {
   error: string | null
 }
 
+/**
+ * 학생이 적은 관심 직업(꿈). 목록과 이어지면 matched — 카드 이유가 이미 그 꿈을 다룬다.
+ * 목록에 없으면 카드만 보여 주면 "내 꿈은 요리사인데 왜 드론 조종사?"가 된다. 그래서 그 꿈을 먼저
+ * 응원하고 오늘 분야와 만나는 장면을 한 줄로 보여 준다 (AI 문장, 실패하면 규칙 문장).
+ */
+export type DreamNote = { matched: boolean; note: string | null }
+
 export type CareerResult = {
   items: CareerPick[]
+  /** 관심 직업을 안 적었으면 null. */
+  dream: DreamNote | null
   /** 선택·문장을 무엇이 만들었는지. 로그·검수용이다. 화면에 "AI" 배지를 달지 않는다. */
   source: 'llm' | 'rule'
   meta: LlmMeta
@@ -156,14 +165,15 @@ export async function pickCareers(input: CareerInput): Promise<CareerResult> {
   }
 
   const candidates = scoreAll(safe).slice(0, MAX_CAREER_CANDIDATES)
-  if (candidates.length === 0) return { items: [], source: 'rule', meta: NO_CALL }
+  if (candidates.length === 0) return { items: [], source: 'rule', meta: NO_CALL, dream: null }
 
   const rulePicks = candidates
     .slice(0, CAREER_PICKS)
     .map((s) => toPick(s.career, ruleReason(s, safe)))
 
   const llm = await pickByLlm(candidates, safe)
-  if (!llm.picks) return { items: rulePicks, source: 'rule', meta: llm.meta }
+  const dream = dreamFor(candidates, safe, llm.dreamNote)
+  if (!llm.picks) return { items: rulePicks, source: 'rule', meta: llm.meta, dream }
 
   const byId = new Map(candidates.map((s) => [s.career.id, s]))
   const used = new Set<string>()
@@ -187,7 +197,24 @@ export async function pickCareers(input: CareerInput): Promise<CareerResult> {
     items.push(toPick(s.career, ruleReason(s, safe)))
   }
 
-  return { items, source: fromLlm > 0 ? 'llm' : 'rule', meta: llm.meta }
+  // 학생이 적은 꿈과 이어지는 카드는 맨 앞에 둔다 — "내 꿈이 먼저 보이는가"가 결과 화면의 첫인상이다.
+  // 나머지 순서는 LLM(또는 규칙)이 정한 그대로다 (안정 정렬).
+  const dreamIds = new Set(candidates.filter((s) => s.jobHit).map((s) => s.career.id))
+  items.sort((a, b) => Number(dreamIds.has(b.id)) - Number(dreamIds.has(a.id)))
+
+  return { items, source: fromLlm > 0 ? 'llm' : 'rule', meta: llm.meta, dream }
+}
+
+/** 꿈 안내. 목록과 이어지는지는 규칙(키워드)이 정한다 — LLM 이 정하지 않는다. */
+function dreamFor(candidates: Scored[], input: CareerInput, llmNote: unknown): DreamNote | null {
+  if (!input.desiredJob || input.desiredJob.trim() === '') return null
+  if (candidates.some((s) => s.jobHit)) return { matched: true, note: null }
+  return { matched: false, note: guardReason(llmNote) ?? ruleDreamNote(input) }
+}
+
+/** 학생의 말을 되풀이하지 않는 규칙 문장. */
+function ruleDreamNote(input: CareerInput): string {
+  return `적어 준 꿈을 응원해요! 오늘 배운 ${input.sessionField} 기술은 여러 분야에서 쓰여서, 그 꿈에서도 쓸 곳을 찾을 수 있어요.`
 }
 
 const SYSTEM = `너는 초·중·고 학생에게 오늘 들은 수업과 이어지는 진로를 소개하는 도우미다.
@@ -200,18 +227,19 @@ const SYSTEM = `너는 초·중·고 학생에게 오늘 들은 수업과 이어
 - 학생의 실력이나 수준을 평가하지 않는다. 공부 순서나 학습 계획을 제시하지 않는다.
 - 숫자(연봉·순위·나이 등)와 "반드시 된다" 같은 약속을 쓰지 않는다.
 - 연락처·외부 링크·학교명·사람 이름을 쓰지 않는다. "AI가 분석했어요" 같은 말을 쓰지 않는다.
+- 학생이 적은 관심 직업과 이어지는 후보가 없으면, 이유에서 그 직업을 억지로 끌어오지 않는다. 대신 dream_note 에 오늘 들은 분야가 그 꿈과 만나는 장면을 한 줄(60자 이내, 해요체)로 쓴다. 관심 직업이 없거나 이어지는 후보가 있으면 dream_note 는 빈 문자열로 둔다.
 
 출력은 JSON 하나만. 설명을 덧붙이지 않는다.
-{"picks":[{"id":"<후보 id>","reason":"<한 줄>"}]}`
+{"picks":[{"id":"<후보 id>","reason":"<한 줄>"}],"dream_note":"<한 줄 또는 빈 문자열>"}`
 
 type RawPick = { id: string; reason: unknown }
 
 async function pickByLlm(
   candidates: Scored[],
   input: CareerInput,
-): Promise<{ picks: RawPick[] | null; meta: LlmMeta }> {
+): Promise<{ picks: RawPick[] | null; dreamNote: unknown; meta: LlmMeta }> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey.trim() === '') return { picks: null, meta: NO_CALL }
+  if (!apiKey || apiKey.trim() === '') return { picks: null, dreamNote: null, meta: NO_CALL }
 
   const model = process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'
   const payload = {
@@ -258,32 +286,34 @@ async function pickByLlm(
       error: null,
     }
 
-    if (response.stop_reason === 'refusal') return { picks: null, meta: { ...meta, error: 'refusal' } }
+    if (response.stop_reason === 'refusal') return { picks: null, dreamNote: null, meta: { ...meta, error: 'refusal' } }
 
     const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
-    const picks = parsePicks(text)
-    if (!picks) return { picks: null, meta: { ...meta, error: 'parse' } }
-    return { picks, meta }
+    const parsed = parseReply(text)
+    if (!parsed) return { picks: null, dreamNote: null, meta: { ...meta, error: 'parse' } }
+    return { picks: parsed.picks, dreamNote: parsed.dreamNote, meta }
   } catch (err) {
     // 키 만료·한도·크레딧 소진·타임아웃이 전부 여기로 온다. 화면은 규칙 결과로 정상 동작한다.
     return {
       picks: null,
+      dreamNote: null,
       meta: { ...NO_CALL, model, latencyMs: Date.now() - started, error: describeError(err) },
     }
   }
 }
 
-function parsePicks(text: string): RawPick[] | null {
+function parseReply(text: string): { picks: RawPick[]; dreamNote: unknown } | null {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const obj = JSON.parse(text.slice(start, end + 1)) as { picks?: unknown }
+    const obj = JSON.parse(text.slice(start, end + 1)) as { picks?: unknown; dream_note?: unknown }
     if (!Array.isArray(obj.picks)) return null
-    return obj.picks.filter(
+    const picks = obj.picks.filter(
       (p): p is RawPick =>
         typeof p === 'object' && p !== null && typeof (p as { id?: unknown }).id === 'string',
     )
+    return { picks, dreamNote: obj.dream_note }
   } catch {
     return null
   }

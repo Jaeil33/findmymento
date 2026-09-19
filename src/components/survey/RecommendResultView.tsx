@@ -33,6 +33,8 @@ export type RecommendResponse = {
   items?: RecommendItem[]
   /** 추천할 수업이 0건일 때만 채워진다 (ADR-027). */
   careers?: CareerCardItem[]
+  /** 목록에 없는 꿈을 적은 학생에게 보여 줄 응원 한 줄 (AI 또는 규칙 문장). */
+  dreamNote?: string | null
 }
 
 /**
@@ -104,6 +106,14 @@ export function RecommendResultView({
         </ul>
       ) : showCareers ? (
         <div className="space-y-5">
+          {result?.dreamNote ? (
+            <p
+              data-testid="dream-note"
+              className="rounded-xl border border-point-line bg-point-bg px-5 py-4 text-sm leading-relaxed text-ink"
+            >
+              {result.dreamNote}
+            </p>
+          ) : null}
           <CareerCards items={careers} />
           <div className="rounded-xl border border-line bg-muted px-5 py-4">
             <p className="text-sm leading-relaxed text-body">

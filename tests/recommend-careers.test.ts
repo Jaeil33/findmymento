@@ -78,6 +78,21 @@ afterEach(() => {
 })
 
 describe('수업 추천 0건 → 진로 카드', () => {
+  it('목록에 없는 꿈을 적으면 응원 한 줄(dreamNote)이 함께 내려간다', async () => {
+    const res = await recommendRoute(post({ ...noProgramBody, desiredJob: '축구선수' }))
+    const data = (await res.json()) as { dreamNote: string | null; careers: CareerOut[] }
+    expect(data.careers).toHaveLength(3)
+    expect(typeof data.dreamNote).toBe('string')
+    expect(data.dreamNote!.length).toBeGreaterThan(0)
+  })
+
+  it('꿈을 안 적었거나 목록과 이어지면 dreamNote 는 null', async () => {
+    for (const desiredJob of ['', '유튜버']) {
+      const data = (await (await recommendRoute(post({ ...noProgramBody, desiredJob }))).json()) as { dreamNote: string | null }
+      expect(data.dreamNote, desiredJob).toBeNull()
+    }
+  })
+
   it('진로 카드 3장을 내려주고, 카드는 검수 목록 안의 것뿐이다', async () => {
     const res = await recommendRoute(post(noProgramBody))
     const data = (await res.json()) as { ok: boolean; items: unknown[]; careers: CareerOut[] }
