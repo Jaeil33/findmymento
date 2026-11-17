@@ -11,7 +11,6 @@ import {
 import { CopyButton } from '@/components/ai/CopyButton'
 import { Badge, type BadgeTone } from '@/components/ui/Badge'
 import { Button, buttonClass } from '@/components/ui/Button'
-import { IconArrowRight } from '@/components/ui/Icons'
 import { Panel } from '@/components/ui/Section'
 import { cn } from '@/lib/cn'
 import { followupMessageToText } from '@/lib/report/text'
@@ -186,7 +185,7 @@ function EligiblePlan({ draft }: { draft: FollowupPlanDraft }) {
             readOnly
             rows={7}
             value={draft.request_message}
-            className="mt-2 block w-full resize-y rounded-lg border border-line-strong bg-muted px-4 py-3 text-sm leading-relaxed text-body focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+            className="mt-2 block w-full resize-y rounded-sm border border-line-strong bg-muted px-4 py-3 text-sm leading-relaxed text-body focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
           />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
             <CopyButton label="문안 복사" text={followupMessageToText(draft)} />
@@ -205,8 +204,7 @@ function EligiblePlan({ draft }: { draft: FollowupPlanDraft }) {
           rel="noopener noreferrer"
           className={buttonClass({ variant: 'primary' })}
         >
-          섭외 요청 화면으로
-          <IconArrowRight width={16} height={16} />
+          섭외 요청 화면 열기
         </Link>
         <p className="text-xs leading-relaxed text-sub">
           새 탭에서 열립니다. 요청은 자동으로 보내지 않고, 그 화면에서 직접 보냅니다.

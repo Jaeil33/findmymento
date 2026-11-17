@@ -210,7 +210,7 @@ export default async function OrgRecruitmentPage() {
                       </label>
                       <button
                         type="submit"
-                        className="w-full rounded-lg bg-point px-3 py-2 text-xs font-medium text-white hover:bg-point-hover"
+                        className="w-full rounded-sm bg-point px-3 py-2 text-xs font-medium text-white hover:bg-point-hover"
                       >
                         섭외 요청 보내기
                       </button>

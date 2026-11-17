@@ -40,7 +40,7 @@ export function ProgramFilters({
   )
 
   return (
-    <div className="space-y-5 rounded-lg border border-line bg-card p-5">
+    <div className="space-y-5 rounded-sm border border-line bg-card p-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <Select
           label="지역"

@@ -9,6 +9,9 @@ import type { Finding, StudioRound, StudioStatus } from '@/types/studio'
  * "AI가 만들어 줬다"는 강사가 신뢰할 근거가 못 된다. "간격 2.4mm 로 미달 → 1.15배 확대 →
  * 3.1mm 통과"는 근거가 된다. 그래서 라운드를 접어 두거나 요약하지 않는다.
  *
+ * 화면의 모양은 **검사 성적서**다 — 무슨 기준으로 쟀는지가 맨 위에 있고, 각 회차가 아래로
+ * 쌓이고, 걸린 항목마다 측정값과 기준값이 나란히 있다.
+ *
  * 실패한 경우에는 **무엇을 바꾸면 되는지**를 같이 보여준다. 실패 화면에서 다음 행동이 없으면
  * 강사는 이 도구를 다시 열지 않는다.
  */
@@ -28,25 +31,32 @@ const NEXT_ACTION: Record<string, string> = {
 
 function FindingRow({ finding }: { finding: Finding }) {
   const action = NEXT_ACTION[finding.code]
+  const blocking = finding.severity === 'error'
+
   return (
-    <li className="flex gap-2.5 py-2">
-      <Badge tone={finding.severity === 'error' ? 'negative' : 'caution'}>
-        {finding.severity === 'error' ? '막음' : '주의'}
-      </Badge>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-relaxed text-body">{finding.message}</p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-sub">
-          <span className="font-mono">{finding.code}</span>
-          {finding.where ? <span>· {finding.where}</span> : null}
-          {finding.measured !== undefined ? (
-            <span className="tabular-nums">
-              · 측정 {finding.measured}
-              {finding.limit !== undefined ? ` / 기준 ${finding.limit}` : ''}
-            </span>
+    <li className={`border-l-2 py-2.5 pl-3 ${blocking ? 'border-negative' : 'border-caution'}`}>
+      <p className="flex flex-wrap items-baseline gap-x-2 text-sm leading-relaxed">
+        <span className={`font-semibold ${blocking ? 'text-negative' : 'text-caution'}`}>
+          {blocking ? '막음' : '주의'}
+        </span>
+        <span className="text-body">{finding.message}</span>
+      </p>
+
+      {finding.measured !== undefined ? (
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-3 text-sm tabular-nums">
+          <span className="font-semibold text-ink">측정 {finding.measured}</span>
+          {finding.limit !== undefined ? (
+            <span className="text-sub">기준 {finding.limit}</span>
           ) : null}
         </p>
-        {action ? <p className="mt-1 text-xs leading-relaxed text-point">{action}</p> : null}
-      </div>
+      ) : null}
+
+      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-faint">
+        <span>{finding.code}</span>
+        {finding.where ? <span>· {finding.where}</span> : null}
+      </p>
+
+      {action ? <p className="mt-1.5 text-xs leading-relaxed text-point">{action}</p> : null}
     </li>
   )
 }
@@ -62,52 +72,74 @@ export function ValidationReport({
 }) {
   const limit = PEN_LIMITS[gradeBand]
 
-  return (
-    <div className="space-y-4">
-      <p className="rounded-md border border-line bg-muted px-3 py-2 text-xs leading-relaxed text-body">
-        {GRADE_BAND_LABEL[gradeBand]} 기준으로 검사했습니다 — 최소 선 간격 {limit.min_gap_mm}mm ·
-        최소 선 길이 {limit.min_segment_mm}mm · 최소 내각 {limit.min_angle_deg}도 · 부품 상한{' '}
-        {limit.max_parts}개 · 그리기 속도 {limit.draw_speed_mm_s}mm/초.
-      </p>
+  const criteria = [
+    { label: '최소 선 간격', value: `${limit.min_gap_mm}mm` },
+    { label: '최소 선 길이', value: `${limit.min_segment_mm}mm` },
+    { label: '최소 내각', value: `${limit.min_angle_deg}°` },
+    { label: '부품 상한', value: `${limit.max_parts}개` },
+    { label: '그리기 속도', value: `${limit.draw_speed_mm_s}mm/초` },
+  ]
 
-      <ol className="space-y-3">
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-sm font-semibold text-ink">
+          {GRADE_BAND_LABEL[gradeBand]} 기준으로 검사했습니다
+        </p>
+        <dl className="mt-2.5 grid grid-cols-2 border-y border-line sm:grid-cols-5">
+          {criteria.map((c) => (
+            <div key={c.label} className="rule-cell px-3 py-2.5 first:pl-0 sm:first:pl-3">
+              <dt className="text-xs text-sub">{c.label}</dt>
+              <dd className="mt-0.5 text-sm font-semibold text-ink tabular-nums">{c.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <ol className="space-y-4">
         {rounds.map((round) => (
-          <li key={round.round} className="rounded-md border border-line bg-card p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-ink">{round.round}차</span>
-              <Badge tone={round.action === 'generated' ? 'neutral' : 'caution'}>
-                {round.action === 'generated' ? '생성' : '개선'}
-              </Badge>
+          <li key={round.round} className="border border-line bg-card">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-4 py-2.5">
+              <span className="font-display text-sm font-bold text-ink tabular-nums">
+                {round.round}차
+              </span>
+              <span className="text-xs font-medium text-sub">
+                {round.action === 'generated' ? '생성' : '치수 개선'}
+              </span>
               <Badge tone={round.ok ? 'positive' : 'negative'}>
                 {round.ok ? '통과' : '미통과'}
               </Badge>
               {round.params ? (
-                <span className="text-xs tabular-nums text-sub">
-                  치수 {String(round.params.size)}mm · 장식 {String(round.params.detail)} ·
-                  선택 부품 {round.params.extras ? '포함' : '제외'}
+                <span className="text-xs text-sub tabular-nums">
+                  치수 {String(round.params.size)}mm · 장식 {String(round.params.detail)} · 선택 부품{' '}
+                  {round.params.extras ? '포함' : '제외'}
                 </span>
               ) : null}
             </div>
 
-            {round.repair ? (
-              <p className="mt-2 text-sm leading-relaxed text-point">↳ {round.repair}</p>
-            ) : null}
+            <div className="px-4 py-3">
+              {round.repair ? (
+                <p className="mb-2 text-sm leading-relaxed font-medium text-point">
+                  고친 것 — {round.repair}
+                </p>
+              ) : null}
 
-            {round.findings.length > 0 ? (
-              <ul className="mt-2 divide-y divide-line">
-                {round.findings.map((finding, i) => (
-                  <FindingRow key={`${finding.code}-${i}`} finding={finding} />
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 text-sm text-body">걸린 항목이 없습니다.</p>
-            )}
+              {round.findings.length > 0 ? (
+                <ul className="space-y-2.5">
+                  {round.findings.map((finding, i) => (
+                    <FindingRow key={`${finding.code}-${i}`} finding={finding} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-positive">걸린 항목이 없습니다.</p>
+              )}
+            </div>
           </li>
         ))}
       </ol>
 
       {status === 'failed' ? (
-        <p className="rounded-md border border-negative/20 bg-negative-bg px-3 py-2 text-xs leading-relaxed text-negative">
+        <p className="border-l-2 border-negative bg-negative-bg px-3.5 py-3 text-sm leading-relaxed text-negative">
           개선을 {rounds.length - 1}번 시도했지만 기준을 넘지 못했습니다. 기준을 낮춰 통과시키지
           않습니다 — 선 간격과 제작 시간은 교실에서 그대로 드러나기 때문입니다. 위 조치를 적용해
           다시 만들어 주세요.

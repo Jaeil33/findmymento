@@ -51,7 +51,7 @@ export default async function StudioNewPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={head ? `${head.title} · v${head.version} 다음 버전` : 'AI 콘텐츠 스튜디오'}
+        eyebrow={head ? `${head.title} · v${head.version} 다음 버전` : undefined}
         title={head ? '새 버전 만들기' : '3D펜 도안 만들기'}
         description={
           head

@@ -51,7 +51,6 @@ export default async function ProgramsPage({
       <div className="border-b border-line bg-card">
         <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
           <PageHeader
-            eyebrow="공개 디렉토리"
             title="우리 지역 프로그램 찾기"
             description={
               <>
@@ -75,7 +74,7 @@ export default async function ProgramsPage({
         </FactNote>
 
         <Suspense
-          fallback={<div className="h-44 rounded-lg border border-line bg-card" aria-hidden="true" />}
+          fallback={<div className="h-44 rounded-sm border border-line bg-card" aria-hidden="true" />}
         >
           <ProgramFilters regions={regions} total={result.items.length} />
         </Suspense>

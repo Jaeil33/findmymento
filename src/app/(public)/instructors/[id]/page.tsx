@@ -71,7 +71,7 @@ export default async function InstructorDetailPage({ params }: { params: Promise
 
       <section className="mt-10">
         <h2 className="text-base font-semibold text-ink">진행하는 프로그램</h2>
-        <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line bg-card">
+        <ul className="mt-4 divide-y divide-line overflow-hidden rounded-sm border border-line bg-card">
           {programs.map((p) => (
             <li key={p.id}>
               <Link
@@ -92,7 +92,7 @@ export default async function InstructorDetailPage({ params }: { params: Promise
         </ul>
       </section>
 
-      <section className="mt-8 rounded-lg border border-point-line bg-point-bg p-5">
+      <section className="mt-8 rounded-sm border border-point-line bg-point-bg p-5">
         <h2 className="text-base font-semibold text-ink">이 강사에게 문의하고 싶다면</h2>
         <p className="mt-1.5 text-sm leading-relaxed text-body">
           강사 연락처는 어떤 화면에도 표시되지 않습니다.{' '}

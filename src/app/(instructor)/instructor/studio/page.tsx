@@ -52,7 +52,6 @@ export default async function StudioLibraryPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="AI 콘텐츠 스튜디오"
         title="내 실습 콘텐츠"
         description="학년대·인원·시수·장비에 맞는 3D펜 도안을 만들고, 검증을 통과한 것만 수업에 씁니다. 좌표와 치수는 프로그램이 계산합니다."
         actions={

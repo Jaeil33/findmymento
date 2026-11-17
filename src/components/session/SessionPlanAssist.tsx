@@ -131,7 +131,7 @@ export function SessionPlanAssist({ demoAi = false }: { demoAi?: boolean } = {})
             )}
 
             {draft.unmet.length > 0 && (
-              <div className="rounded-lg border border-caution/30 bg-caution-bg px-3.5 py-3 text-sm leading-relaxed text-body">
+              <div className="rounded-sm border border-caution/30 bg-caution-bg px-3.5 py-3 text-sm leading-relaxed text-body">
                 <p className="font-medium text-ink">지금은 열 수 없지만, 수요는 있습니다</p>
                 {draft.unmet.map((u) => (
                   <p key={u.field}>

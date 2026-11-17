@@ -87,12 +87,12 @@ export default async function InstructorQnaPage({
                       rows={4}
                       maxLength={1500}
                       placeholder="학생이 바로 해볼 수 있는 것까지 알려주면 가장 좋습니다."
-                      className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm leading-relaxed text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                      className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm leading-relaxed text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                     />
                   </label>
                   <button
                     type="submit"
-                    className="rounded-lg bg-point px-4 py-2 text-sm font-medium text-white hover:bg-point-hover"
+                    className="rounded-sm bg-point px-4 py-2 text-sm font-medium text-white hover:bg-point-hover"
                   >
                     답변 올리기
                   </button>

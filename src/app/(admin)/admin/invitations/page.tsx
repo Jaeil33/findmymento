@@ -53,7 +53,7 @@ export default async function AdminInvitationsPage({
               name="email"
               required
               placeholder="person@example.org"
-              className="block w-full rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+              className="block w-full rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
             />
           </label>
 
@@ -62,7 +62,7 @@ export default async function AdminInvitationsPage({
             <select
               name="role"
               defaultValue="org_member"
-              className="block w-full rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+              className="block w-full rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
             >
               <option value="org_member">기관·학교 담당자</option>
               <option value="instructor">강사</option>
@@ -75,7 +75,7 @@ export default async function AdminInvitationsPage({
             <select
               name="orgId"
               defaultValue=""
-              className="block w-full rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+              className="block w-full rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
             >
               <option value="">선택 없음</option>
               {ds.organizations.map((o) => (
@@ -91,7 +91,7 @@ export default async function AdminInvitationsPage({
             <select
               name="providerId"
               defaultValue=""
-              className="block w-full rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+              className="block w-full rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
             >
               <option value="">프리랜서</option>
               {ds.providers.map((p) => (
@@ -105,7 +105,7 @@ export default async function AdminInvitationsPage({
           <div className="flex items-end lg:col-span-2">
             <button
               type="submit"
-              className="rounded-lg bg-point px-4 py-2.5 text-sm font-medium text-white hover:bg-point-hover"
+              className="rounded-sm bg-point px-4 py-2.5 text-sm font-medium text-white hover:bg-point-hover"
             >
               초대 보내기
             </button>

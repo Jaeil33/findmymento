@@ -117,12 +117,12 @@ export function GenerateResult({
       />
 
       {data.topic_note ? (
-        <p className="rounded-lg border border-line bg-muted px-4 py-3 text-xs leading-relaxed text-body">
+        <p className="rounded-sm border border-line bg-muted px-4 py-3 text-xs leading-relaxed text-body">
           {data.topic_note}
         </p>
       ) : null}
 
-      <p className="rounded-lg border border-caution/25 bg-caution-bg px-4 py-3 text-xs leading-relaxed text-caution">
+      <p className="rounded-sm border border-caution/25 bg-caution-bg px-4 py-3 text-xs leading-relaxed text-caution">
         이 산출물은 <strong>저장되지 않습니다.</strong> 체험·데모 세션이라 라이브러리에 쌓이지
         않고, 화면을 벗어나면 사라집니다.
         {/* 통과하지 못한 도안에는 쓸 수 있다는 말을 붙이지 않는다 — 버튼도 열리지 않는다 (ADR-030). */}

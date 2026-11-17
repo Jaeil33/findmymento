@@ -30,7 +30,6 @@ export default async function QnaPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <PageHeader
-        eyebrow="공개 Q&amp;A"
         title="지역 강사에게 물어보기"
         description="질문과 답변이 모두에게 공개됩니다. 1:1 비공개 메시지 기능은 없고, 기관 선생님도 함께 봅니다."
         actions={
@@ -83,7 +82,7 @@ export default async function QnaPage({
       ) : (
         <ul className="mt-6 space-y-4">
           {threads.map(({ question, answers, hoursWaiting, unanswered }) => (
-            <li key={question.id} className="rounded-lg border border-line bg-card">
+            <li key={question.id} className="rounded-xl border border-line bg-card">
               <div className="px-5 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">

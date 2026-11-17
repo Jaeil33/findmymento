@@ -70,7 +70,7 @@ export default async function NewSessionPage({
                 required
                 maxLength={60}
                 placeholder="예) 드론으로 우리 동네 찍어보기"
-                className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
               />
             </label>
 
@@ -83,7 +83,7 @@ export default async function NewSessionPage({
                   name="field"
                   required
                   defaultValue=""
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                 >
                   <option value="" disabled>
                     선택
@@ -104,7 +104,7 @@ export default async function NewSessionPage({
                   name="gradeBand"
                   required
                   defaultValue="middle"
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                 >
                   <option value="elementary">초등</option>
                   <option value="middle">중등</option>
@@ -121,7 +121,7 @@ export default async function NewSessionPage({
                   name="heldOn"
                   required
                   defaultValue={defaultHeld}
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                 />
               </label>
 
@@ -134,7 +134,7 @@ export default async function NewSessionPage({
                   name="closesOn"
                   required
                   defaultValue={defaultCloses}
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                 />
                 <span className="block text-xs text-sub">
                   마감 뒤에 QR을 찍은 학생에게는 안내 화면이 보입니다.
@@ -152,7 +152,7 @@ export default async function NewSessionPage({
                   min={1}
                   max={500}
                   defaultValue={30}
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink tabular-nums focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink tabular-nums focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                 />
                 <span className="block text-xs text-sub">응답률 계산에 쓰입니다.</span>
               </label>
@@ -177,13 +177,13 @@ export default async function NewSessionPage({
                   max={300}
                   step={5}
                   defaultValue={50}
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none tabular-nums"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none tabular-nums"
                 />
               </label>
 
               <label className="block space-y-1.5">
                 <span className="block text-sm font-medium text-body">장소</span>
-                <select name="venue" defaultValue="교실" className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none">
+                <select name="venue" defaultValue="교실" className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none">
                   {VENUES.map((v) => (
                     <option key={v} value={v}>
                       {v}
@@ -199,7 +199,7 @@ export default async function NewSessionPage({
                 {CLASS_TRAITS.map((t) => (
                   <label
                     key={t}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-body has-checked:border-point has-checked:bg-point-bg has-checked:text-point"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-sm border border-line-strong bg-card px-3 py-2 text-sm text-body has-checked:border-point has-checked:bg-point-bg has-checked:text-point"
                   >
                     <input type="checkbox" name="classTraits" value={t} className="accent-point" />
                     {t}
@@ -219,7 +219,7 @@ export default async function NewSessionPage({
                 name="equipment"
                 rows={2}
                 placeholder="드론 10대, 태블릿 25대"
-                className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none resize-none"
+                className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none resize-none"
               />
               <span className="block text-xs text-sub">
                 쉼표 또는 줄바꿈으로 구분합니다. 없는 장비를 전제한 교안이 나오지 않게 하는 데 쓰입니다.
@@ -236,7 +236,7 @@ export default async function NewSessionPage({
             <select
               name="instructorId"
               defaultValue=""
-              className="block w-full rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+              className="block w-full rounded-sm border border-line-strong bg-card px-4 py-3 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
             >
               <option value="">나중에 배정 (권장하지 않음)</option>
               {instructors.map((i) => (

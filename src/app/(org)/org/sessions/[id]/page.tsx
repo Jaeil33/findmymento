@@ -92,7 +92,7 @@ export default async function OrgSessionReportPage({
                 <select
                   name="instructorId"
                   defaultValue={session.instructor_id ?? ''}
-                  className="block w-full rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                  className="block w-full rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
                 >
                   <option value="">미배정</option>
                   {instructors.map((i) => (

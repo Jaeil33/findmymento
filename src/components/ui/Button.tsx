@@ -10,14 +10,18 @@ export type ButtonProps = {
 } & ButtonHTMLAttributes<HTMLButtonElement>
 
 const BASE =
-  'inline-flex items-center justify-center gap-2 font-medium transition-colors ' +
+  'inline-flex items-center justify-center gap-2 font-semibold transition-colors ' +
   'disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 ' +
   'focus-visible:outline-offset-2 focus-visible:outline-point'
 
+/**
+ * 버튼은 찍어 누른 자리처럼 보여야 한다 — 각을 거의 세우고, 테두리를 가진다.
+ * 그림자로 띄우지 않는다 (UI_GUIDE 안티패턴).
+ */
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'rounded-lg bg-point text-white hover:bg-point-hover px-4 py-2.5',
+  primary: 'rounded-sm bg-point border border-point text-white hover:bg-point-hover px-4 py-2.5',
   secondary:
-    'rounded-lg bg-card border border-line-strong text-body hover:bg-muted px-4 py-2.5',
+    'rounded-sm bg-card border border-line-strong text-ink hover:bg-muted px-4 py-2.5',
   text: 'text-sub hover:text-ink underline-offset-4 hover:underline',
 }
 

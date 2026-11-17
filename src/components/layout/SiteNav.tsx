@@ -28,8 +28,10 @@ export function SiteNav({ items }: { items: SiteNavItem[] }) {
             href={item.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'rounded-md px-3 py-2 text-sm transition-colors',
-              active ? 'font-semibold text-ink' : 'text-body hover:bg-muted hover:text-ink',
+              'rounded-sm px-3 py-2 text-sm font-medium transition-colors',
+              active
+                ? 'bg-point-bg font-semibold text-point'
+                : 'text-body hover:bg-muted hover:text-ink',
             )}
           >
             {item.label}
@@ -49,13 +51,13 @@ export function SiteMobileMenu({ items }: { items: SiteNavItem[] }) {
 
   return (
     <details key={pathname} className="group relative md:hidden">
-      <summary className="flex min-h-10 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-line-strong px-3 text-sm text-body transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center gap-1.5 rounded-sm border border-line-strong px-3 text-sm font-medium text-body transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
         <IconMenu width={16} height={16} />
         메뉴
       </summary>
       <nav
         aria-label="모바일 메뉴"
-        className="absolute top-[calc(100%+0.5rem)] right-0 z-50 w-60 rounded-lg border border-line bg-card p-1.5 shadow-lg"
+        className="absolute top-[calc(100%+0.5rem)] right-0 z-50 w-60 rounded-sm border border-ink bg-card p-1.5"
       >
         {items.map((item) => {
           const active = isActive(pathname, item.href)
@@ -65,8 +67,10 @@ export function SiteMobileMenu({ items }: { items: SiteNavItem[] }) {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'block rounded-md px-3 py-2.5 text-sm transition-colors',
-                active ? 'bg-point-bg font-semibold text-point' : 'text-body hover:bg-muted hover:text-ink',
+                'block rounded-sm px-3 py-2.5 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-point-bg font-semibold text-point'
+                  : 'text-body hover:bg-muted hover:text-ink',
               )}
             >
               {item.label}

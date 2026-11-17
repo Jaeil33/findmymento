@@ -115,7 +115,7 @@ function DebriefBody({ draft, sessionId }: { draft: SessionDebriefDraft; session
 
       <section>
         <h3 className="text-sm font-semibold text-ink">학교 제출용 요약</h3>
-        <p className="mt-2 rounded-lg border border-line bg-muted px-5 py-4 text-sm leading-relaxed text-body">
+        <p className="mt-2 rounded-sm border border-line bg-muted px-5 py-4 text-sm leading-relaxed text-body">
           {draft.school_summary}
         </p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">

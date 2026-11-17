@@ -12,13 +12,13 @@ export function Progress({
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-xs font-medium text-sub">{label ?? '진행'}</p>
+        <p className="text-xs font-semibold text-sub">{label ?? '진행'}</p>
         <p className="text-xs font-medium text-sub tabular-nums">
           {current} / {total}
         </p>
       </div>
       <div
-        className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+        className="h-2 w-full overflow-hidden rounded-xs border border-line bg-card"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={total}
@@ -26,7 +26,7 @@ export function Progress({
         aria-label={label ?? '설문 진행'}
       >
         <div
-          className="h-full rounded-full bg-point transition-[width] duration-200"
+          className="h-full bg-point transition-[width] duration-200"
           style={{ width: `${pct}%` }}
         />
       </div>

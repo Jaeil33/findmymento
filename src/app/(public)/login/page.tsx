@@ -39,7 +39,7 @@ export default async function LoginPage({
       </div>
 
       {/* 체험 입구 (ADR-033). 실 DB 가 붙어 있어도 열려 있지만, 체험 세션은 데모 시드만 본다. */}
-      <section className="mt-10 rounded-lg border border-caution/30 bg-caution-bg p-5">
+      <section className="mt-10 rounded-sm border border-caution/30 bg-caution-bg p-5">
         <h2 className="text-sm font-semibold text-caution">계정 없이 둘러보기</h2>
         <p className="mt-1.5 text-sm leading-relaxed text-body">
           {isDemoMode()

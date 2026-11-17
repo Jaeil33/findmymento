@@ -129,7 +129,7 @@ function PlanBody({ plan }: { plan: Skeleton }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-caution/30 bg-caution-bg px-4 py-3 text-sm leading-relaxed text-body">
+      <div className="rounded-sm border border-caution/30 bg-caution-bg px-4 py-3 text-sm leading-relaxed text-body">
         <strong className="font-semibold text-ink">이것은 초안입니다.</strong> 그대로 쓰지 말고
         반드시 확인하세요. 특히 학급 특성에 대한 대응은 담당 선생님과 한 번 맞춰 보시기 바랍니다.
         수업의 최종 책임은 강사에게 있습니다.
@@ -180,11 +180,11 @@ function StepCard({ step }: { step: LessonStep }) {
       <p className="text-sm leading-relaxed text-body">{step.base}</p>
 
       <dl className="mt-3 grid gap-2 text-sm leading-relaxed sm:grid-cols-2">
-        <div className="rounded-lg bg-muted px-3 py-2">
+        <div className="rounded-sm bg-muted px-3 py-2">
           <dt className="text-xs font-medium text-sub">빨리 끝낸 학생</dt>
           <dd className="text-body">{step.fast}</dd>
         </div>
-        <div className="rounded-lg bg-muted px-3 py-2">
+        <div className="rounded-sm bg-muted px-3 py-2">
           <dt className="text-xs font-medium text-sub">어려워하는 학생</dt>
           <dd className="text-body">{step.slow}</dd>
         </div>
@@ -193,7 +193,7 @@ function StepCard({ step }: { step: LessonStep }) {
       {step.accommodations.length > 0 && (
         <dl className="mt-2 space-y-2 text-sm leading-relaxed">
           {step.accommodations.map((a) => (
-            <div key={a.trait} className="rounded-lg border border-caution/30 bg-caution-bg px-3 py-2">
+            <div key={a.trait} className="rounded-sm border border-caution/30 bg-caution-bg px-3 py-2">
               <dt className="text-xs font-medium text-sub">{a.trait}</dt>
               <dd className="text-body">{a.how}</dd>
             </div>

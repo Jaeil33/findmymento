@@ -59,4 +59,30 @@ describe('UI_GUIDE 안티패턴', () => {
   it('"Powered by AI" 류 장식 배지를 만들지 않는다', () => {
     expect(offenders(/Powered by AI/i)).toEqual([])
   })
+
+  it('라벨을 대문자로 늘려 쓰지 않는다 — 제목 위 색칠한 꼬리표(eyebrow)의 흔한 모양이다', () => {
+    expect(offenders(/uppercase/)).toEqual([])
+  })
+
+  it('모서리 반경은 정해진 4단만 쓴다 (xs·sm·md·xl)', () => {
+    // rounded-lg / rounded-2xl 이 섞이면 "용도별로 다른 반경"이 그냥 제각각이 된다.
+    expect(offenders(/rounded-(lg|2xl|3xl)/)).toEqual([])
+  })
+})
+
+/**
+ * 버튼·링크 문구 뒤에 화살표를 붙이지 않는다.
+ *
+ * 생성형 랜딩의 가장 흔한 버릇이고, 누르면 어디로 가는지는 문구가 말한다.
+ * 목록 행 끝의 이동 표시(`ProgramCardView` 처럼 카드 전체가 링크인 경우)는 이 규칙이 아니다 —
+ * 여기서 막는 건 **문구 바로 뒤에 붙은** 화살표다.
+ */
+describe('CTA 문구 뒤 화살표', () => {
+  it('버튼 모양 링크 안에서 문구 다음에 화살표 아이콘을 두지 않는다', () => {
+    const offending = files.filter((f) => {
+      const code = codeOnly(readFileSync(f, 'utf8'))
+      return /(?:CTA_PRIMARY|CTA_SECONDARY|buttonClass\()[\s\S]{0,400}?<IconArrowRight/.test(code)
+    })
+    expect(offending.map(rel)).toEqual([])
+  })
 })

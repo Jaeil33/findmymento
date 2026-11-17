@@ -153,7 +153,7 @@ export function DraftNotices({ notices }: { notices: string[] }) {
   const [first, ...rest] = notices.filter((n) => n.trim() !== '')
   if (!first) return null
   return (
-    <div role="note" className="rounded-lg border border-caution/30 bg-caution-bg px-4 py-3 text-sm">
+    <div role="note" className="rounded-sm border border-caution/30 bg-caution-bg px-4 py-3 text-sm">
       <p className="font-semibold text-ink">{first}</p>
       {rest.length > 0 ? (
         <ul className="mt-1.5 space-y-1 leading-relaxed text-body">

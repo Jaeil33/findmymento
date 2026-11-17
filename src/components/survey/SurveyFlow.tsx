@@ -260,7 +260,7 @@ export function SurveyFlow({
           <IconCheck width={20} height={20} />
           <p className="text-sm font-medium">이미 응답했어요</p>
         </div>
-        <h1 className="text-xl leading-snug font-semibold text-ink">
+        <h1 className="font-display text-[1.45rem] leading-snug font-bold text-ink">
           이 수업에는 이미 답을 남겼어요
         </h1>
         <p className="text-base leading-relaxed text-body">
@@ -270,13 +270,13 @@ export function SurveyFlow({
         <div className="space-y-2.5 pt-2">
           <Link
             href="/qna"
-            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-point text-base font-medium text-white"
+            className="flex min-h-12 w-full items-center justify-center rounded-sm border border-point bg-point text-base font-semibold text-white"
           >
             공개 Q&amp;A에서 물어보기
           </Link>
           <Link
             href="/programs"
-            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-line-strong bg-card text-base font-medium text-body"
+            className="flex min-h-12 w-full items-center justify-center rounded-sm border border-line-strong bg-card text-base font-semibold text-ink"
           >
             우리 지역 프로그램 보기
           </Link>
@@ -291,16 +291,17 @@ export function SurveyFlow({
       <header className="space-y-3">
         {step === 'entry' ? (
           <>
-            <p className="text-xs font-medium text-point">
-              {orgName}
-              {instructorName ? ` · ${instructorName} 강사` : ''}
-            </p>
-            <h1 className="text-xl leading-snug font-semibold tracking-tight text-ink">
+            <h1 className="font-display text-[1.6rem] leading-snug font-bold text-ink">
               나에게 맞는 다음 교육 찾기
             </h1>
-            <p className="text-base leading-relaxed text-body">
-              오늘 들은 <span className="font-medium text-ink">{sessionTitle}</span> 수업에 대해 몇
-              가지만 물어볼게요. 3분이면 끝나고, 바로 나한테 맞는 다음 교육을 알려줄게요.
+            <p className="text-base leading-[1.7] text-body">
+              오늘 들은 <span className="font-semibold text-ink">{sessionTitle}</span> 수업에 대해 몇
+              가지만 물어볼게요. 질문 7개, 3분이면 끝나요. 답하고 나면 다음에 배울 수 있는 곳을 바로
+              알려줄게요.
+            </p>
+            <p className="border-t border-line pt-2.5 text-xs text-sub">
+              {orgName}
+              {instructorName ? ` · ${instructorName} 강사` : ''}
             </p>
           </>
         ) : (
@@ -362,7 +363,7 @@ export function SurveyFlow({
 
         {step === 'grade' ? (
           <fieldset>
-            <legend className="text-xl leading-snug font-semibold text-ink">
+            <legend className="font-display text-[1.35rem] leading-snug font-bold text-ink">
               몇 학년이에요?
             </legend>
             <div className="mt-5 space-y-4">
@@ -389,7 +390,7 @@ export function SurveyFlow({
 
         {step === 'satisfaction' ? (
           <fieldset>
-            <legend className="text-xl leading-snug font-semibold text-ink">
+            <legend className="font-display text-[1.35rem] leading-snug font-bold text-ink">
               오늘 수업 어땠어요?
             </legend>
             <div className="mt-5 space-y-2.5">
@@ -407,8 +408,8 @@ export function SurveyFlow({
 
         {step === 'followup' ? (
           <fieldset>
-            <legend className="text-xl leading-snug font-semibold text-ink">
-              이 분야를 <span className="text-point">더 배워보고 싶어요?</span>
+            <legend className="font-display text-[1.35rem] leading-snug font-bold text-ink">
+              이 분야를 더 배워보고 싶어요?
             </legend>
             <p className="mt-2 text-sm leading-relaxed text-sub">
               솔직하게 답해도 괜찮아요. 아니라고 해도 아무 일도 생기지 않아요.
@@ -428,7 +429,7 @@ export function SurveyFlow({
 
         {step === 'fields' ? (
           <fieldset>
-            <legend className="text-xl leading-snug font-semibold text-ink">
+            <legend className="font-display text-[1.35rem] leading-snug font-bold text-ink">
               어떤 걸 더 배워보고 싶어요?
             </legend>
             <p className="mt-2 text-sm text-sub">최대 3개까지 고를 수 있어요.</p>
@@ -499,7 +500,7 @@ export function SurveyFlow({
 
         {step === 'times' ? (
           <fieldset>
-            <legend className="text-xl leading-snug font-semibold text-ink">
+            <legend className="font-display text-[1.35rem] leading-snug font-bold text-ink">
               후속 수업이 열린다면 언제 참여할 수 있어요?
             </legend>
             <p className="mt-2 text-sm text-sub">여러 개 고를 수 있어요. 선택이에요.</p>
@@ -525,13 +526,13 @@ export function SurveyFlow({
       </div>
 
       {restored && stepIndex === 0 ? (
-        <p className="rounded-md border border-line bg-muted px-3.5 py-2.5 text-xs leading-relaxed text-body">
+        <p className="border-l-2 border-line-strong bg-muted px-3.5 py-2.5 text-sm leading-relaxed text-body">
           쓰던 답을 그대로 불러왔어요. 이어서 하면 돼요.
         </p>
       ) : null}
 
       {error ? (
-        <p className="rounded-md border border-negative/25 bg-negative-bg px-3.5 py-2.5 text-sm leading-relaxed text-negative">
+        <p className="border-l-2 border-negative bg-negative-bg px-3.5 py-2.5 text-sm leading-relaxed text-negative">
           {error}
         </p>
       ) : null}
@@ -584,10 +585,10 @@ function OptionRow({
       onClick={onClick}
       aria-pressed={selected}
       className={
-        'flex min-h-13 w-full items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left text-base transition-colors ' +
+        'flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5 text-left text-base transition-colors ' +
         (selected
-          ? 'border-point bg-point-bg font-medium text-point'
-          : 'border-line bg-card text-body active:bg-muted')
+          ? 'border-point bg-point-bg font-semibold text-point'
+          : 'border-line bg-card text-body hover:border-line-strong active:bg-muted')
       }
     >
       <span>{label}</span>

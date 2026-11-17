@@ -54,7 +54,7 @@ export function QuestionForm({ defaultField }: { defaultField?: string }) {
 
   if (done) {
     return (
-      <div className="animate-fade-in rounded-lg border border-point-line bg-point-bg px-5 py-4">
+      <div className="animate-fade-in rounded-xl border border-point-line bg-point-bg px-5 py-4">
         <p className="flex items-center gap-1.5 text-sm font-medium text-point">
           <IconCheck width={16} height={16} />
           질문을 올렸어요

@@ -134,7 +134,7 @@ export default async function OrgInterestsPage() {
                               </select>
                               <button
                                 type="submit"
-                                className="rounded-lg bg-point px-3 py-1.5 text-xs font-medium text-white hover:bg-point-hover"
+                                className="rounded-sm bg-point px-3 py-1.5 text-xs font-medium text-white hover:bg-point-hover"
                               >
                                 동의 기록
                               </button>
@@ -192,8 +192,8 @@ function StatusButton({
         type="submit"
         className={
           variant === 'primary'
-            ? 'rounded-lg bg-point px-3 py-1.5 text-xs font-medium text-white hover:bg-point-hover'
-            : 'rounded-lg border border-line-strong bg-card px-3 py-1.5 text-xs font-medium text-body hover:bg-muted'
+            ? 'rounded-sm bg-point px-3 py-1.5 text-xs font-medium text-white hover:bg-point-hover'
+            : 'rounded-sm border border-line-strong bg-card px-3 py-1.5 text-xs font-medium text-body hover:bg-muted'
         }
       >
         {label}

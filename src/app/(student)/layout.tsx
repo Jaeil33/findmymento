@@ -15,14 +15,14 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-line bg-card">
+      <header className="border-b-2 border-ink bg-card">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
           <Wordmark className="text-sm" />
           <nav className="flex items-center gap-3 text-xs">
-            <Link href="/qna" className="text-sub hover:text-ink">
+            <Link href="/qna" className="font-medium text-body hover:text-point">
               공개 Q&amp;A
             </Link>
-            <Link href="/programs" className="text-sub hover:text-ink">
+            <Link href="/programs" className="font-medium text-body hover:text-point">
               프로그램
             </Link>
           </nav>

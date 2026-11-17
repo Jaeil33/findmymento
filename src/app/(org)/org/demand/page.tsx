@@ -106,7 +106,7 @@ export default async function OrgDemandPage() {
           action={
             <Link
               href="/org/sessions/new"
-              className="rounded-lg bg-point px-4 py-2.5 text-sm font-medium text-white hover:bg-point-hover"
+              className="rounded-sm bg-point px-4 py-2.5 text-sm font-medium text-white hover:bg-point-hover"
             >
               회차 만들기
             </Link>

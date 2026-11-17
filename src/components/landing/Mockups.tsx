@@ -46,7 +46,7 @@ export function DemandMock() {
   const max = Math.max(...DEMAND_ROWS.map((r) => r.count))
   return (
     <figure>
-      <div className={cn('overflow-hidden rounded-lg border border-line bg-card', MOCK_SHADOW)} aria-hidden="true">
+      <div className={cn('overflow-hidden rounded-sm border border-line bg-card', MOCK_SHADOW)} aria-hidden="true">
         <WindowBar title="기관 대시보드 · 수요" />
         <div className="flex flex-wrap items-end justify-between gap-2 px-5 pt-4 pb-3">
           <div>
@@ -138,7 +138,7 @@ function DecorativeQr({ className }: { className?: string }) {
 export function ProjectionMock() {
   return (
     <figure>
-      <div className={cn('overflow-hidden rounded-lg border border-line bg-card', MOCK_SHADOW)} aria-hidden="true">
+      <div className={cn('overflow-hidden rounded-sm border border-line bg-card', MOCK_SHADOW)} aria-hidden="true">
         <WindowBar title="교실 투사용 QR · 진로체험 드론 직업인 특강" />
         <div className="grid items-center gap-6 px-6 py-8 sm:grid-cols-[auto_minmax(0,1fr)] sm:px-8">
           <div className="mx-auto rounded-md border border-line p-3 sm:mx-0">

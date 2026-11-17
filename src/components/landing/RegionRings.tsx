@@ -27,7 +27,7 @@ export function RegionRings({
   const halo = { paintOrder: 'stroke' as const }
 
   return (
-    <figure className="rounded-lg border border-line bg-card p-4 sm:p-6">
+    <figure className="rounded-sm border border-line bg-card p-4 sm:p-6">
       <svg
         viewBox={`0 0 ${size} ${size}`}
         className="mx-auto block h-auto w-full max-w-[26rem]"

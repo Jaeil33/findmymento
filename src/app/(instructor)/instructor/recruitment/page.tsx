@@ -68,7 +68,7 @@ export default async function InstructorRecruitmentPage() {
                       <input type="hidden" name="accept" value="true" />
                       <button
                         type="submit"
-                        className="w-full rounded-lg bg-point px-4 py-2 text-sm font-medium text-white hover:bg-point-hover"
+                        className="w-full rounded-sm bg-point px-4 py-2 text-sm font-medium text-white hover:bg-point-hover"
                       >
                         수락
                       </button>
@@ -78,7 +78,7 @@ export default async function InstructorRecruitmentPage() {
                       <input type="hidden" name="accept" value="false" />
                       <button
                         type="submit"
-                        className="w-full rounded-lg border border-line-strong bg-card px-4 py-2 text-sm font-medium text-body hover:bg-muted"
+                        className="w-full rounded-sm border border-line-strong bg-card px-4 py-2 text-sm font-medium text-body hover:bg-muted"
                       >
                         거절
                       </button>

@@ -188,7 +188,7 @@ export function InquiryForm({
         placeholder="예) 주말 오전에 가능한 수업을 찾습니다."
       />
 
-      <div className="rounded-lg border border-line bg-card p-4">
+      <div className="rounded-sm border border-line bg-card p-4">
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"

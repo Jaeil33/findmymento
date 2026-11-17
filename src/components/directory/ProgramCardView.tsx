@@ -19,7 +19,7 @@ export function ProgramCardView({ card, showDistance = true }: { card: ProgramCa
   return (
     <Link
       href={`/programs/${program.id}`}
-      className="group flex h-full flex-col rounded-lg border border-line bg-card p-5 break-keep transition-colors hover:border-point"
+      className="group flex h-full flex-col rounded-sm border border-line bg-card p-5 break-keep transition-colors hover:border-point"
     >
       <div className="flex items-center justify-between gap-3">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-point">

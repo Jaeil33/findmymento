@@ -63,7 +63,7 @@ export default async function SessionCodesPage({ params }: { params: Promise<{ i
               <select
                 name="gradeYear"
                 defaultValue={String(years[0])}
-                className="block rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                className="block rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -80,7 +80,7 @@ export default async function SessionCodesPage({ params }: { params: Promise<{ i
                 min={1}
                 max={120}
                 defaultValue={Math.min(120, session.expected_students)}
-                className="block w-28 rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm text-ink tabular-nums focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
+                className="block w-28 rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm text-ink tabular-nums focus:border-point focus:ring-1 focus:ring-point focus:outline-none"
               />
             </label>
             <button type="submit" className={buttonClass({ variant: 'primary' })}>

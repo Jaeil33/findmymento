@@ -23,7 +23,7 @@ export function StencilPreview({
 
   return (
     <figure className="space-y-2">
-      <div className="mx-auto max-w-md border border-line bg-white p-2">
+      <div className="mx-auto max-w-md border border-line bg-white p-2 shadow-[0_14px_34px_-24px_rgba(19,36,43,0.5)]">
         {/* eslint-disable-next-line @next/next/no-img-element -- data URI 라 최적화 대상이 아니고, next/image 는 data URI 를 통과시키지 않는다 */}
         <img
           src={src}
@@ -33,10 +33,10 @@ export function StencilPreview({
           className="h-auto w-full"
         />
       </div>
-      <figcaption className="text-xs leading-relaxed text-sub">
-        A4 1:1 도안입니다. 인쇄한 뒤 종이 아래쪽 <strong className="text-body">50mm 기준선을 자로
-        재서</strong> 축척이 맞는지 확인하세요 — 프린터의 &ldquo;용지에 맞추기&rdquo; 설정이 켜져
-        있으면 치수가 전부 달라집니다.
+      <figcaption className="mx-auto max-w-md text-xs leading-relaxed text-sub">
+        A4 1:1 도안입니다. 첫 장을 뽑으면 아래쪽{' '}
+        <strong className="font-semibold text-ink">50mm 기준선을 자로 재 보세요.</strong> 프린터의
+        &ldquo;용지에 맞추기&rdquo;가 켜져 있으면 치수가 전부 달라집니다.
         {isUsable(status) ? null : ' 이 도안은 검증을 통과하지 않아 워터마크가 찍혀 있습니다.'}
       </figcaption>
     </figure>

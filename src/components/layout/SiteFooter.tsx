@@ -18,7 +18,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: '/login', label: '로그인' },
       { href: '/#tour', label: '로그인 없이 둘러보기' },
       { href: '/#guide', label: '사용 방법' },
-      { href: '/#who', label: '대상별 안내' },
+      { href: '/#who', label: '화면별 안내' },
     ],
   },
   {
@@ -33,15 +33,16 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
 /** 공개 화면 푸터. 연락처·주소 영역을 두지 않는다 — 문의는 보호자 문의 폼과 공개 Q&A 로만 받는다. */
 export function SiteFooter() {
   return (
-    <footer className="mt-20 border-t border-line bg-card">
+    <footer className="border-t-2 border-ink bg-card">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))]">
           <div>
             <Wordmark />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-sub">
-              지역의 직업인 강사를 학교·기관·개인과 연결합니다.
+              실습 수업에 쓸 도안을 만들고 검증하는 곳입니다. 검증을 통과한 산출물만 교실로
+              나갑니다.
             </p>
-            <p className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-body">
+            <p className="mt-4 inline-flex items-center gap-1.5 border border-line px-2.5 py-1 text-xs font-medium text-body">
               <IconMapPin width={13} height={13} className="text-point" />
               파일럿 지역 · 경기도 광명시
             </p>
@@ -49,11 +50,11 @@ export function SiteFooter() {
 
           {COLUMNS.map((col) => (
             <div key={col.title}>
-              <p className="text-sm font-semibold text-ink">{col.title}</p>
+              <p className="border-b border-line pb-2 text-sm font-semibold text-ink">{col.title}</p>
               <ul className="mt-3 space-y-2.5 text-sm">
                 {col.links.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-sub transition-colors hover:text-ink">
+                    <Link href={link.href} className="text-body transition-colors hover:text-point">
                       {link.label}
                     </Link>
                   </li>
@@ -63,7 +64,7 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-line pt-6 text-xs leading-relaxed text-sub md:flex-row md:justify-between md:gap-10">
+        <div className="mt-10 flex flex-col gap-4 border-t border-line pt-5 text-xs leading-relaxed text-sub md:flex-row md:justify-between md:gap-10">
           <div className="space-y-1.5">
             <p>
               계정은 초대로만 만들어집니다. 공개 회원가입이 없고, 보호자는 계정 없이 문의만 남깁니다.

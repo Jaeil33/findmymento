@@ -60,13 +60,13 @@ function Notice({ title, body }: { title: string; body: string }) {
       <div className="space-y-2.5 pt-2">
         <Link
           href="/qna"
-          className="flex min-h-12 w-full items-center justify-center rounded-lg bg-point text-base font-medium text-white"
+          className="flex min-h-12 w-full items-center justify-center rounded-sm border border-point bg-point text-base font-semibold text-white"
         >
           공개 Q&amp;A 보기
         </Link>
         <Link
           href="/programs"
-          className="flex min-h-12 w-full items-center justify-center rounded-lg border border-line-strong bg-card text-base font-medium text-body"
+          className="flex min-h-12 w-full items-center justify-center rounded-sm border border-line-strong bg-card text-base font-semibold text-ink"
         >
           우리 지역 프로그램 보기
         </Link>

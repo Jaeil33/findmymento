@@ -17,7 +17,7 @@ import {
   supplySummary,
   unmetDemand,
 } from '@/lib/db/queries'
-import { IconAlert, IconArrowRight } from '@/components/ui/Icons'
+import { IconAlert } from '@/components/ui/Icons'
 
 export const metadata = { title: '요약' }
 
@@ -305,10 +305,9 @@ export default async function OrgHomePage() {
       <Panel title="인맥 밖의 강사 찾기" description="공개 디렉토리에서 지역 강사를 직접 둘러볼 수 있습니다.">
         <Link
           href="/programs"
-          className="inline-flex items-center gap-1.5 text-sm text-point hover:underline hover:underline-offset-4"
+          className="text-sm font-semibold text-point underline underline-offset-4 hover:text-point-hover"
         >
           프로그램 디렉토리 열기
-          <IconArrowRight width={16} height={16} />
         </Link>
       </Panel>
     </div>

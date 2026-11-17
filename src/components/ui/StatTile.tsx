@@ -6,6 +6,8 @@ import { cn } from '@/lib/cn'
  *
  * `emphasis` 는 후속 의향처럼 **만족도보다 크게 보여야 하는 지표**에 쓴다
  * (SURVEY.md: 기관 대시보드는 만족도보다 이 숫자를 크게 보여준다).
+ *
+ * 라벨을 위에 두고 숫자를 아래에 둔다 — 담당자가 세로로 훑을 때 숫자 열이 한 줄로 선다.
  */
 export function StatTile({
   label,
@@ -38,16 +40,17 @@ export function StatTile({
   return (
     <div
       className={cn(
-        'rounded-md bg-card border p-4',
-        emphasis ? 'border-point-line bg-point-bg/40' : 'border-line',
+        'rounded-sm border bg-card px-4 py-3.5',
+        // 강조 타일은 색 면이 아니라 위쪽 굵은 선으로 구분한다 — 색은 판정에만 쓴다.
+        emphasis ? 'border-line border-t-2 border-t-point' : 'border-line',
         className,
       )}
     >
-      <p className="text-sm font-medium text-sub">{label}</p>
-      <p className="mt-2 flex items-baseline gap-1">
+      <p className="text-xs font-semibold text-sub">{label}</p>
+      <p className="mt-1.5 flex items-baseline gap-1">
         <span
           className={cn(
-            'font-semibold tabular-nums tracking-tight',
+            'font-display font-bold tracking-tight tabular-nums',
             emphasis ? 'text-4xl' : 'text-3xl',
             valueTone,
           )}

@@ -81,7 +81,7 @@ function ReportDocument({ draft }: { draft: ResultReportDraft }) {
   const lastSpans = draft.overview.length % 2 === 1
 
   return (
-    <article className="@container rounded-lg border border-t-2 border-line border-t-point bg-card">
+    <article className="@container rounded-sm border border-t-2 border-line border-t-point bg-card">
       <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
         <h3 className="text-lg font-semibold tracking-tight text-ink">{draft.title}</h3>
         <Badge tone="caution" className="mt-1 shrink-0">

@@ -73,7 +73,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
           </ol>
         </section>
 
-        <section className="mt-8 rounded-lg border border-line bg-card p-5">
+        <section className="mt-8 rounded-sm border border-line bg-card p-5">
           <h2 className="text-sm font-medium text-sub">강사</h2>
           <p className="mt-1.5 text-base font-semibold text-ink">
             {instructor.name}
@@ -96,7 +96,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
         </section>
 
         {/* 행동 버튼은 "문의하기" 하나뿐이고, 문구가 보호자를 향한다 (UI_GUIDE 안전규칙 6). */}
-        <section className="mt-8 rounded-lg border border-point-line bg-point-bg p-5">
+        <section className="mt-8 rounded-sm border border-point-line bg-point-bg p-5">
           <h2 className="text-base font-semibold text-ink">이 수업을 문의하고 싶다면</h2>
           <p className="mt-1.5 text-sm leading-relaxed text-body">
             문의는 <strong className="font-semibold">보호자님</strong>이 남겨 주세요. 운영자가 확인한

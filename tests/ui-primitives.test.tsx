@@ -44,7 +44,8 @@ describe('Card', () => {
       return cls.match(/rounded-\w+/)?.[0]
     })
 
-    expect(radii).toEqual(['rounded-lg', 'rounded-xl', 'rounded-md'])
+    // 손에 쥐는 학생 화면만 둥글다. 대시보드·타일은 도면 쪽에 가깝게 각을 세운다.
+    expect(radii).toEqual(['rounded-md', 'rounded-xl', 'rounded-sm'])
     expect(new Set(radii).size).toBe(3)
   })
 })

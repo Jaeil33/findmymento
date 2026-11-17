@@ -34,7 +34,6 @@ export default async function AdminSessionsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="운영"
         title="수업·설문"
         description="모든 기관의 회차별 설문 응답과 AI 추천 기록입니다. 회차를 누르면 학생 응답 하나하나와 그 학생이 본 카드·이유를 볼 수 있어요."
       />

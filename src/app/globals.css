@@ -4,42 +4,58 @@
    디자인 토큰 — docs/UI_GUIDE.md 색상표를 그대로 옮긴 것.
    컴포넌트에 hex를 직접 쓰지 말고 항상 이 토큰 이름을 참조한다.
    라이트 단일 톤. 다크 테마 분기를 만들지 않는다.
+
+   방향은 "제도실"이다. 이 제품의 산출물은 A4에 1:1로 인쇄돼 교실로 들어가므로,
+   화면의 색·선·글자를 도안지와 검사 성적서에서 가져온다.
    ────────────────────────────────────────────────────────────── */
 @theme {
-  /* 배경 */
-  --color-page: #fafafa;
+  /* 배경 — 페이지는 작업대(차가운 슬레이트), 카드는 종이 한 장 */
+  --color-page: #e9edee;
   --color-card: #ffffff;
-  --color-muted: #f5f5f5;
+  --color-muted: #dce4e6;
 
-  /* 테두리 */
-  --color-line: #e5e5e5;
-  --color-line-strong: #d4d4d4;
+  /* 테두리 — 그어진 선이다. 1px 그림자가 아니라 보이는 두께를 가진다 */
+  --color-line: #c3cfd2;
+  --color-line-strong: #9cacb0;
 
-  /* 텍스트 */
-  --color-ink: #171717;
-  --color-body: #404040;
-  --color-sub: #737373;
-  --color-faint: #a3a3a3;
+  /* 텍스트 — 흑연 */
+  --color-ink: #13242b;
+  --color-body: #37474e;
+  --color-sub: #576a70;
+  --color-faint: #8c9ea3;
 
-  /* 포인트 — 딥 틸 한 가지. 두 번째 브랜드 색을 만들지 않는다. */
-  --color-point: #0f766e;
-  --color-point-hover: #115e59;
-  --color-point-bg: #f0fdfa;
-  --color-point-line: #99f6e4;
-  /* 포인트 색 면(랜딩 CTA) 위의 보조 텍스트. 같은 틸 계열의 밝은 단계라 두 번째 브랜드 색이 아니다. */
-  --color-point-soft: #ccfbf1;
+  /* 포인트 — 청사진 블루 한 가지. 두 번째 브랜드 색을 만들지 않는다.
+     검증 통과(초록)와 다른 계열이어야 한다 — 브랜드색과 합격색이 같은 계열이면
+     이 제품의 유일한 중요 판정인 통과/실패가 흐려진다. */
+  --color-point: #13415c;
+  --color-point-hover: #0d2e42;
+  --color-point-bg: #e2eaf0;
+  --color-point-line: #a8c0d1;
+  /* 포인트 색 면 위의 보조 텍스트. 같은 블루 계열의 밝은 단계라 두 번째 브랜드 색이 아니다. */
+  --color-point-soft: #cbdce8;
 
-  /* 데이터 / 시맨틱 — 라이트 배경이므로 600~700 계열 */
-  --color-positive: #15803d;
-  --color-positive-bg: #f0fdf4;
-  --color-caution: #b45309;
-  --color-caution-bg: #fffbeb;
-  --color-negative: #b91c1c;
-  --color-negative-bg: #fef2f2;
+  /* 데이터 / 시맨틱 — 색이 있으면 판정이다. 장식으로 쓰지 않는다 */
+  --color-positive: #1c6b3f;
+  --color-positive-bg: #ddebe1;
+  --color-caution: #8a5207;
+  --color-caution-bg: #f4e9d4;
+  --color-negative: #a52a1e;
+  --color-negative-bg: #f5deda;
 
+  /* 도안 어휘 — 산출물 SVG와 화면이 같은 선을 쓴다 */
+  --color-grid: #d7e0e2;
+  --color-fold: #8c9ea3;
+
+  /* 본문·숫자·작은 한글 — 작은 크기에서 가장 잘 읽힌다 */
   --font-sans:
     'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
     'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+
+  /* 제목·표제란·워드마크 전용. 한글을 위해 따로 설계된 제도 계열 산세리프다.
+     본문·숫자는 --font-sans 그대로 둔다 (두 벌까지만 쓴다). */
+  --font-display:
+    'IBM Plex Sans KR', 'Pretendard Variable', Pretendard, -apple-system, system-ui,
+    'Apple SD Gothic Neo', sans-serif;
 
   --animate-fade-in: fade-in 0.2s ease-out both;
   --animate-slide-up: slide-up 0.25s ease-out both;
@@ -87,12 +103,26 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* 한글은 어절 중간에서 끊지 않는다 — "계산합니 / 다." 같은 줄바꿈을 막는다.
+       끊을 수 없는 긴 토큰(URL)은 그래도 넘치지 않게 둔다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   /* 숫자가 주인공이다 — 표·지표에서 숫자 폭이 흔들리면 읽히지 않는다 */
   th,
   td {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* 제목은 제도 계열 한 벌로 통일한다. 화면마다 제목 서체가 다르면 제품이 둘로 보인다. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.021em;
   }
 
   :focus-visible {
@@ -104,16 +134,25 @@
     background-color: var(--color-point-bg);
     color: var(--color-point-hover);
   }
+}
 
-  /* 한글 제목은 어절 중간에서 끊지 않는다 — "관심 / 을" 같은 줄바꿈을 막는다 */
-  h1,
-  h2,
-  h3 {
-    word-break: keep-all;
+/* ──────────────────────────────────────────────────────────────
+   도안 어휘 — 종이가 주인공인 영역에만 쓴다. 장식 배경이 아니다.
+   ────────────────────────────────────────────────────────────── */
+
+/* 측정값 한 쌍(측정 / 기준)을 가로로 놓을 때 쓰는 구분선. 표제란의 칸 구분과 같은 선이다. */
+.rule-cell + .rule-cell {
+  border-left: 1px solid var(--color-line);
+}
+
+@media (max-width: 639px) {
+  .rule-cell + .rule-cell {
+    border-left: 0;
+    border-top: 1px solid var(--color-line);
   }
 }
 
-/* 가명코드 인쇄용 — 기관이 스티커·명찰로 잘라 쓴다 */
+/* 가명코드·도안 인쇄용 — 기관이 스티커·명찰로 잘라 쓰고, 강사가 도안을 A4로 뽑는다 */
 @media print {
   .no-print {
     display: none !important;

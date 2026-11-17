@@ -59,12 +59,11 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   return (
     <div className="mx-auto max-w-xl px-4 py-14 sm:px-6">
       <PageHeader
-        eyebrow="초대"
         title="계정을 만들고 시작하세요"
         description="초대받은 이메일로 로그인 링크를 받으면 계정이 만들어집니다. 비밀번호는 쓰지 않습니다."
       />
 
-      <dl className="mt-8 divide-y divide-line overflow-hidden rounded-lg border border-line bg-card text-sm">
+      <dl className="mt-8 divide-y divide-line overflow-hidden rounded-sm border border-line bg-card text-sm">
         <div className="flex items-baseline justify-between gap-4 px-5 py-3.5">
           <dt className="text-sub">역할</dt>
           <dd>

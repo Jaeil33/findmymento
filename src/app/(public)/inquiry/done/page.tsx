@@ -28,7 +28,7 @@ export default function InquiryDonePage() {
         때문에 바로 연락이 가지는 않습니다.
       </p>
 
-      <dl className="mt-8 divide-y divide-line overflow-hidden rounded-lg border border-line bg-card text-sm">
+      <dl className="mt-8 divide-y divide-line overflow-hidden rounded-sm border border-line bg-card text-sm">
         {[
           ['1. 운영자 확인', '문의 내용과 지역·분야를 확인합니다. (보통 당일)'],
           ['2. 강사 배정', '지역과 분야가 맞는 심사 완료 강사에게 전달합니다.'],

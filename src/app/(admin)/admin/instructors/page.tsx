@@ -113,7 +113,7 @@ export default async function AdminInstructorsPage({
                       <button
                         type="submit"
                         disabled={!q.hasCriminalRecordCheck}
-                        className="w-full rounded-lg bg-point px-4 py-2 text-sm font-medium text-white hover:bg-point-hover disabled:cursor-not-allowed disabled:opacity-45"
+                        className="w-full rounded-sm bg-point px-4 py-2 text-sm font-medium text-white hover:bg-point-hover disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         승인
                       </button>
@@ -122,7 +122,7 @@ export default async function AdminInstructorsPage({
                       <input type="hidden" name="instructorId" value={q.instructor.id} />
                       <button
                         type="submit"
-                        className="w-full rounded-lg border border-line-strong bg-card px-4 py-2 text-sm font-medium text-body hover:bg-muted"
+                        className="w-full rounded-sm border border-line-strong bg-card px-4 py-2 text-sm font-medium text-body hover:bg-muted"
                       >
                         반려
                       </button>

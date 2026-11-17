@@ -79,13 +79,21 @@ describe('검증 결과', () => {
     expect(screen.getByText('2차')).toBeInTheDocument()
     expect(screen.getByText(/51.8mm 로 키웠습니다/)).toBeInTheDocument()
     expect(screen.getByText('PEN_GAP_TOO_SMALL')).toBeInTheDocument()
-    expect(screen.getByText(/측정 2.4 \/ 기준 3/)).toBeInTheDocument()
+
+    // 측정값과 기준값은 **같은 줄에서 나란히** 읽혀야 한다. 둘 중 하나만 보이면 근거가 못 된다.
+    const measured = screen.getByText(/측정 2.4/)
+    expect(measured.parentElement?.textContent).toMatch(/기준 3/)
   })
 
   it('학년 기준을 숫자로 밝힌다 — 무엇과 비교했는지 보여야 한다', () => {
     render(<ValidationReport rounds={rounds} status="validated" gradeBand="elementary" />)
-    expect(screen.getByText(/최소 선 간격 4mm/)).toBeInTheDocument()
-    expect(screen.getByText(/부품 상한 6개/)).toBeInTheDocument()
+
+    // 항목 이름과 그 값이 한 칸에 같이 있어야 한다 (초등 기준: 간격 4mm, 부품 6개).
+    const gap = screen.getByText('최소 선 간격')
+    expect(gap.parentElement?.textContent).toContain('4mm')
+
+    const parts = screen.getByText('부품 상한')
+    expect(parts.parentElement?.textContent).toContain('6개')
   })
 
   it('실패 라운드에는 무엇을 바꾸면 되는지가 같이 나온다', () => {

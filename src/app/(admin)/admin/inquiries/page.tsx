@@ -118,7 +118,7 @@ export default async function AdminInquiriesPage() {
                         </label>
                         <button
                           type="submit"
-                          className="w-full rounded-lg bg-point px-3 py-2 text-xs font-medium text-white hover:bg-point-hover"
+                          className="w-full rounded-sm bg-point px-3 py-2 text-xs font-medium text-white hover:bg-point-hover"
                         >
                           배정하기
                         </button>
@@ -134,7 +134,7 @@ export default async function AdminInquiriesPage() {
                       <input type="hidden" name="inquiryId" value={r.inquiry.id} />
                       <button
                         type="submit"
-                        className="w-full rounded-lg border border-line-strong bg-card px-3 py-2 text-xs font-medium text-body hover:bg-muted"
+                        className="w-full rounded-sm border border-line-strong bg-card px-3 py-2 text-xs font-medium text-body hover:bg-muted"
                       >
                         반려 (스팸·부적합)
                       </button>

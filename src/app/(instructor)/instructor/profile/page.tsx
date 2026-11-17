@@ -36,7 +36,7 @@ export default async function InstructorProfilePage() {
           me.status === 'approved' ? (
             <Link
               href={`/instructors/${me.id}`}
-              className="rounded-lg border border-line-strong bg-card px-4 py-2.5 text-sm font-medium text-body hover:bg-muted"
+              className="rounded-sm border border-line-strong bg-card px-4 py-2.5 text-sm font-medium text-body hover:bg-muted"
             >
               공개 화면으로 보기
             </Link>

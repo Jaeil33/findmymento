@@ -145,7 +145,7 @@ export function RecommendResultView({
 
           <Link
             href="/programs"
-            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-line-strong bg-card text-base font-medium text-body"
+            className="flex min-h-12 w-full items-center justify-center rounded-xl border border-line-strong bg-card text-base font-medium text-body"
           >
             다른 지역 프로그램도 보기
           </Link>
@@ -249,7 +249,7 @@ function ResultCard({
       </dl>
 
       {state === 'done' ? (
-        <div className="mt-4 rounded-lg border border-point-line bg-point-bg px-4 py-3">
+        <div className="mt-4 rounded-xl border border-point-line bg-point-bg px-4 py-3">
           <p className="flex items-center gap-1.5 text-sm font-medium text-point">
             <IconCheck width={16} height={16} />
             전달했어요

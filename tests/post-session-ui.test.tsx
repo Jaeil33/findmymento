@@ -408,7 +408,7 @@ describe('FollowupPlanAssist', () => {
     expect(screen.getByRole('button', { name: '문안 복사' })).toBeInTheDocument()
 
     // 섭외는 기관이 직접 보낸다 — 자동 발송 버튼이 없다
-    expect(screen.getByRole('link', { name: /섭외 요청 화면으로/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /섭외 요청 화면 열기/ })).toHaveAttribute(
       'href',
       '/org/recruitment',
     )
