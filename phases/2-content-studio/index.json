@@ -1,0 +1,70 @@
+{
+  "project": "Find My Mento",
+  "phase": "2-content-studio",
+  "steps": [
+    {
+      "step": 0,
+      "name": "studio-constants",
+      "status": "completed",
+      "summary": "types/studio.ts + lib/studio/constants.ts. 임계값 유일 출처를 만들고 docs/STUDIO.md 표와 1:1 일치를 tests/studio-constants.test.ts 가 강제한다 (19 tests)."
+    },
+    {
+      "step": 1,
+      "name": "studio-geometry",
+      "status": "completed",
+      "summary": "lib/studio/geometry.ts. mm 단위 기하 — 길이·bbox·선분거리·내각·닫힘·featureEdges(곡선 근사를 짧은 선으로 오해하지 않음)·minGap(곡률/T자 접합 거짓양성 제거)·packShelf(A4 선반 배치). 31 tests."
+    },
+    {
+      "step": 2,
+      "name": "pen3d-recipes",
+      "status": "completed",
+      "summary": "lib/studio/pen3d/recipes.ts. 검수 레시피 8종(키링·정육면체·사각뿔·집·꽃·육각함·드론프레임·십자구) + recipeCandidates(주제 키워드·학년 난이도 상한). 좌표는 전부 여기서만 생성. 103 tests."
+    },
+    {
+      "step": 3,
+      "name": "pen3d-validate",
+      "status": "completed",
+      "summary": "lib/studio/pen3d/validate.ts + layout.ts. 14개 코드 전부 구현(장비·닫힘·선분·각도·간격·A4·겹침·부품수·시간·접합 4종·연결·난이도) + penMetrics(제작시간 식·난이도 산정). 항목별 네거티브 테스트 포함."
+    },
+    {
+      "step": 4,
+      "name": "pen3d-pipeline",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "pen3d-render",
+      "status": "pending"
+    },
+    {
+      "step": 6,
+      "name": "studio-db",
+      "status": "pending"
+    },
+    {
+      "step": 7,
+      "name": "studio-api",
+      "status": "pending"
+    },
+    {
+      "step": 8,
+      "name": "studio-ui",
+      "status": "pending"
+    },
+    {
+      "step": 9,
+      "name": "studio-feedback",
+      "status": "pending"
+    },
+    {
+      "step": 10,
+      "name": "drone-mission",
+      "status": "pending"
+    },
+    {
+      "step": 11,
+      "name": "drone-ui",
+      "status": "pending"
+    }
+  ]
+}

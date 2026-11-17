@@ -8,6 +8,10 @@
       "dir": "1-post-session-ai",
       "status": "completed",
       "completed_at": "2026-09-13T22:54:15+0900"
+    },
+    {
+      "dir": "2-content-studio",
+      "status": "pending"
     }
   ]
 }
