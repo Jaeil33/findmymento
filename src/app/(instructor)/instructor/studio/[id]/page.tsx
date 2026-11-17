@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/Badge'
 import { buttonClass } from '@/components/ui/Button'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { StatTile } from '@/components/ui/StatTile'
+import { DEMO_SOURCE_LABEL, SOURCE_LABEL } from '@/components/ai/AssistProgress'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { calibrationFor, studioContentById, studioLineage } from '@/lib/studio/library'
@@ -71,7 +73,12 @@ export default async function StudioContentPage({
               {GRADE_BAND_LABEL[content.spec.grade_band]} {content.spec.student_count}명 ·{' '}
               {content.spec.duration_minutes}분 · {content.spec.venue}
             </span>
-            {content.source === 'llm' ? <Badge tone="neutral">AI가 문장을 정리했습니다</Badge> : null}
+            {content.source === 'llm' ? (
+              // 데모 배포의 시연용 응답을 실제 LLM 이 쓴 것처럼 보이게 두지 않는다 (ADR-025).
+              <Badge tone="neutral">
+                {demoAiEnabled() ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}
+              </Badge>
+            ) : null}
             {calibration ? (
               <Badge tone="caution">
                 지난 수업 {calibration.sample_count}건 반영 (시간 ×{calibration.speed_factor})

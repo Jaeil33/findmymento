@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as demo from '@/data/demo'
 import type { Dataset } from '@/lib/db/dataset'
@@ -310,5 +312,50 @@ describe('보호자 문의 도우미 (기능 7)', () => {
     expect(digitsOutsideFields(draft.message)).toBe(false)
     expect(CONTACT_RE.test(draft.message)).toBe(false)
     expect(createMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('콘텐츠 스튜디오 (ADR-028~032)', () => {
+  const spec = (over: Record<string, unknown> = {}) => ({
+    kind: 'pen3d' as const,
+    grade_band: 'middle' as const,
+    student_count: 20,
+    duration_minutes: 90,
+    venue: '교실' as const,
+    equipment: ['3D펜 20자루', 'PLA 필라멘트'],
+    topic: '정육면체 조명 만들기',
+    session_id: null,
+    ...over,
+  })
+
+  it('시연 응답도 후보 목록 안에서만 고른다 — 목록 밖으로 나가지 않는다', async () => {
+    const { authorPen } = await import('@/lib/studio/author')
+    const { recipeCandidates } = await import('@/lib/studio/pen3d/recipes')
+    for (const topic of ['정육면체 조명', '우리 동네 집 모형', '드론 프레임', '꽃 한 송이']) {
+      const candidates = recipeCandidates(topic, 'middle')
+      const authored = await authorPen(spec({ topic }), candidates)
+      expect(authored.source).toBe('llm')
+      expect(candidates.map((c) => c.id)).toContain(authored.recipe_id)
+      expect(createMock).not.toHaveBeenCalled()
+    }
+  })
+
+  it('시연 과제 문장에 숫자가 없다 — 개수·시간은 생성기가 정한다', async () => {
+    const { authorPen } = await import('@/lib/studio/author')
+    const { recipeCandidates } = await import('@/lib/studio/pen3d/recipes')
+    const authored = await authorPen(spec(), recipeCandidates('정육면체 조명', 'middle'))
+    expect(authored.tasks.length).toBeGreaterThan(0)
+    for (const task of authored.tasks) {
+      expect(task.replace(/3D펜|3D/g, '')).not.toMatch(/\d/)
+    }
+  })
+
+  it('화면은 시연용 문장임을 밝힌다 — 실제 LLM 이 쓴 것처럼 두지 않는다 (ADR-025)', () => {
+    const page = readFileSync(
+      join(process.cwd(), 'src', 'app', '(instructor)', 'instructor', 'studio', '[id]', 'page.tsx'),
+      'utf8',
+    )
+    expect(page).toContain('demoAiEnabled()')
+    expect(page).toContain('DEMO_SOURCE_LABEL')
   })
 })
