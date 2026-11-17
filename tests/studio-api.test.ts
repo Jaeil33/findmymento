@@ -234,6 +234,31 @@ describe('생성 결과', () => {
     const res = await generate(post(libraryBody({ recipeId: 'flower-pot' })))
     expect((await res.json()).recipe_id).toBe('flower-pot')
   })
+
+  /**
+   * 데모·체험 모드의 저장은 **서버 메모리**다. 배포(서버리스)에서는 라우트 핸들러와 페이지가
+   * 다른 함수라, 여기서 저장한 행을 상세 페이지가 읽지 못한다 — 생성 직후 404 가 났다.
+   * 그래서 저장이 화면에 닿는지(`persisted`)를 응답이 밝히고, 닿지 않으면 산출물을 통째로
+   * 실어 보내 생성 화면이 그 자리에서 그린다.
+   */
+  it('저장이 화면에 닿지 않으면 persisted:false 와 산출물을 함께 돌려준다', async () => {
+    const res = await generate(post(libraryBody()))
+    const json = await res.json()
+    expect(json.saved).toBe(true)
+    expect(json.persisted).toBe(false)
+    expect(json.artifact.kind).toBe('pen3d')
+    expect(json.artifact.pattern.parts.length).toBeGreaterThan(0)
+    // 수업 조건도 서버가 쓴 값으로 돌려준다 — 회차에 붙은 생성은 회차 행이 정한다 (ADR-016).
+    expect(json.spec.duration_minutes).toBeGreaterThan(0)
+  })
+
+  it('검증에 실패한 산출물도 그 자리에서 보여줄 수 있게 함께 돌려준다 (ADR-030 화면은 이유를 보여준다)', async () => {
+    const res = await generate(post(libraryBody(FAILING_CASE)))
+    const json = await res.json()
+    expect(json.status).toBe('failed')
+    expect(json.persisted).toBe(false)
+    expect(json.artifact.kind).toBe('pen3d')
+  })
 })
 
 describe('새 버전 (ADR-031)', () => {

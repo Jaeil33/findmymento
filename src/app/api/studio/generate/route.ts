@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
+import { demoDataMode } from '@/lib/demo/mode'
 import { insertStudioContent } from '@/lib/db/writes'
 import { authorContent, type AuthorCandidate } from '@/lib/studio/author'
 import { droneCandidates } from '@/lib/studio/drone/course'
@@ -108,6 +109,16 @@ export async function POST(request: Request) {
   const artifact = withTitleAndTasks(generated.artifact, title, authoring.tasks)
   const source = authoring.tasks.length >= 2 && authoring.source === 'llm' ? 'llm' : 'rule'
 
+  /**
+   * 저장한 행이 **화면 레이어에서 읽히는가.**
+   *
+   * 데모·체험 모드의 저장은 서버 메모리다. 배포(서버리스)에서는 라우트 핸들러와 서버 컴포넌트가
+   * 서로 다른 함수로 올라가므로, 여기서 저장한 산출물을 상세 페이지는 영영 읽지 못한다 —
+   * 생성 직후 404 가 났다. 그래서 그 세션에서는 산출물을 통째로 실어 보내고, 생성 화면이
+   * 이동하지 않고 그 자리에서 결과를 그린다 (ADR-033).
+   */
+  const persisted = !(await demoDataMode())
+
   const payload = {
     ok: true,
     status: generated.status,
@@ -118,6 +129,9 @@ export async function POST(request: Request) {
     metrics: generated.metrics,
     rounds: generated.rounds,
     findings: generated.report.findings,
+    persisted,
+    // 수업 조건도 **서버가 쓴 값**을 돌려준다. 회차에 붙은 생성은 회차 행이 정한다 (ADR-016).
+    ...(persisted ? {} : { artifact, spec, title }),
   }
 
   try {

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { GenerateForm, type SessionOption } from '@/components/studio/GenerateForm'
 import { PageHeader, Panel } from '@/components/ui/Section'
+import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { instructorSessions } from '@/lib/db/queries'
@@ -71,6 +72,8 @@ export default async function StudioNewPage({
           lineageId={lineage ?? null}
           defaultTopic={head?.spec.topic ?? ''}
           defaultSessionId={session ?? head?.session_id ?? ''}
+          // 시연용 문장을 쓰는 세션이면 결과 화면이 그렇게 표시한다 (ADR-025).
+          demoAi={await demoAiEnabled()}
         />
       </Panel>
 

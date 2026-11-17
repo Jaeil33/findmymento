@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { DEMO_SOURCE_LABEL, SOURCE_LABEL } from '@/components/ai/AssistProgress'
+import { GenerateResult } from '@/components/studio/GenerateResult'
 import { StatusBadge } from '@/components/studio/StatusBadge'
 import { StencilPreview } from '@/components/studio/StencilPreview'
 import { ValidationReport } from '@/components/studio/ValidationReport'
@@ -161,5 +163,73 @@ describe('도안 미리보기', () => {
     render(<StencilPreview artifact={result.artifact} status="approved" />)
     const img = screen.getByRole('img')
     expect(decodeURIComponent(img.getAttribute('src') ?? '')).not.toContain('사용하지 마세요')
+  })
+})
+
+describe('생성 결과를 그 자리에서 보여주는 화면 (저장이 화면에 닿지 않는 세션)', () => {
+  /**
+   * 체험·데모 모드의 쓰기는 **서버 메모리**다. 배포(서버리스)에서는 라우트 핸들러와 페이지가
+   * 서로 다른 함수로 올라가므로, 라우트가 만든 산출물을 상세 페이지가 영영 읽지 못한다 —
+   * 실제로 생성 직후 404 가 났다. 그래서 그 세션에서는 **이동하지 않고 만든 자리에서** 보여준다.
+   *
+   * 화면 규칙은 상세 페이지와 같아야 한다 (ADR-030): 검증 결과가 도안보다 먼저이고,
+   * 통과하지 못한 도안은 인쇄도 내려받기도 열리지 않는다.
+   */
+  const generated = generatePen(spec())
+
+  const data = (over: Partial<Parameters<typeof GenerateResult>[0]['data']> = {}) => ({
+    status: 'validated' as const,
+    recipe_id: generated.recipe_id,
+    reason: '주제와 가장 가까운 검수된 도안입니다.',
+    source: 'rule' as const,
+    calibrated: false,
+    rounds: generated.rounds,
+    artifact: generated.artifact,
+    spec: spec(),
+    ...over,
+  })
+
+  it('검증을 통과하면 인쇄와 SVG 내려받기가 열린다', () => {
+    render(<GenerateResult data={data()} demoAi={false} onReset={() => {}} />)
+    expect(screen.getByRole('button', { name: /인쇄/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /SVG/ })).toBeInTheDocument()
+  })
+
+  it('검증에 실패하면 인쇄도 내려받기도 없다 (ADR-030)', () => {
+    render(<GenerateResult data={data({ status: 'failed' })} demoAi={false} onReset={() => {}} />)
+    expect(screen.queryByRole('button', { name: /인쇄/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /SVG/ })).not.toBeInTheDocument()
+  })
+
+  it('검증 결과를 도안보다 먼저 보여준다', () => {
+    const { container } = render(
+      <GenerateResult data={data()} demoAi={false} onReset={() => {}} />,
+    )
+    const text = container.textContent ?? ''
+    expect(text.indexOf('검증 결과')).toBeGreaterThan(-1)
+    expect(text.indexOf('검증 결과')).toBeLessThan(text.indexOf('50mm 기준선'))
+  })
+
+  it('이 산출물이 저장되지 않는다는 사실을 화면에 적는다', () => {
+    render(<GenerateResult data={data()} demoAi={false} onReset={() => {}} />)
+    expect(screen.getByText(/저장되지 않습니다/)).toBeInTheDocument()
+  })
+
+  it('시연용 문장을 실제 AI 가 쓴 것처럼 표시하지 않는다 (ADR-025)', () => {
+    render(<GenerateResult data={data({ source: 'llm' })} demoAi onReset={() => {}} />)
+    expect(screen.getByText(DEMO_SOURCE_LABEL)).toBeInTheDocument()
+    expect(screen.queryByText(SOURCE_LABEL.llm)).not.toBeInTheDocument()
+  })
+
+  it('수업 조건은 서버가 쓴 값을 그대로 보여준다 — 회차 조건이 우선이다 (ADR-016)', () => {
+    render(
+      <GenerateResult
+        data={data({ spec: spec({ student_count: 24, duration_minutes: 45, venue: '메이커실' }) })}
+        demoAi={false}
+        onReset={() => {}}
+      />,
+    )
+    // 조건 한 줄은 서버가 쓴 값 그대로다.
+    expect(screen.getByText(/24명 · 45분 · 메이커실/)).toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AssistProgress } from '@/components/ai/AssistProgress'
+import { GenerateResult, type GenerateResultData } from '@/components/studio/GenerateResult'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { VENUES, GRADE_BAND_LABEL, type GradeBand, type Venue } from '@/types/domain'
@@ -39,12 +40,15 @@ export function GenerateForm({
   lineageId = null,
   defaultTopic = '',
   defaultSessionId = '',
+  demoAi = false,
 }: {
   sessions: SessionOption[]
   recipes: RecipeOption[]
   lineageId?: string | null
   defaultTopic?: string
   defaultSessionId?: string
+  /** 시연용 문장을 쓰는 세션인가. 결과 화면이 실제 AI 처럼 표시하지 않기 위해 받는다 (ADR-025) */
+  demoAi?: boolean
 }) {
   const router = useRouter()
   const [topic, setTopic] = useState(defaultTopic)
@@ -58,6 +62,11 @@ export function GenerateForm({
   const [pending, setPending] = useState(false)
   const [stage, setStage] = useState(0)
   const [failure, setFailure] = useState<Failure | null>(null)
+  /**
+   * 저장이 화면 레이어에 닿지 않는 세션(데모·체험)의 결과. 이때는 이동하지 않고 여기서 그린다 —
+   * 서버리스에서는 라우트가 저장한 산출물을 상세 페이지가 읽지 못한다 (ADR-033).
+   */
+  const [result, setResult] = useState<GenerateResultData | null>(null)
   const ticker = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => () => { if (ticker.current) clearInterval(ticker.current) }, [])
@@ -94,12 +103,27 @@ export function GenerateForm({
         ok?: boolean
         id?: string
         saved?: boolean
+        persisted?: boolean
         message?: string
         field?: string
-      }
+      } & Partial<GenerateResultData>
 
       if (!response.ok || !json.ok) {
         setFailure({ message: json.message ?? '만들지 못했습니다.', field: json.field })
+        return
+      }
+      // 저장이 화면에 닿지 않는 세션: 상세 페이지로 보내면 404 다. 결과를 그 자리에서 보여준다.
+      if (json.persisted === false && json.artifact && json.spec && json.status) {
+        setResult({
+          status: json.status,
+          recipe_id: json.recipe_id ?? '',
+          reason: json.reason ?? '',
+          source: json.source ?? 'rule',
+          calibrated: json.calibrated ?? false,
+          rounds: json.rounds ?? [],
+          artifact: json.artifact,
+          spec: json.spec,
+        })
         return
       }
       if (!json.saved || !json.id) {
@@ -118,6 +142,10 @@ export function GenerateForm({
       if (ticker.current) clearInterval(ticker.current)
       setPending(false)
     }
+  }
+
+  if (result) {
+    return <GenerateResult data={result} demoAi={demoAi} onReset={() => setResult(null)} />
   }
 
   return (
