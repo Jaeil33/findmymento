@@ -116,8 +116,11 @@ export function GenerateResult({
 
       <p className="rounded-lg border border-caution/25 bg-caution-bg px-4 py-3 text-xs leading-relaxed text-caution">
         이 산출물은 <strong>저장되지 않습니다.</strong> 체험·데모 세션이라 라이브러리에 쌓이지
-        않고, 화면을 벗어나면 사라집니다. 인쇄하거나 SVG 를 내려받으면 그대로 수업에 쓸 수
-        있습니다.
+        않고, 화면을 벗어나면 사라집니다.
+        {/* 통과하지 못한 도안에는 쓸 수 있다는 말을 붙이지 않는다 — 버튼도 열리지 않는다 (ADR-030). */}
+        {usable
+          ? ' 인쇄하거나 SVG 를 내려받으면 그대로 수업에 쓸 수 있습니다.'
+          : ' 검증을 통과하지 못해 인쇄와 내려받기는 열리지 않습니다. 아래 걸린 항목을 보고 조건을 바꿔 다시 만들어 주세요.'}
         {printBlocked
           ? ' 인쇄 창이 브라우저에 막혔습니다 — SVG 를 내려받아 인쇄해 주세요.'
           : null}

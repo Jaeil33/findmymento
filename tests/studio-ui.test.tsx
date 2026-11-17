@@ -199,6 +199,8 @@ describe('생성 결과를 그 자리에서 보여주는 화면 (저장이 화�
     render(<GenerateResult data={data({ status: 'failed' })} demoAi={false} onReset={() => {}} />)
     expect(screen.queryByRole('button', { name: /인쇄/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /SVG/ })).not.toBeInTheDocument()
+    // 버튼이 없는 화면에 "수업에 쓸 수 있습니다"가 남아 있으면 안 된다.
+    expect(screen.queryByText(/수업에 쓸 수 있습니다/)).not.toBeInTheDocument()
   })
 
   it('검증 결과를 도안보다 먼저 보여준다', () => {
