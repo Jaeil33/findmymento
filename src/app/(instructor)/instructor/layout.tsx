@@ -5,6 +5,8 @@ import { loadDataset } from '@/lib/db/dataset'
 
 const NAV: NavItem[] = [
   { href: '/instructor', label: '요약' },
+  // 제품의 중심이 콘텐츠 제작으로 옮겨졌다 (ADR-028). 매칭 화면은 그대로 두고 순서만 뒤로 간다.
+  { href: '/instructor/studio', label: '콘텐츠 스튜디오' },
   { href: '/instructor/sessions', label: '배정 회차' },
   { href: '/instructor/demand', label: '지역 수요' },
   { href: '/instructor/recruitment', label: '섭외 요청' },

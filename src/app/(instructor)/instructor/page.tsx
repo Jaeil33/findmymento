@@ -16,6 +16,8 @@ import {
 } from '@/lib/db/queries'
 import { regionName } from '@/lib/region'
 import { IconQr } from '@/components/ui/Icons'
+import { StatusBadge } from '@/components/studio/StatusBadge'
+import { studioHeads, studioStats } from '@/lib/studio/library'
 
 export const metadata = { title: '요약' }
 
@@ -38,6 +40,9 @@ export default async function InstructorHomePage() {
     (t) => t.unanswered && (me.fields as string[]).includes(t.question.field),
   )
 
+  const studio = studioHeads(ds.studioContents, me.id)
+  const studioSummary = studioStats(ds.studioContents, me.id)
+
   const responseTotal = sessions.reduce((a, s) => a + s.responseCount, 0)
   const demandTotal = demand.reduce((a, d) => a + d.intentCount, 0)
   const upcoming = sessions.find((s) => !s.closed)
@@ -47,44 +52,93 @@ export default async function InstructorHomePage() {
       <PageHeader
         eyebrow={`${me.fields.join(' · ')} · ${regionName(me.region_code)}`}
         title={`${me.name} 강사님`}
-        description="배정된 회차와 내 수업을 좋아한 학생들이 어디에 있는지 보여 줍니다."
+        description="수업에 쓸 실습 콘텐츠를 만들고, 배정된 회차와 내 수업을 좋아한 학생들이 어디에 있는지 보여 줍니다."
         actions={
-          upcoming ? (
-            <Link
-              href={`/project/${upcoming.session.id}`}
-              className={buttonClass({ variant: 'primary' })}
-            >
-              <IconQr width={16} height={16} />
-              교실에 QR 띄우기
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/instructor/studio/new" className={buttonClass({ variant: 'primary' })}>
+              도안 만들기
             </Link>
-          ) : null
+            {upcoming ? (
+              <Link
+                href={`/project/${upcoming.session.id}`}
+                className={buttonClass({ variant: 'secondary' })}
+              >
+                <IconQr width={16} height={16} />
+                교실에 QR 띄우기
+              </Link>
+            ) : null}
+          </div>
         }
       />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           emphasis
+          label="수업에 쓸 수 있는 산출물"
+          value={studioSummary.usable}
+          unit="개"
+          tone="point"
+          sub={
+            studioSummary.failed > 0
+              ? `검증 실패 ${studioSummary.failed}개는 조건을 바꿔 다시 만들어야 합니다`
+              : '검증을 통과한 도안만 셉니다'
+          }
+        />
+        <StatTile
           label="내 분야를 더 배우고 싶다는 응답"
           value={demandTotal}
           unit="건"
-          tone="point"
           sub={`${regionName(me.region_code)}와 인접 지역 집계`}
         />
         <StatTile label="배정 회차" value={sessions.length} unit="개" sub={`총 응답 ${responseTotal}건`} />
         <StatTile
-          label="섭외 요청"
-          value={pendingRequests.length}
+          label="섭외·문의"
+          value={pendingRequests.length + leads.length}
           unit="건"
           tone={pendingRequests.length > 0 ? 'caution' : 'default'}
-          sub="응답을 기다리는 기관 요청"
-        />
-        <StatTile
-          label="전달받은 문의"
-          value={leads.length}
-          unit="건"
-          sub="운영자가 배정한 보호자 문의"
+          sub={`섭외 요청 ${pendingRequests.length}건 · 전달받은 문의 ${leads.length}건`}
         />
       </section>
+
+      <Panel
+        title="콘텐츠 스튜디오"
+        description="학년대·시수·장비에 맞는 도안을 만들고, 검증을 통과한 것만 수업에 씁니다."
+        actions={
+          <Link href="/instructor/studio" className="text-sm text-point hover:underline">
+            전체
+          </Link>
+        }
+      >
+        {studio.length === 0 ? (
+          <p className="text-sm leading-relaxed text-sub">
+            아직 만든 콘텐츠가 없습니다. 주제와 수업 조건만 넣으면 A4 1:1 도안과 조립 순서, 실습
+            과제가 한 번에 나옵니다.
+          </p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {studio.slice(0, 4).map(({ content }) => (
+              <li
+                key={content.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0"
+              >
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                  <Link
+                    href={`/instructor/studio/${content.id}`}
+                    className="text-sm font-medium text-ink underline-offset-4 hover:underline"
+                  >
+                    {content.title}
+                  </Link>
+                  <StatusBadge status={content.status} />
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-sub">
+                  예상 {Math.round(content.artifact.metrics.estimated_minutes)}분 · 난이도{' '}
+                  {content.artifact.metrics.difficulty}단계
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       {upcoming ? (
         <Panel

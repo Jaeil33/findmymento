@@ -1,0 +1,165 @@
+import { describe, expect, it } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { StatusBadge } from '@/components/studio/StatusBadge'
+import { StencilPreview } from '@/components/studio/StencilPreview'
+import { ValidationReport } from '@/components/studio/ValidationReport'
+import { generatePen } from '@/lib/studio/pen3d/pipeline'
+import { STUDIO_STATUS_LABEL, type StudioRound, type StudioSpec } from '@/types/studio'
+
+/**
+ * 스튜디오 화면 부품.
+ *
+ * 화면에서 반드시 지켜져야 하는 것 (ADR-030):
+ * - 검증 미통과 산출물을 "수업 사용 가능"으로 **보여주지 않는다**
+ * - 라운드마다 무엇이 걸렸고 어떻게 고쳤는지를 숫자와 함께 보여준다
+ * - 실패 화면에는 **무엇을 바꾸면 되는지**가 같이 있다
+ */
+
+const spec = (over: Partial<StudioSpec> = {}): StudioSpec => ({
+  kind: 'pen3d',
+  grade_band: 'middle',
+  student_count: 20,
+  duration_minutes: 90,
+  venue: '교실',
+  equipment: ['3D펜 20자루', 'PLA 필라멘트'],
+  topic: '정육면체 조명',
+  session_id: null,
+  ...over,
+})
+
+describe('상태 배지', () => {
+  it('상태 문구는 한 곳에서만 만든다', () => {
+    for (const status of ['draft', 'validated', 'failed', 'approved'] as const) {
+      const { unmount } = render(<StatusBadge status={status} />)
+      expect(screen.getByText(STUDIO_STATUS_LABEL[status])).toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('검증 실패를 "수업 사용 가능"으로 쓰지 않는다', () => {
+    expect(STUDIO_STATUS_LABEL.failed).not.toContain('사용 가능')
+    expect(STUDIO_STATUS_LABEL.draft).not.toContain('사용 가능')
+    expect(STUDIO_STATUS_LABEL.approved).toContain('사용 가능')
+  })
+})
+
+describe('검증 결과', () => {
+  const rounds: StudioRound[] = [
+    {
+      round: 1,
+      action: 'generated',
+      repair: null,
+      params: { size: 45, detail: 1, extras: false },
+      ok: false,
+      findings: [
+        {
+          code: 'PEN_GAP_TOO_SMALL',
+          severity: 'error',
+          message: '떨어져 있어야 하는 두 선의 간격이 2.4mm 입니다.',
+          measured: 2.4,
+          limit: 3,
+        },
+      ],
+    },
+    {
+      round: 2,
+      action: 'repaired',
+      repair: '선이 좁거나 짧아서 도안을 51.8mm 로 키웠습니다.',
+      params: { size: 51.8, detail: 1, extras: false },
+      ok: true,
+      findings: [],
+    },
+  ]
+
+  it('라운드와 개선 문장, 측정값·기준을 그대로 보여준다', () => {
+    render(<ValidationReport rounds={rounds} status="validated" gradeBand="middle" />)
+    expect(screen.getByText('1차')).toBeInTheDocument()
+    expect(screen.getByText('2차')).toBeInTheDocument()
+    expect(screen.getByText(/51.8mm 로 키웠습니다/)).toBeInTheDocument()
+    expect(screen.getByText('PEN_GAP_TOO_SMALL')).toBeInTheDocument()
+    expect(screen.getByText(/측정 2.4 \/ 기준 3/)).toBeInTheDocument()
+  })
+
+  it('학년 기준을 숫자로 밝힌다 — 무엇과 비교했는지 보여야 한다', () => {
+    render(<ValidationReport rounds={rounds} status="validated" gradeBand="elementary" />)
+    expect(screen.getByText(/최소 선 간격 4mm/)).toBeInTheDocument()
+    expect(screen.getByText(/부품 상한 6개/)).toBeInTheDocument()
+  })
+
+  it('실패 라운드에는 무엇을 바꾸면 되는지가 같이 나온다', () => {
+    const failed: StudioRound[] = [
+      {
+        round: 1,
+        action: 'generated',
+        repair: null,
+        params: { size: 120, detail: 0, extras: false },
+        ok: false,
+        findings: [
+          {
+            code: 'PEN_TIME_OVER',
+            severity: 'error',
+            message: '예상 제작 시간 19분이 가용 시간 4.3분을 넘습니다.',
+            measured: 19,
+            limit: 4.3,
+          },
+        ],
+      },
+    ]
+    render(<ValidationReport rounds={failed} status="failed" gradeBand="elementary" />)
+    expect(screen.getByText(/수업 시간을 늘리거나/)).toBeInTheDocument()
+    // 기준을 낮춰 통과시키지 않는다는 사실을 화면에 적는다.
+    expect(screen.getByText(/기준을 낮춰 통과시키지/)).toBeInTheDocument()
+  })
+
+  it('경고는 "막음"이 아니라 "주의"로 보여준다', () => {
+    const warned: StudioRound[] = [
+      {
+        round: 1,
+        action: 'generated',
+        repair: null,
+        params: { size: 45, detail: 1, extras: false },
+        ok: true,
+        findings: [
+          {
+            code: 'PEN_DIFFICULTY_MISMATCH',
+            severity: 'warn',
+            message: '산정 난이도 3단계가 권장 범위를 벗어납니다.',
+          },
+        ],
+      },
+    ]
+    render(<ValidationReport rounds={warned} status="validated" gradeBand="elementary" />)
+    expect(screen.getByText('주의')).toBeInTheDocument()
+    expect(screen.queryByText('막음')).not.toBeInTheDocument()
+  })
+})
+
+describe('도안 미리보기', () => {
+  const result = generatePen(spec())
+
+  it('A4 SVG 를 이미지로 보여주고 대체 텍스트에 부품 수를 적는다', () => {
+    render(<StencilPreview artifact={result.artifact} status="validated" />)
+    const img = screen.getByRole('img')
+    expect(img.getAttribute('src')).toContain('data:image/svg+xml')
+    expect(img.getAttribute('src')).toContain('210mm')
+    expect(img.getAttribute('alt')).toMatch(/부품 \d+개/)
+  })
+
+  it('인쇄 축척 확인 방법을 안내한다 — 프린터가 축척을 바꾸는 사고가 가장 흔하다', () => {
+    render(<StencilPreview artifact={result.artifact} status="validated" />)
+    expect(screen.getByText(/50mm 기준선을 자로/)).toBeInTheDocument()
+  })
+
+  it('검증 미통과 산출물은 워터마크가 찍혀 있다고 말한다', () => {
+    render(<StencilPreview artifact={result.artifact} status="failed" />)
+    expect(screen.getByText(/워터마크/)).toBeInTheDocument()
+    const img = screen.getByRole('img')
+    expect(decodeURIComponent(img.getAttribute('src') ?? '')).toContain('수업에 사용하지 마세요')
+  })
+
+  it('통과한 산출물에는 워터마크 문구가 없다', () => {
+    render(<StencilPreview artifact={result.artifact} status="approved" />)
+    const img = screen.getByRole('img')
+    expect(decodeURIComponent(img.getAttribute('src') ?? '')).not.toContain('사용하지 마세요')
+  })
+})

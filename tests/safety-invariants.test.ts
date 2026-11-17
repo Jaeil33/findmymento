@@ -116,6 +116,8 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
     // **배정 강사 전용**이다. 권한과 저장 없음은 `tests/post-session-api.test.ts` 가 고정한다.
     // 보호자 문의 도우미(ADR-026): `inquiry-assist` 는 비로그인이지만 **초안만 돌려주고 아무에게도 닿지
     // 않는다.** 접수는 기존 `inquiry` 하나뿐이다. 저장 없음은 아래 테스트와 `tests/inquiry-assist-api.test.ts` 가 고정한다.
+    // 콘텐츠 스튜디오(ADR-028~032): `studio/*` 는 **강사 전용**이다. 학생·보호자가 닿는 경로가 없고,
+    // 학생 레코드를 읽지도 않는다. 아래 테스트가 그 사실을 고정한다.
     expect(routes.sort()).toEqual(
       [
         'src/app/api/followup-plan/route.ts',
@@ -130,8 +132,63 @@ describe('학생 주체 연결 경로 금지 (PRD 안전 설계 3)', () => {
         'src/app/api/session-plan/route.ts',
         'src/app/api/recommend/route.ts',
         'src/app/api/survey/route.ts',
+        'src/app/api/studio/[id]/svg/route.ts',
+        'src/app/api/studio/approve/route.ts',
+        'src/app/api/studio/feedback/route.ts',
+        'src/app/api/studio/generate/route.ts',
       ].sort(),
     )
+  })
+
+  it('스튜디오 쓰기 라우트는 강사 본인만 통과한다 (ADR-028~032)', () => {
+    const dir = join(SRC, 'app', 'api', 'studio')
+    for (const name of ['generate', 'approve', 'feedback']) {
+      const src = read(join(dir, name, 'route.ts'))
+      expect(src, name).toContain("actor.role !== 'instructor'")
+      // 응답·입력에 학생 식별 필드를 만들지 않는다.
+      for (const banned of ['pseudo_code', 'student_id', 'guardian', 'phone']) {
+        expect(src, `${name}/${banned}`).not.toContain(banned)
+      }
+    }
+    // 회차에 붙이려면 배정된 강사여야 한다 (ADR-015).
+    const generate = read(join(dir, 'generate', 'route.ts'))
+    expect(generate).toMatch(/instructor_id === actor\.instructorId/)
+  })
+
+  it('스튜디오는 학생 레코드를 읽지 않는다 — AI 의 개인화 단위는 학급(회차)이다', () => {
+    const studio = files.filter((f) => rel(f).startsWith('src/lib/studio/'))
+    expect(studio.length).toBeGreaterThan(5)
+    for (const f of studio) {
+      const code = codeOnly(read(f))
+      for (const banned of [
+        'ds.students',
+        'ds.surveyResponses',
+        'ds.interests',
+        'ds.inquiries',
+        'instructorContacts',
+        'pseudo_code',
+      ]) {
+        expect(code, `${rel(f)} / ${banned}`).not.toContain(banned)
+      }
+    }
+  })
+
+  it('검증을 통과하지 않은 산출물은 파일로 내려갈 수 없다 (ADR-030)', () => {
+    const src = read(join(SRC, 'app', 'api', 'studio', '[id]', 'svg', 'route.ts'))
+    expect(src).toContain('isUsable(content.status)')
+    expect(src).toContain('403')
+  })
+
+  it('성과 피드백 입력에 학생 개인 단위 필드가 없다 (ADR-032)', () => {
+    const src = read(join(SRC, 'lib', 'studio', 'request.ts'))
+    const block = src.slice(src.indexOf('export function validateFeedback'))
+    for (const banned of ['studentName', 'student_name', 'names', 'pseudo', 'studentId']) {
+      expect(block, banned).not.toContain(banned)
+    }
+    // 받는 것은 집계 수치와 체감 난이도까지다.
+    expect(block).toContain('attemptedCount')
+    expect(block).toContain('completedCount')
+    expect(block).toContain('difficultyVote')
   })
 
   it('교안 라우트는 배정된 강사 본인만 통과한다 (ADR-015·019)', () => {
