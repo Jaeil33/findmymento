@@ -1,7 +1,7 @@
 import { loadDataset } from '@/lib/db/dataset'
 import { alreadyResponded, isClosed, sessionByEntryCode, studentByPseudoCode } from '@/lib/db/queries'
 import { getServiceSupabase } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/supabase/env'
+import { demoDataMode } from '@/lib/demo/mode'
 import type {
   ClassTrait,
   Field,
@@ -73,7 +73,7 @@ function mapSession(r: Row): LectureSession {
 export async function loadEntryContext(code: string, now = new Date()): Promise<EntryContext | null> {
   const normalized = code.trim()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const ds = await loadDataset()
     const ctx = sessionByEntryCode(ds, normalized, now)
     if (!ctx) return null
@@ -86,7 +86,7 @@ export async function loadEntryContext(code: string, now = new Date()): Promise<
   }
 
   if (!CODE_RE.test(normalized)) return null
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) {
     missingServiceKey()
     return null
@@ -126,12 +126,12 @@ export async function findStudentByPseudoCode(
 ): Promise<{ id: string; grade: Grade } | null> {
   const normalized = code.trim()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     return studentByPseudoCode(await loadDataset(), orgId, normalized)
   }
 
   if (!CODE_RE.test(normalized)) return null
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) {
     missingServiceKey()
     return null
@@ -153,11 +153,11 @@ export async function findStudentByPseudoCode(
 
 /** 같은 회차에 이미 응답했는지. 확인할 수 없으면 false — 마지막 방어선은 DB 유니크 제약이다. */
 export async function hasResponded(sessionId: string, studentId: string): Promise<boolean> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     return alreadyResponded(await loadDataset(), sessionId, studentId)
   }
 
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) return false
 
   const { count, error } = await sb
@@ -171,7 +171,7 @@ export async function hasResponded(sessionId: string, studentId: string): Promis
 
 /** 같은 가명코드의 누적 관심 분야 — 드론 2회 + 3D 1회 같은 경로를 추천에 반영한다 (E-18). */
 export async function studentFieldHistory(studentId: string): Promise<string[]> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const ds = await loadDataset()
     return [
       ...new Set(
@@ -180,7 +180,7 @@ export async function studentFieldHistory(studentId: string): Promise<string[]> 
     ]
   }
 
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) return []
 
   const { data, error } = await sb.from('survey_responses').select('interest_fields').eq('student_id', studentId)

@@ -9,6 +9,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { loadDataset } from '@/lib/db/dataset'
 import { supplySummary } from '@/lib/db/queries'
+import { INSTRUCTOR_GUIDE, STUDENT_GUIDE, TOUR_PRIMARY_KEYS } from '@/lib/demo/tour'
 import { FIELDS } from '@/types/domain'
 
 /**
@@ -74,6 +75,55 @@ describe('랜딩 페이지', () => {
   it('안전 설계 섹션으로 바로 갈 수 있다', async () => {
     const { container } = await renderLanding()
     expect(container.querySelector('#safety')).not.toBeNull()
+  })
+})
+
+/**
+ * 로그인 없이 들어가는 입구 (ADR-033)와 사용 방법.
+ *
+ * 홈페이지에서 **계정 없이** 강사·학생·운영자 화면으로 들어갈 수 있어야 하고, 그 자리에
+ * "데모 데이터만 보인다"는 사실이 같이 적혀 있어야 한다. 입구만 있고 설명이 없으면
+ * 체험 화면의 숫자를 실제 운영 데이터로 읽는다.
+ */
+describe('랜딩 — 체험 입구와 사용 방법', () => {
+  async function renderLanding() {
+    return render(await LandingPage())
+  }
+
+  it('강사·학생·운영자 체험 입구가 있다', async () => {
+    const { container } = await renderLanding()
+    const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))
+    for (const key of TOUR_PRIMARY_KEYS) {
+      expect(hrefs).toContain(`/tour/${key}`)
+    }
+    expect(container.querySelector('#tour')).not.toBeNull()
+  })
+
+  it('체험이 데모 데이터라는 사실을 입구와 같은 자리에 적는다', async () => {
+    const { container } = await renderLanding()
+    const tour = container.querySelector('#tour')!
+    expect(tour.textContent).toMatch(/데모 데이터/)
+  })
+
+  it('강사·학생 사용 방법을 단계까지 적는다', async () => {
+    const { container } = await renderLanding()
+    expect(container.querySelector('#guide')).not.toBeNull()
+
+    const guide = container.querySelector('#guide')!
+    for (const g of [INSTRUCTOR_GUIDE, STUDENT_GUIDE]) {
+      expect(guide.textContent).toContain(`${g.audience} 사용 방법`)
+      expect(g.steps.length).toBeGreaterThanOrEqual(5)
+      for (const step of g.steps) expect(guide.textContent).toContain(step.title)
+      for (const note of g.notes) expect(guide.textContent).toContain(note)
+    }
+  })
+
+  it('학생 사용 방법에 1:1 비공개 경로나 결제를 적지 않는다 (CLAUDE.md CRITICAL)', async () => {
+    const { container } = await renderLanding()
+    const guide = container.querySelector('#guide')!.textContent ?? ''
+    // 학생 쪽 안내에는 "비밀 대화를 만들지 않았다"처럼 **없다는 사실**만 적혀 있어야 한다.
+    expect(guide).toMatch(/1:1[^.]*없|비밀 대화는 만들지 않았습니다/)
+    expect(guide).toMatch(/결제하는 기능은 없습니다/)
   })
 })
 

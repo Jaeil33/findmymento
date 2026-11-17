@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { DashboardShell, type NavItem } from '@/components/layout/DashboardShell'
 import { getActor } from '@/lib/auth/actor'
+import { tourActive } from '@/lib/demo/mode'
 
 const NAV: NavItem[] = [
   { href: '/admin', label: '요약' },
@@ -16,7 +17,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!actor || actor.role !== 'admin') redirect('/login')
 
   return (
-    <DashboardShell roleLabel="운영자" userName={actor.displayName} nav={NAV}>
+    <DashboardShell
+      roleLabel="운영자"
+      userName={actor.displayName}
+      nav={NAV}
+      demo={actor.demo}
+      tour={await tourActive()}
+    >
       {children}
     </DashboardShell>
   )

@@ -1,5 +1,5 @@
 import type { RecommendationLogRow } from '@/lib/report/admin-session'
-import { isDemoMode } from '@/lib/supabase/env'
+import { demoDataMode } from '@/lib/demo/mode'
 import { getServerSupabase } from '@/lib/supabase/server'
 
 /**
@@ -8,7 +8,7 @@ import { getServerSupabase } from '@/lib/supabase/server'
  * 데모 모드에는 추천 기록이 없다 (쓰기도 하지 않는다).
  */
 export async function loadRecommendationLogs(sessionIds?: string[]): Promise<RecommendationLogRow[]> {
-  if (isDemoMode()) return []
+  if (await demoDataMode()) return []
   const sb = await getServerSupabase()
   if (!sb) return []
 

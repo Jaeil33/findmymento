@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { createAnthropic } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { FIELD_UNSURE, type Field, type GradeBand, type Recommendation } from '@/types/domain'
 import { expandRegion, regionName } from '@/lib/region'
 import { maskForStorage } from '@/lib/moderation'
@@ -238,10 +238,10 @@ function errorLabel(err: unknown): string {
 
 /** 실패하면 `items: null`. 호출자는 규칙 순위로 그대로 진행한다 (E-06). 어떤 경우든 meta 는 채운다. */
 async function rankByLlm(items: Recommendation[], input: RecommendInput): Promise<LlmOutcome> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const hasKey = Boolean(apiKey && apiKey.trim() !== '')
+  const apiKey = await llmKeyForRequest()
+  const hasKey = apiKey !== null
   // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
-  if (!hasKey && !demoAiEnabled()) return { items: null, meta: { ...EMPTY_META, error: 'NoApiKey' } }
+  if (!hasKey && !(await demoAiEnabled())) return { items: null, meta: { ...EMPTY_META, error: 'NoApiKey' } }
 
   const model = hasKey ? process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5' : 'demo'
   const meta: RecommendMeta = { ...EMPTY_META, model }

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { DashboardShell, type NavItem } from '@/components/layout/DashboardShell'
 import { getActor } from '@/lib/auth/actor'
+import { tourActive } from '@/lib/demo/mode'
 import { loadDataset } from '@/lib/db/dataset'
 
 const NAV: NavItem[] = [
@@ -31,6 +32,8 @@ export default async function InstructorLayout({ children }: { children: React.R
       orgLabel={provider?.name ?? '프리랜서'}
       userName={actor.displayName}
       nav={NAV}
+      demo={actor.demo}
+      tour={await tourActive()}
     >
       {children}
     </DashboardShell>

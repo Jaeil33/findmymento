@@ -16,7 +16,8 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
     title: '담당자 · 강사',
     links: [
       { href: '/login', label: '로그인' },
-      { href: '/#how', label: '이용 방법' },
+      { href: '/#tour', label: '로그인 없이 둘러보기' },
+      { href: '/#guide', label: '사용 방법' },
       { href: '/#who', label: '대상별 안내' },
     ],
   },

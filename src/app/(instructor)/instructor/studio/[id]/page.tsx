@@ -76,7 +76,7 @@ export default async function StudioContentPage({
             {content.source === 'llm' ? (
               // 데모 배포의 시연용 응답을 실제 LLM 이 쓴 것처럼 보이게 두지 않는다 (ADR-025).
               <Badge tone="neutral">
-                {demoAiEnabled() ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}
+                {(await demoAiEnabled()) ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}
               </Badge>
             ) : null}
             {calibration ? (

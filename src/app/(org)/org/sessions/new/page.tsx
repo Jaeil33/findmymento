@@ -160,7 +160,7 @@ export default async function NewSessionPage({
           </div>
         </Panel>
 
-        <SessionPlanAssist demoAi={demoAiEnabled()} />
+        <SessionPlanAssist demoAi={await demoAiEnabled()} />
 
         <Panel
           title="수업 조건"

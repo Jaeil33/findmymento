@@ -16,14 +16,15 @@ export const dynamic = 'force-dynamic'
 
 const isSet = (v: string | undefined) => Boolean(v && v.trim() !== '')
 
-export function GET() {
+export async function GET() {
   const site = siteUrl()
+  const demoAi = await demoAiEnabled()
 
   return NextResponse.json({
     ok: true,
     mode: isDemoMode() ? 'demo' : 'live',
     // llm: 실제 LLM · demo: 시연용 AI 응답(ADR-025) · rule: 규칙 문장
-    ai_mode: isSet(process.env.ANTHROPIC_API_KEY) ? 'llm' : demoAiEnabled() ? 'demo' : 'rule',
+    ai_mode: isSet(process.env.ANTHROPIC_API_KEY) ? 'llm' : demoAi ? 'demo' : 'rule',
     site_url: site,
     // 입장코드 자리에 예시 6자리를 넣은 학생 진입 URL. 도메인 오타가 여기서 보인다.
     student_entry_example: `${site}/s/123456`,

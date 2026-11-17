@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
+import { demoDataMode } from '@/lib/demo/mode'
 import { getServerSupabase } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/supabase/env'
 
 /**
  * 역할 판별.
@@ -18,7 +18,10 @@ export type Actor =
 
 export const DEMO_ROLE_COOKIE = 'fmm_demo_role'
 
-/** 데모 모드에서 둘러보기용으로 고정해 둔 계정. 실 DB 가 붙으면 이 경로는 실행되지 않는다. */
+/**
+ * 둘러보기용으로 고정해 둔 계정. **데모 시드 안에만 있는 사람들이다** — 이 역할로 들어온
+ * 요청은 실 DB 를 보지 않는다 (ADR-033, `lib/demo/mode.ts`).
+ */
 const DEMO_ACTORS: Record<string, Actor> = {
   org: { role: 'org_member', orgId: 'org-1', memberId: 'om-1', displayName: '이수진', demo: true },
   school: { role: 'org_member', orgId: 'org-2', memberId: 'om-2', displayName: '강민호', demo: true },
@@ -39,10 +42,13 @@ export function demoActorLabel(key: string): string {
 }
 
 export async function getActor(): Promise<Actor | null> {
-  // ── 데모 모드: 쿠키로 둘러볼 역할을 고른다.
-  //    `isDemoMode()` 가 false 면 이 블록은 실행되지 않는다 — 쿠키로 권한을 얻는 경로는
-  //    Supabase 키가 들어온 순간 코드 상에서 사라진다.
-  if (isDemoMode()) {
+  // ── 데모 데이터 모드(키 없는 데모 배포 또는 체험 세션): 쿠키로 둘러볼 역할을 고른다.
+  //
+  //    `demoDataMode()` 가 false 면 이 블록은 실행되지 않는다. true 일 때는 같은 요청의
+  //    모든 조회·쓰기가 데모 시드로 가고 실 DB 클라이언트가 아예 만들어지지 않는다
+  //    (`lib/supabase/server.ts`). 그래서 이 쿠키는 **실 DB 의 권한을 주지 않는다** (ADR-033).
+  //    권한 판단 자체는 아래 세 테이블 조회로만 한다 (CLAUDE.md CRITICAL).
+  if (await demoDataMode()) {
     const store = await cookies()
     const key = store.get(DEMO_ROLE_COOKIE)?.value
     return (key ? DEMO_ACTORS[key] : null) ?? null

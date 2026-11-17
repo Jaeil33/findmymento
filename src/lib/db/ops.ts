@@ -1,6 +1,6 @@
-import * as demo from '@/data/demo'
+import { demo } from '@/data/demo-store'
 import { getServerSupabase, getServiceSupabase } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/supabase/env'
+import { demoDataMode } from '@/lib/demo/mode'
 import type {
   ClassTrait,
   Consent,
@@ -62,7 +62,7 @@ export async function insertLectureSession(
 ): Promise<{ id: string; entryCode: string }> {
   const entryCode = makeEntryCode(new Set(demo.lectureSessions.map((s) => s.entry_code)))
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row: LectureSession = {
       id: nextId('ls'),
       org_id: input.orgId,
@@ -113,7 +113,7 @@ export async function insertLectureSession(
 }
 
 export async function setSessionStatus(id: string, status: 'open' | 'closed'): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.lectureSessions.find((s) => s.id === id)
     if (row) row.status = status
     return
@@ -129,7 +129,7 @@ export async function assignSessionInstructor(
   id: string,
   instructorId: string | null,
 ): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.lectureSessions.find((s) => s.id === id)
     if (row) row.instructor_id = instructorId
     return
@@ -162,7 +162,7 @@ export async function issuePseudoCodes(
     codes.push(code)
   }
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     for (const code of codes) {
       demo.students.push({
         id: nextId('st'),
@@ -190,7 +190,7 @@ export async function issuePseudoCodes(
 }
 
 export async function updateInterestStatus(id: string, status: InterestStatus): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.interests.find((i) => i.id === id)
     if (row) row.status = status
     return
@@ -210,7 +210,7 @@ export async function recordConsent(
   recordedBy: string,
   method: Consent['method'],
 ): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const interest = demo.interests.find((i) => i.id === interestId)
     demo.consents.push({
       id: nextId('cs'),
@@ -239,7 +239,7 @@ export async function insertRecruitmentRequest(input: {
   demandCount: number
   note: string
 }): Promise<{ id: string }> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row: RecruitmentRequest = {
       id: nextId('rr'),
       org_id: input.orgId,
@@ -276,7 +276,7 @@ export async function updateRecruitmentStatus(
   id: string,
   status: RecruitmentRequest['status'],
 ): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.recruitmentRequests.find((r) => r.id === id)
     if (row) row.status = status
     return
@@ -292,7 +292,7 @@ export async function setQuestionVisibility(
   id: string,
   visibility: 'public' | 'hidden',
 ): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.qnaQuestions.find((q) => q.id === id)
     if (row) row.visibility = visibility
     return
@@ -308,7 +308,7 @@ export async function insertAnswer(input: {
   instructorId: string
   body: string
 }): Promise<{ id: string }> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row: QnaAnswer = {
       id: nextId('a'),
       question_id: input.questionId,
@@ -335,12 +335,12 @@ export async function insertAnswer(input: {
  * 성범죄경력 조회 증빙이 없으면 승인하지 않는다 — 화면에서 막고 여기서 한 번 더 막는다.
  */
 export async function setInstructorStatus(id: string, status: InstructorStatus): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.instructors.find((i) => i.id === id)
     if (row) row.status = status
     return
   }
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) throw new Error('운영자 권한 키가 설정되지 않았습니다.')
   const { error } = await sb.from('instructors').update({ status }).eq('id', id)
   if (error) throw new Error(error.message)
@@ -353,7 +353,7 @@ export async function assignInquiry(
   handledBy: string,
   status: Inquiry['status'],
 ): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.inquiries.find((q) => q.id === id)
     if (row) {
       row.assigned_instructor_id = instructorId
@@ -362,7 +362,7 @@ export async function assignInquiry(
     }
     return
   }
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) throw new Error('운영자 권한 키가 설정되지 않았습니다.')
   const { error } = await sb
     .from('inquiries')
@@ -385,7 +385,7 @@ export async function insertInvitation(input: {
     `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`
   const expiresAt = new Date(Date.now() + input.expiresInDays * 86_400_000).toISOString()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     demo.invitations.push({
       id: nextId('iv'),
       email: input.email,
@@ -400,7 +400,7 @@ export async function insertInvitation(input: {
     return { token }
   }
 
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) throw new Error('운영자 권한 키가 설정되지 않았습니다.')
   const { error } = await sb.from('invitations').insert({
     email: input.email,
@@ -417,12 +417,12 @@ export async function insertInvitation(input: {
 
 /** 담당자 비활성화. 계정 삭제가 아니라 접근 차단이다 (E-13). */
 export async function setOrgMemberActive(id: string, active: boolean): Promise<void> {
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.orgMembers.find((m) => m.id === id)
     if (row) row.active = active
     return
   }
-  const sb = getServiceSupabase()
+  const sb = await getServiceSupabase()
   if (!sb) throw new Error('운영자 권한 키가 설정되지 않았습니다.')
   const { error } = await sb.from('org_members').update({ active }).eq('id', id)
   if (error) throw new Error(error.message)

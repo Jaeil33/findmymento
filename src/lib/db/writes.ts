@@ -1,6 +1,6 @@
-import * as demo from '@/data/demo'
+import { demo } from '@/data/demo-store'
 import { getServerSupabase } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/supabase/env'
+import { demoDataMode } from '@/lib/demo/mode'
 import type {
   Field,
   Grade,
@@ -73,7 +73,7 @@ export async function insertSurveyResponse(input: SurveyInput): Promise<{ id: st
     created_at: new Date().toISOString(),
   }
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     demo.surveyResponses.push(row)
     return { id: row.id }
   }
@@ -125,7 +125,7 @@ export async function insertInterest(input: InterestInput): Promise<{ id: string
     student_alias: input.alias,
   }
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     demo.interests.push(row)
     return { id: row.id }
   }
@@ -170,7 +170,7 @@ export async function insertQuestion(input: QuestionInput): Promise<{ id: string
     created_at: new Date().toISOString(),
   }
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     demo.qnaQuestions.push(row)
     return { id: row.id }
   }
@@ -229,7 +229,7 @@ export async function insertInquiry(input: InquiryInput): Promise<{ id: string }
     created_at: new Date().toISOString(),
   }
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     demo.inquiries.push(row)
     return { id: row.id }
   }
@@ -283,7 +283,7 @@ export type RecommendationLogInput = {
 }
 
 export async function insertRecommendationLog(input: RecommendationLogInput): Promise<void> {
-  if (isDemoMode()) return
+  if (await demoDataMode()) return
 
   const sb = await getServerSupabase()
   if (!sb) return
@@ -327,7 +327,7 @@ export type LessonPlanInput = {
 export async function upsertLessonPlan(input: LessonPlanInput): Promise<{ id: string }> {
   const now = new Date().toISOString()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const existing = demo.lessonPlans.find(
       (p) => p.session_id === input.sessionId && p.instructor_id === input.instructorId,
     )
@@ -406,7 +406,7 @@ export type StudioContentInput = {
 export async function insertStudioContent(input: StudioContentInput): Promise<{ id: string }> {
   const now = new Date().toISOString()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row: StudioContent = {
       id: nextId('sc'),
       lineage_id: input.lineageId,
@@ -464,7 +464,7 @@ export async function approveStudioContent(input: {
 }): Promise<{ ok: boolean }> {
   const now = new Date().toISOString()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row = demo.studioContents.find(
       (c) => c.id === input.id && c.instructor_id === input.instructorId,
     )
@@ -507,7 +507,7 @@ export type StudioFeedbackInput = {
 export async function insertStudioFeedback(input: StudioFeedbackInput): Promise<{ id: string }> {
   const now = new Date().toISOString()
 
-  if (isDemoMode()) {
+  if (await demoDataMode()) {
     const row: StudioFeedback = {
       id: nextId('sf'),
       content_id: input.contentId,

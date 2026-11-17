@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { createAnthropic } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
 
@@ -117,9 +117,9 @@ export type JsonLlmRequest = {
  * **절대 throw 하지 않는다.** LLM 실패가 화면 실패가 되면 안 된다 (CLAUDE.md 아키텍처 규칙).
  */
 export async function callJsonLlm(req: JsonLlmRequest): Promise<unknown | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey.trim() === '') {
-    if (!req.demo || !demoAiEnabled()) return null
+  const apiKey = await llmKeyForRequest()
+  if (apiKey === null) {
+    if (!req.demo || !(await demoAiEnabled())) return null
     try {
       return req.demo(req.payload)
     } catch {

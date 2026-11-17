@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { DashboardShell, type NavItem } from '@/components/layout/DashboardShell'
 import { getActor } from '@/lib/auth/actor'
+import { tourActive } from '@/lib/demo/mode'
 import { loadDataset } from '@/lib/db/dataset'
 import { ORG_TYPE_LABEL } from '@/types/domain'
 
@@ -27,6 +28,8 @@ export default async function OrgLayout({ children }: { children: React.ReactNod
       orgLabel={org?.name}
       userName={actor.displayName}
       nav={NAV}
+      demo={actor.demo}
+      tour={await tourActive()}
     >
       {children}
     </DashboardShell>

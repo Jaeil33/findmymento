@@ -1,7 +1,7 @@
 import { cache } from 'react'
-import * as demo from '@/data/demo'
+import { demo } from '@/data/demo-store'
 import { getServerSupabase } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/supabase/env'
+import { demoDataMode } from '@/lib/demo/mode'
 import type {
   Consent,
   Grade,
@@ -97,7 +97,7 @@ const grade = (r: Row): Grade => ({
  * `cache()` 는 요청 경계에서 리셋되므로 요청 간에 데이터가 섞이지 않는다.
  */
 export const loadDataset = cache(async (): Promise<Dataset> => {
-  if (isDemoMode()) return demoDataset()
+  if (await demoDataMode()) return demoDataset()
 
   const sb = await getServerSupabase()
   if (!sb) return demoDataset()

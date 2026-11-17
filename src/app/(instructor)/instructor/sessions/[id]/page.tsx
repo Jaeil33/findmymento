@@ -115,7 +115,7 @@ export default async function InstructorSessionReportPage({
         <p className="mt-1 mb-4 text-sm text-sub">
           응답 집계로 회고와 학교 제출용 요약 초안을 만듭니다. 아무것도 저장하지 않습니다.
         </p>
-        <SessionDebriefAssist sessionId={session.id} demoAi={demoAiEnabled()} />
+        <SessionDebriefAssist sessionId={session.id} demoAi={await demoAiEnabled()} />
       </section>
     </div>
   )

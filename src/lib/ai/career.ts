@@ -1,4 +1,4 @@
-import { createAnthropic } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { CAREERS, type Career } from '@/data/careers'
 import { FIELD_UNSURE, GRADE_BAND_LABEL, type GradeBand } from '@/types/domain'
 import { maskForStorage } from '@/lib/moderation'
@@ -240,8 +240,8 @@ async function pickByLlm(
   candidates: Scored[],
   input: CareerInput,
 ): Promise<{ picks: RawPick[] | null; dreamNote: unknown; meta: LlmMeta }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey || apiKey.trim() === '') return { picks: null, dreamNote: null, meta: NO_CALL }
+  const apiKey = await llmKeyForRequest()
+  if (apiKey === null) return { picks: null, dreamNote: null, meta: NO_CALL }
 
   const model = process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'
   const payload = {

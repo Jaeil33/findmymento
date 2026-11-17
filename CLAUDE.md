@@ -44,6 +44,14 @@
 - 서버에서 PDF를 만들지 말 것. 인쇄는 브라우저 인쇄(`@page A4`)이고 파일 내려받기는 SVG·코드 텍스트다. 없는 기능을 있다고 적지 말 것.
 - 스튜디오 작업이 기존 매칭 화면의 테스트를 깨면 되돌린다. 매칭은 유지 대상이다 (ADR-028).
 
+## 체험 모드 규칙 (로그인 없이 들어오는 입구 — ADR-033)
+- CRITICAL: 체험 쿠키(`fmm_tour`)가 붙은 요청에서 실 DB 클라이언트를 만들지 말 것. `getServerSupabase()`·`getServiceSupabase()` 둘 다 `null` 이고, 데이터 계층은 `demoDataMode()` 하나로만 분기한다. 새 조회·쓰기 함수를 만들 때 `isDemoMode()` 로 분기하지 말 것 — 체험 세션이 그 틈으로 실 DB 에 닿는다.
+- CRITICAL: 역할 쿠키(`fmm_demo_role`)를 읽는 코드를 `demoDataMode()` 블록 밖에 두지 말 것. 실 DB 경로의 역할 판별은 `org_members`/`instructors`/`admins` 조회 그대로다.
+- CRITICAL: 체험 쿠키를 심는 코드를 `app/tour/[key]/route.ts` 밖에 만들지 말 것. 입구가 늘어나면 쿠키 수명·옵션이 갈라진다.
+- 체험 세션에서 LLM 을 부르지 말 것. 익명 공개 경로이므로 방문자의 클릭이 곧 API 비용이 된다. 키는 `llmKeyForRequest()` 로만 읽고, 체험 중에는 시연용 응답(ADR-025)을 쓰고 화면에 그 사실을 표시한다.
+- 체험 중이라는 사실과 데이터가 실제가 아니라는 사실을 화면에서 지우지 말 것. 띠 한 줄과 입구 옆 문구 둘 다 유지한다.
+- 데모 시드(`src/data/demo.ts`)를 직접 import 하지 말 것. 읽기·쓰기는 `src/data/demo-store.ts` 의 `demo` 를 거친다 — 라우트 핸들러와 서버 컴포넌트가 다른 번들 레이어라 시드가 두 벌이 되고, 생성한 산출물이 화면에서 사라진다.
+
 ## 아키텍처 규칙
 - CRITICAL: LLM 등 외부 API 호출은 `app/api/` 라우트 핸들러에서만 처리할 것. 클라이언트 컴포넌트에서 직접 호출하지 말 것.
 - CRITICAL: LLM 호출 실패가 화면 실패가 되지 않게 할 것. 추천(`/api/recommend`)·교안(`/api/lesson-plan`)·회차 기획(`/api/session-plan`) 셋 다 규칙 기반 폴백으로 200을 반환한다.

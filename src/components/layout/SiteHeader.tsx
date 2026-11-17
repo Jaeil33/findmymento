@@ -4,8 +4,10 @@ import { SiteMobileMenu, SiteNav, type SiteNavItem } from './SiteNav'
 
 const NAV: SiteNavItem[] = [
   { href: '/programs', label: '프로그램 찾기' },
+  { href: '/#guide', label: '사용 방법' },
   { href: '/qna', label: '공개 Q&A' },
-  { href: '/#how', label: '이용 방법' },
+  // 로그인 없이 강사·학생·운영자 화면으로 들어가는 입구 (ADR-033).
+  { href: '/#tour', label: '둘러보기' },
   { href: '/#safety', label: '안전 원칙' },
 ]
 

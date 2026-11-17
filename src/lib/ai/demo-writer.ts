@@ -1,4 +1,5 @@
-import { isDemoMode } from '@/lib/supabase/env'
+import { llmKeyForRequest } from '@/lib/ai/client'
+import { demoDataMode } from '@/lib/demo/mode'
 
 /**
  * 시연용 AI 응답 (ADR-025).
@@ -10,15 +11,17 @@ import { isDemoMode } from '@/lib/supabase/env'
  * - 규칙이 확정한 숫자·후보·항목은 여기서 바꿀 수 없다. 결과는 실제 LLM 응답과 **같은 병합·가드**
  *   (문장 정리 → 숫자 가드 → 이름 가드 → 모집 단어 가드)를 통과해야 화면에 남는다.
  * - 페이로드에 없는 사실을 만들지 않는다. 학생 의견 요약은 주어진 인용에 실제로 있는 주제만 쓴다.
- * - 켜지는 조건은 셋이 모두 맞을 때뿐이다: 데모 데이터 모드 · LLM 키 없음 · `DEMO_AI` 가 `off` 아님.
- *   **실 DB 에 붙은 배포에서는 켜지지 않는다** — 실제 기관 화면에 미리 쓴 문장이 나가면 안 된다.
+ * - 켜지는 조건은 셋이 모두 맞을 때뿐이다: 데모 시드로 보는 요청 · 이번 요청에 쓸 LLM 키 없음 ·
+ *   `DEMO_AI` 가 `off` 아님. **실제 기관 화면에서는 켜지지 않는다** — 미리 쓴 문장이
+ *   실제 응답으로 오해되면 안 된다.
+ * - 체험 세션(ADR-033)도 데모 시드로 보는 요청이고, 그때는 키가 있어도 LLM 을 부르지 않으므로
+ *   (`llmKeyForRequest`) 여기가 켜진다. 화면은 "시연용 문장"이라고 그대로 표시한다.
  */
 
-export function demoAiEnabled(): boolean {
+export async function demoAiEnabled(): Promise<boolean> {
   if (process.env.DEMO_AI?.trim().toLowerCase() === 'off') return false
-  const key = process.env.ANTHROPIC_API_KEY
-  if (key && key.trim() !== '') return false
-  return isDemoMode()
+  if ((await llmKeyForRequest()) !== null) return false
+  return demoDataMode()
 }
 
 // ============================================================================

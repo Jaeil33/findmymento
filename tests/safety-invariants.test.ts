@@ -305,10 +305,15 @@ describe('공개 회원가입 금지 (ADR-011)', () => {
 describe('역할 판별 (CLAUDE.md CRITICAL)', () => {
   const actor = read(join(SRC, 'lib', 'auth', 'actor.ts'))
 
-  it('데모 쿠키 경로는 isDemoMode() 안에서만 실행된다', () => {
-    const demoBlock = actor.slice(actor.indexOf('if (isDemoMode())'), actor.indexOf('const sb ='))
+  /**
+   * 역할 쿠키는 **데모 시드를 보는 요청에서만** 읽힌다 (`demoDataMode()`).
+   * 그리고 그 조건이 참이면 실 DB 클라이언트가 만들어지지 않는다 — 아래 블록이 그쪽을 고정한다.
+   * 둘이 같이 성립할 때만 "쿠키로 권한을 얻는 경로가 없다"가 유지된다 (ADR-033).
+   */
+  it('역할 쿠키 경로는 demoDataMode() 안에서만 실행된다', () => {
+    const demoBlock = actor.slice(actor.indexOf('if (await demoDataMode())'), actor.indexOf('const sb ='))
     expect(demoBlock).toContain('DEMO_ROLE_COOKIE')
-    // 쿠키를 읽는 코드가 isDemoMode 블록 밖에 또 있으면 안 된다
+    // 쿠키를 읽는 코드가 그 블록 밖에 또 있으면 안 된다
     expect(actor.match(/DEMO_ROLE_COOKIE/g)!.length).toBe(2) // 선언 1 + 사용 1
   })
 
@@ -319,6 +324,32 @@ describe('역할 판별 (CLAUDE.md CRITICAL)', () => {
     expect(realBlock).toContain(".from('instructors')")
     expect(realBlock).not.toContain('DEMO_ROLE_COOKIE')
     expect(realBlock).not.toMatch(/jwt|claims/i)
+  })
+
+  it('체험 세션은 실 DB 클라이언트를 만들 수 없다 (ADR-033)', () => {
+    const server = read(join(SRC, 'lib', 'supabase', 'server.ts'))
+    // anon 세션 클라이언트와 service_role 클라이언트 **둘 다** 체험 쿠키에서 막혀야 한다.
+    expect(server.match(/if \(await tourActive\(\)\) return null/g)).toHaveLength(2)
+    const anonBlock = server.slice(server.indexOf('export async function getServerSupabase'))
+    const serviceBlock = server.slice(server.indexOf('export async function getServiceSupabase'))
+    expect(anonBlock.slice(0, anonBlock.indexOf('createServerClient'))).toContain('tourActive()')
+    expect(serviceBlock).toContain('tourActive()')
+  })
+
+  it('체험 쿠키를 심는 곳은 체험 라우트 하나뿐이다 (ADR-033)', () => {
+    const writers = files
+      .filter((f) => /TOUR_COOKIE,\s*'1'/.test(codeOnly(read(f))))
+      .map((f) => rel(f))
+    expect(writers).toEqual(['src/app/tour/[key]/route.ts'])
+  })
+
+  it('체험 세션에서는 LLM 키를 쓰지 않는다 — 익명 방문자가 예산을 쓰지 못한다 (ADR-033)', () => {
+    // 키를 직접 읽는 곳은 요청용 래퍼와 배포 확인용 health 뿐이다. 나머지는 래퍼를 쓴다.
+    const readers = files
+      .filter((f) => codeOnly(read(f)).includes('process.env.ANTHROPIC_API_KEY'))
+      .map((f) => rel(f))
+    expect(readers.sort()).toEqual(['src/app/api/health/route.ts', 'src/lib/ai/client.ts'])
+    expect(read(join(SRC, 'lib', 'ai', 'client.ts'))).toContain('await tourActive()')
   })
 
   it('organizations.type 으로 권한을 판단하지 않는다 (ADR-013)', () => {

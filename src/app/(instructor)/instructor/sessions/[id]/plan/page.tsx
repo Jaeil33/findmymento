@@ -61,7 +61,7 @@ export default async function LessonPlanPage({ params }: { params: Promise<{ id:
       />
 
       <LessonPlanView
-        demoAi={demoAiEnabled()}
+        demoAi={await demoAiEnabled()}
         sessionId={session.id}
         initialPlan={existing}
         initialSource={existing?.source ?? null}

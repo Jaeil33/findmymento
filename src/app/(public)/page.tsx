@@ -6,7 +6,10 @@ import { HeroPreview } from '@/components/landing/HeroPreview'
 import { DemandMock, ProjectionMock } from '@/components/landing/Mockups'
 import { RegionRings } from '@/components/landing/RegionRings'
 import { Faq, type FaqItem } from '@/components/landing/Faq'
+import { HowTo } from '@/components/landing/HowTo'
+import { TourPanel } from '@/components/landing/TourPanel'
 import { loadDataset } from '@/lib/db/dataset'
+import { isSupabaseConfigured } from '@/lib/supabase/env'
 import { publicPrograms, supplyByField, supplySummary } from '@/lib/db/queries'
 import { PILOT_REGION_CODE, neighbors, regionName, twoHopNeighbors } from '@/lib/region'
 import { cn } from '@/lib/cn'
@@ -188,6 +191,14 @@ export default async function LandingPage() {
               </Link>
             </div>
 
+            <p className="mt-4 text-sm text-body">
+              담당자·강사시라면{' '}
+              <Link href="#tour" className="font-semibold text-point underline underline-offset-4">
+                로그인 없이 둘러보기
+              </Link>
+              로 강사·학생·운영자 화면을 그대로 보실 수 있습니다.
+            </p>
+
             <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-body">
               {['학생 개인정보 저장 안 함', '심사 통과 강사만 노출', '1:1 비공개 메시지 없음'].map(
                 (t) => (
@@ -201,6 +212,46 @@ export default async function LandingPage() {
           </div>
 
           <HeroPreview pilot={pilot} />
+        </div>
+      </section>
+
+      {/* ── 로그인 없이 둘러보기 (ADR-033) ───────────────────── */}
+      <section
+        id="tour"
+        aria-labelledby="tour-title"
+        className="scroll-mt-16 border-b border-line bg-page"
+      >
+        <div className={cn(WRAP, 'py-16 sm:py-20')}>
+          <SectionIntro
+            id="tour-title"
+            eyebrow="둘러보기"
+            title="로그인 없이 바로 들어가 보세요"
+          >
+            계정을 만들지 않고 강사·학생·운영자 화면을 그대로 열 수 있습니다. 클릭하면 데모 데이터가
+            올라간 화면이 열리고, 도안 생성·검증처럼 실제로 계산하는 기능은 실제로 작동합니다.
+          </SectionIntro>
+
+          <div className="mt-10">
+            <TourPanel live={isSupabaseConfigured()} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── 사용 방법 — 강사 · 학생 ───────────────────────────── */}
+      <section
+        id="guide"
+        aria-labelledby="guide-title"
+        className="scroll-mt-16 border-b border-line bg-card"
+      >
+        <div className={cn(WRAP, 'py-20')}>
+          <SectionIntro id="guide-title" eyebrow="사용 방법" title="강사와 학생은 이렇게 씁니다">
+            강사는 수업에 쓸 도안을 만들어 검증을 통과한 것만 교실에 들고 갑니다. 학생은 특강이 끝나고
+            3분, 가입 없이 답하고 다음에 배울 곳을 봅니다.
+          </SectionIntro>
+
+          <div className="mt-12">
+            <HowTo />
+          </div>
         </div>
       </section>
 

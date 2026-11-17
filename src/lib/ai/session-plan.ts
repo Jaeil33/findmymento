@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { createAnthropic } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled, demoSessionPlan } from '@/lib/ai/demo-writer'
 import type { Dataset } from '@/lib/db/dataset'
@@ -192,10 +192,10 @@ async function refineByLlm(
   draft: SessionPlanDraft,
   input: SessionPlanInput,
 ): Promise<SessionPlanDraft | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const hasKey = Boolean(apiKey && apiKey.trim() !== '')
+  const apiKey = await llmKeyForRequest()
+  const hasKey = apiKey !== null
   // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
-  if (!hasKey && !demoAiEnabled()) return null
+  if (!hasKey && !(await demoAiEnabled())) return null
   // 열 수 있는 분야가 없으면 LLM 을 부르지 않는다. 할 말이 없는 상황이다.
   if (!draft.suggested_field) return null
 

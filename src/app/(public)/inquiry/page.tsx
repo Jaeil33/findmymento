@@ -54,7 +54,7 @@ export default async function InquiryPage({ searchParams }: { searchParams: Prom
           targetType={targetType}
           targetId={targetId}
           targetLabel={targetLabel}
-          demoAi={demoAiEnabled()}
+          demoAi={await demoAiEnabled()}
         />
       </div>
     </div>

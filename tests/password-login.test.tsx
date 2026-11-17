@@ -23,6 +23,10 @@ vi.mock('next/navigation', async (importOriginal) => ({
   redirect: nav.redirect,
 }))
 
+// 로그인 액션은 체험 쿠키를 먼저 지운다 (ADR-033). 쿠키 저장소가 없으면 그 삭제가 실패한다.
+const cookieStore = vi.hoisted(() => ({ set: vi.fn(), delete: vi.fn(), get: vi.fn(() => undefined) }))
+vi.mock('next/headers', () => ({ cookies: async () => cookieStore }))
+
 const sbState = vi.hoisted(() => ({
   signIn: vi.fn(),
   signOut: vi.fn(),

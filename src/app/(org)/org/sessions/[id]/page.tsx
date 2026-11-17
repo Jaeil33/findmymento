@@ -195,8 +195,8 @@ export default async function OrgSessionReportPage({
           쓰고, 아무것도 저장하지 않습니다.
         </p>
         <div className="grid items-start gap-5 xl:grid-cols-2">
-          <ResultReportAssist sessionId={session.id} demoAi={demoAiEnabled()} />
-          <FollowupPlanAssist sessionId={session.id} demoAi={demoAiEnabled()} />
+          <ResultReportAssist sessionId={session.id} demoAi={await demoAiEnabled()} />
+          <FollowupPlanAssist sessionId={session.id} demoAi={await demoAiEnabled()} />
         </div>
       </section>
     </div>

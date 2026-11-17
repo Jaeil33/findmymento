@@ -13,7 +13,7 @@
  * 서버 전용이다. 클라이언트 컴포넌트에서 import 하지 않는다.
  */
 
-import { createAnthropic } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { demoAiEnabled, demoStudioAuthoring } from '@/lib/ai/demo-writer'
 import { numbersWithin, sanitizeList, sanitizeText } from '@/lib/ai/guard'
 import { GRADE_BAND_LABEL } from '@/types/domain'
@@ -112,9 +112,9 @@ export async function authorContent(
   const fallback = ruleAuthoring(spec, candidates)
   if (candidates.length === 0) return fallback
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const hasKey = Boolean(apiKey && apiKey.trim() !== '')
-  if (!hasKey && !demoAiEnabled()) return fallback
+  const apiKey = await llmKeyForRequest()
+  const hasKey = apiKey !== null
+  if (!hasKey && !(await demoAiEnabled())) return fallback
 
   const payload = {
     주제: spec.topic,

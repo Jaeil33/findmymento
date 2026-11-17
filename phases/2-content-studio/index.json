@@ -73,6 +73,12 @@
       "name": "drone-ui",
       "status": "pending",
       "summary": "API·생성기·검증기는 완료. 강사 화면에 콘텐츠 종류 선택과 코스 지도·코드 보기가 아직 없다 — 지금은 /api/studio/generate 에 kind:\"drone\" 으로만 생성된다."
+    },
+    {
+      "step": 12,
+      "name": "tour-mode",
+      "status": "completed",
+      "summary": "로그인 없이 들어가는 체험 모드 (ADR-033). /tour/{키} 하나로 강사·학생·운영자·기관·학교·보호자 화면이 열리고, 그 세션은 실 DB 클라이언트를 만들 수 없다(anon·service_role 둘 다 null) — 조회는 데모 시드, 쓰기는 메모리, LLM 키 미사용. 데이터 계층 분기를 isDemoMode() → demoDataMode() 로 옮겼다. 랜딩에 체험 입구 3장과 강사·학생 사용 방법(단계·주의사항)을 추가했다. 실 env 프로덕션 빌드에서 생성→검증→승인 화면까지 브라우저로 확인. tests/tour-mode.test.ts 24 + 안전 불변식 3 + 랜딩 4."
     }
   ]
 }

@@ -2,9 +2,8 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/ui/Section'
 import { PasswordLoginForm } from '@/components/auth/PasswordLoginForm'
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/env'
-import { demoActorKeys, demoActorLabel } from '@/lib/auth/actor'
-import { demoGuestEntries } from '@/lib/demo/guests'
-import { enterDemo, signInWithPassword } from './actions'
+import { TOUR_ENTRIES, tourHref } from '@/lib/demo/tour'
+import { signInWithPassword } from './actions'
 import { IconArrowRight } from '@/components/ui/Icons'
 
 export const metadata = { title: '로그인' }
@@ -15,6 +14,8 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const { error } = await searchParams
+  const accounts = TOUR_ENTRIES.filter((e) => e.actor !== null)
+  const guests = TOUR_ENTRIES.filter((e) => e.actor === null)
 
   return (
     <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
@@ -37,57 +38,63 @@ export default async function LoginPage({
         <PasswordLoginForm action={signInWithPassword} enabled={isSupabaseConfigured()} error={error} />
       </div>
 
-      {isDemoMode() ? (
-        <section className="mt-10 rounded-lg border border-caution/30 bg-caution-bg p-5">
-          <h2 className="text-sm font-semibold text-caution">데모 데이터 모드</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-body">
-            Supabase 키가 설정되지 않아 데모 데이터로 동작하고 있습니다. 아래에서 둘러볼 사람을 골라
-            주세요. 실제 계정 연결 뒤에는 이 블록이 사라지고 아이디·비밀번호 로그인만 남습니다.
-          </p>
+      {/* 체험 입구 (ADR-033). 실 DB 가 붙어 있어도 열려 있지만, 체험 세션은 데모 시드만 본다. */}
+      <section className="mt-10 rounded-lg border border-caution/30 bg-caution-bg p-5">
+        <h2 className="text-sm font-semibold text-caution">계정 없이 둘러보기</h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-body">
+          {isDemoMode()
+            ? 'Supabase 키가 설정되지 않아 데모 데이터로 동작하고 있습니다. 아래에서 둘러볼 사람을 골라 주세요.'
+            : '아래로 들어가면 체험 세션이 열립니다. 체험 중에는 데모 데이터만 보이고, 실제 기관·학생 데이터는 보이지도 바뀌지도 않습니다.'}
+        </p>
 
-          <h3 className="mt-5 text-xs font-semibold text-ink">계정으로 들어가는 사람</h3>
-          <ul className="mt-2 space-y-2">
-            {demoActorKeys().map((key) => (
-              <li key={key}>
-                <form action={enterDemo}>
-                  <input type="hidden" name="actor" value={key} />
-                  <button
-                    type="submit"
-                    className="flex w-full items-center justify-between rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong hover:bg-muted"
-                  >
-                    <span className="font-medium text-ink">{demoActorLabel(key)}</span>
-                    <IconArrowRight className="text-sub" />
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-
-          {/* 학생·보호자는 역할 버튼이 아니다 — 쿠키를 심지 않고 실서비스와 같은 비로그인 경로로 연다. */}
-          <h3 className="mt-6 text-xs font-semibold text-ink">계정 없이 쓰는 사람</h3>
-          <p className="mt-1 text-xs leading-relaxed text-body">
-            학생과 보호자는 계정을 만들지 않습니다. 학생은 기관이 나눠 준 가명코드로, 보호자는 비로그인
-            문의 폼으로만 들어옵니다. 실제 서비스와 같은 경로로 바로 엽니다.
-          </p>
-          <ul className="mt-2 space-y-2">
-            {demoGuestEntries().map((entry) => (
-              <li key={entry.key}>
-                <Link
-                  href={entry.href}
-                  className="flex w-full items-center justify-between gap-3 rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong"
-                >
-                  <span className="min-w-0">
-                    <span className="block font-medium text-ink">{entry.label}</span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-body">{entry.description}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-sub">{entry.hint}</span>
+        <h3 className="mt-5 text-xs font-semibold text-ink">계정으로 들어가는 사람</h3>
+        <ul className="mt-2 space-y-2">
+          {accounts.map((entry) => (
+            <li key={entry.key}>
+              <Link
+                href={tourHref(entry.key)}
+                className="flex w-full items-center justify-between gap-3 rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong hover:bg-muted"
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium text-ink">
+                    {entry.label} · {entry.who}
                   </span>
-                  <IconArrowRight className="shrink-0 text-sub" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+                  <span className="mt-0.5 block text-xs leading-relaxed text-body">
+                    {entry.destinationLabel} 화면으로 들어갑니다
+                  </span>
+                </span>
+                <IconArrowRight className="shrink-0 text-sub" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {/* 학생·보호자는 역할이 아니다 — 쿠키로 권한을 주지 않고 실서비스와 같은 비로그인 경로로 연다. */}
+        <h3 className="mt-6 text-xs font-semibold text-ink">계정 없이 쓰는 사람</h3>
+        <p className="mt-1 text-xs leading-relaxed text-body">
+          학생과 보호자는 계정을 만들지 않습니다. 학생은 기관이 나눠 준 가명코드로, 보호자는 비로그인
+          문의 폼으로만 들어옵니다. 실제 서비스와 같은 경로로 바로 엽니다.
+        </p>
+        <ul className="mt-2 space-y-2">
+          {guests.map((entry) => (
+            <li key={entry.key}>
+              <Link
+                href={tourHref(entry.key)}
+                className="flex w-full items-center justify-between gap-3 rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong"
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium text-ink">{entry.label} · 계정 없음</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-body">{entry.summary}</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-sub">
+                    {entry.highlights[0]}
+                  </span>
+                </span>
+                <IconArrowRight className="shrink-0 text-sub" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <p className="mt-8 text-xs leading-relaxed text-sub">
         아이디가 없거나 비밀번호를 잊으셨다면 운영자에게 알려 주세요. 계정은 운영자가 만들어 드립니다.

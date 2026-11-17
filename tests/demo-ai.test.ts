@@ -80,27 +80,30 @@ afterEach(() => {
 })
 
 describe('켜지는 조건', () => {
-  it('데모 데이터 모드 + 키 없음이면 켜진다', () => {
-    expect(demoAiEnabled()).toBe(true)
+  it('데모 데이터 모드 + 키 없음이면 켜진다', async () => {
+    expect(await demoAiEnabled()).toBe(true)
   })
 
-  it('DEMO_AI=off 면 꺼진다', () => {
+  it('DEMO_AI=off 면 꺼진다', async () => {
     process.env.DEMO_AI = 'off'
-    expect(demoAiEnabled()).toBe(false)
+    expect(await demoAiEnabled()).toBe(false)
   })
 
-  it('LLM 키가 있으면 꺼진다 — 실제 LLM 이 우선이다', () => {
+  it('LLM 키가 있으면 꺼진다 — 실제 LLM 이 우선이다', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test'
-    expect(demoAiEnabled()).toBe(false)
+    expect(await demoAiEnabled()).toBe(false)
   })
 
   it('실 DB(Supabase)에 붙은 배포에서는 꺼진다', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon'
-    expect(demoAiEnabled()).toBe(false)
+    expect(await demoAiEnabled()).toBe(false)
     const draft = await generateResultReport(ds, 'ls-1')
     expect(draft?.source).toBe('rule')
   })
+
+  // 체험 세션(ADR-033)에서 키가 있어도 켜지는 쪽은 쿠키가 필요하므로
+  // `tests/tour-mode.test.ts` 가 확인한다.
 })
 
 describe('결과보고서 (기능 4)', () => {

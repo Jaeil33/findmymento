@@ -1,4 +1,4 @@
-import { createAnthropic } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled, demoLessonSteps } from '@/lib/ai/demo-writer'
 import type { Dataset } from '@/lib/db/dataset'
@@ -371,10 +371,10 @@ async function refineByLlm(
   inputs: LessonPlanInputs,
   skeleton: LessonSkeleton,
 ): Promise<LessonSkeleton | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const hasKey = Boolean(apiKey && apiKey.trim() !== '')
+  const apiKey = await llmKeyForRequest()
+  const hasKey = apiKey !== null
   // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
-  if (!hasKey && !demoAiEnabled()) return null
+  if (!hasKey && !(await demoAiEnabled())) return null
 
   const payload = {
     수업: {
