@@ -51,7 +51,7 @@ export default async function LoginPage({
         <ul className="mt-2 space-y-2">
           {accounts.map((entry) => (
             <li key={entry.key}>
-              <Link
+              <a
                 href={tourHref(entry.key)}
                 className="flex w-full items-center justify-between gap-3 rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong hover:bg-muted"
               >
@@ -64,7 +64,7 @@ export default async function LoginPage({
                   </span>
                 </span>
                 <IconArrowRight className="shrink-0 text-sub" />
-              </Link>
+              </a>
             </li>
           ))}
         </ul>
@@ -78,7 +78,7 @@ export default async function LoginPage({
         <ul className="mt-2 space-y-2">
           {guests.map((entry) => (
             <li key={entry.key}>
-              <Link
+              <a
                 href={tourHref(entry.key)}
                 className="flex w-full items-center justify-between gap-3 rounded-md border border-line bg-card px-4 py-3 text-left text-sm transition-colors hover:border-line-strong"
               >
@@ -90,7 +90,7 @@ export default async function LoginPage({
                   </span>
                 </span>
                 <IconArrowRight className="shrink-0 text-sub" />
-              </Link>
+              </a>
             </li>
           ))}
         </ul>

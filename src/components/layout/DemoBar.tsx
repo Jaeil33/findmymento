@@ -29,9 +29,13 @@ export function DemoBar({ demo = false, tour = false }: { demo?: boolean; tour?:
           역할 다시 고르기
         </Link>
         {tour ? (
-          <Link href="/tour/exit" className="font-medium underline underline-offset-4 hover:text-ink">
+          /* 평범한 `<a>` 다 — 이 띠는 모든 화면 위에 있어서, `next/link` 로 걸면 라우터가
+             미리 호출하는 것만으로 둘러보는 도중에 체험이 꺼진다 (ADR-033).
+             `/tour/exit` 는 페이지가 아니라 라우트 핸들러라 아래 규칙이 가리키는 경우가 아니다. */
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          <a href="/tour/exit" className="font-medium underline underline-offset-4 hover:text-ink">
             체험 종료
-          </Link>
+          </a>
         ) : null}
       </p>
     </div>

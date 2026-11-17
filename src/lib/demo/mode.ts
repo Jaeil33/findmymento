@@ -33,6 +33,22 @@ export async function tourActive(): Promise<boolean> {
 }
 
 /**
+ * Next 라우터가 **사람 대신** 보낸 요청인가 (프리페치·클라이언트 내비게이션).
+ *
+ * `/tour/*` 는 페이지가 아니라 쿠키를 심고 지우는 라우트 핸들러다. 링크가 화면에 들어오면
+ * 라우터는 그 주소를 미리 한 번 호출하는데(`?_rsc=`), 그 호출이 그대로 쿠키를 바꾼다 —
+ * 누르기도 전에 여섯 입구가 전부 실행돼 역할이 뒤섞이고, 띠의 "체험 종료" 는 둘러보는
+ * 도중에 세션을 끈다. 그래서 **이런 요청에는 쿠키를 건드리지 않는다.**
+ *
+ * 입구를 평범한 `<a>` 로 두는 것이 1차 방어이고(`tests/tour-mode.test.ts` 가 고정한다),
+ * 이것은 누군가 다시 `next/link` 로 바꿔도 세션이 깨지지 않게 하는 2차 방어다.
+ */
+export function isRouterPrefetch(request: Request): boolean {
+  const h = request.headers
+  return h.get('rsc') === '1' || h.get('next-router-prefetch') === '1'
+}
+
+/**
  * 데모 시드로 읽고 쓸지. **데이터 계층의 유일한 분기 조건이다.**
  *
  * Supabase 키가 없으면 쿠키를 읽지 않고 곧장 true — 데모 배포에서 모든 페이지가

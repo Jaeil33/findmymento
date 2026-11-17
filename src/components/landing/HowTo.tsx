@@ -31,13 +31,14 @@ function GuideColumn({ guide }: { guide: Guide }) {
         <h3 id={`guide-${guide.key}`} className="text-lg font-semibold text-ink">
           {guide.audience} 사용 방법
         </h3>
-        <Link
+        {/* 체험 입구는 평범한 `<a>` 다 — `next/link` 는 누르기 전에 주소를 미리 호출한다 (ADR-033). */}
+        <a
           href={tourHref(instructor ? 'instructor' : 'student')}
           className="inline-flex items-center gap-1 text-xs font-semibold text-point hover:text-point-hover"
         >
           {instructor ? '강사 모드로 열어 보기' : '학생 화면 열어 보기'}
           <IconArrowRight width={13} height={13} />
-        </Link>
+        </a>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-body">{guide.lead}</p>
 

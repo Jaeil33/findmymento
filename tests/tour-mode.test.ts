@@ -317,3 +317,74 @@ describe('체험 입구 정의', () => {
     expect(guests).toEqual(['student', 'guardian'])
   })
 })
+
+describe('체험 링크는 전체 페이지 이동이어야 한다', () => {
+  /**
+   * `/tour/*` 는 페이지가 아니라 **쿠키를 심고 지우는 라우트 핸들러**다.
+   * `next/link` 로 걸면 Next 라우터가 화면에 들어온 링크를 미리 호출한다(프리페치).
+   * 그러면 누르기도 전에 여섯 입구가 전부 실행돼 역할 쿠키가 뒤섞이고
+   * (`student`·`guardian` 은 역할을 지운다), 띠의 "체험 종료" 는 둘러보는 도중에 세션을 끈다.
+   * 그래서 체험 링크는 평범한 `<a>` 여야 한다.
+   */
+  async function tourLinkTags(): Promise<string[]> {
+    const { readdirSync, readFileSync, statSync } = await import('node:fs')
+    const { join, relative } = await import('node:path')
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((e) => {
+        const full = join(dir, e)
+        return statSync(full).isDirectory() ? walk(full) : [full]
+      })
+
+    const found: string[] = []
+    for (const file of walk(join(process.cwd(), 'src')).filter((f) => f.endsWith('.tsx'))) {
+      const source = readFileSync(file, 'utf8')
+      for (const m of source.matchAll(/href=\{tourHref\(|href="\/tour\//g)) {
+        const before = source.slice(0, m.index)
+        const tag = before.slice(before.lastIndexOf('<') + 1).split(/[\s>]/)[0]
+        if (tag !== 'a') {
+          found.push(`${relative(process.cwd(), file).split(String.fromCharCode(92)).join('/')}: <${tag}>`)
+        }
+      }
+    }
+    return found
+  }
+
+  it('/tour/* 를 가리키는 요소는 전부 <a> 다 — 프리페치가 쿠키를 건드리면 안 된다', async () => {
+    expect(await tourLinkTags()).toEqual([])
+  })
+})
+
+describe('프리페치는 체험 쿠키를 건드리지 않는다', () => {
+  /** Next 라우터의 선행 요청. 사람이 누른 이동이 아니므로 쿠키를 심지도 지우지도 않는다. */
+  const prefetch = (path: string) =>
+    new Request(`http://localhost:3000${path}`, {
+      headers: { RSC: '1', 'Next-Router-Prefetch': '1' },
+    })
+
+  it('입장 — 프리페치에는 쿠키를 심지 않는다', async () => {
+    const res = await enterTour(prefetch('/tour/instructor'), {
+      params: Promise.resolve({ key: 'instructor' }),
+    })
+    expect(res.headers.getSetCookie()).toEqual([])
+  })
+
+  it('입장 — 역할 없는 입구의 프리페치가 이미 고른 역할을 지우지 않는다', async () => {
+    const res = await enterTour(prefetch('/tour/student'), {
+      params: Promise.resolve({ key: 'student' }),
+    })
+    expect(res.headers.getSetCookie()).toEqual([])
+  })
+
+  it('종료 — 프리페치가 둘러보는 도중에 체험을 끝내지 않는다', async () => {
+    const res = await exitTour(prefetch('/tour/exit'))
+    expect(res.headers.getSetCookie()).toEqual([])
+  })
+
+  it('사람이 누른 이동(RSC 헤더 없음)은 그대로 동작한다', async () => {
+    const res = await enterTour(new Request('http://localhost:3000/tour/instructor'), {
+      params: Promise.resolve({ key: 'instructor' }),
+    })
+    expect(res.status).toBe(307)
+    expect(res.cookies.get(DEMO_ROLE_COOKIE)?.value).toBe('instructor')
+  })
+})

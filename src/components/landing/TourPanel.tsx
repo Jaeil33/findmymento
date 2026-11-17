@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { IconArrowRight, IconCheck, IconLock } from '@/components/ui/Icons'
 import {
   TOUR_ENTRIES,
@@ -10,6 +9,10 @@ import {
 
 /**
  * 로그인 없이 들어가는 입구 (ADR-033).
+ *
+ * 입구는 평범한 `<a>` 다. `/tour/{키}` 는 페이지가 아니라 쿠키를 심는 라우트 핸들러이고,
+ * `next/link` 로 걸면 라우터가 화면에 들어온 입구 여섯 개를 **누르기 전에 미리 호출해**
+ * 역할 쿠키가 뒤섞인다 (`lib/demo/mode.ts` 의 `isRouterPrefetch`).
  *
  * 주소 하나(`/tour/{키}`)로 들어가고, 그 세션은 **데모 데이터만** 본다. 그래서 여기 적는 말은
  * "둘러보기"이고 "로그인 우회"가 아니다. 실제 기관·학생 데이터가 보이지 않는다는 사실을
@@ -40,13 +43,13 @@ export function TourPanel({ live }: { live: boolean }) {
               ))}
             </ul>
             {/* 링크는 카드 전체가 아니라 이 한 줄이다 — 읽어 주는 이름이 카드 본문 전체가 되지 않게 한다. */}
-            <Link
+            <a
               href={tourHref(entry.key)}
               className="mt-5 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-point px-4 text-sm font-semibold text-white transition-colors hover:bg-point-hover"
             >
               {entry.label} 열기
               <IconArrowRight width={15} height={15} />
-            </Link>
+            </a>
             <p className="mt-2 text-center text-xs text-sub">{entry.destinationLabel} 화면</p>
           </li>
         ))}
@@ -63,13 +66,13 @@ export function TourPanel({ live }: { live: boolean }) {
         </p>
         <p className="flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-xs">
           {secondary.map((entry) => (
-            <Link
+            <a
               key={entry.key}
               href={tourHref(entry.key)}
               className="font-medium text-point underline-offset-4 hover:underline"
             >
               {entry.label}
-            </Link>
+            </a>
           ))}
         </p>
       </div>

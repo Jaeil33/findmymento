@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { DEMO_ROLE_COOKIE } from '@/lib/auth/actor'
-import { TOUR_COOKIE, TOUR_MAX_AGE_SECONDS } from '@/lib/demo/mode'
+import { isRouterPrefetch, TOUR_COOKIE, TOUR_MAX_AGE_SECONDS } from '@/lib/demo/mode'
 import { tourEntry } from '@/lib/demo/tour'
 
 /**
@@ -17,6 +17,9 @@ import { tourEntry } from '@/lib/demo/tour'
  * 실서비스와 같은 비로그인 경로(`/s/{입장코드}`)로 그대로 들여보낸다.
  */
 export async function GET(request: Request, { params }: { params: Promise<{ key: string }> }) {
+  // 사람이 누른 이동만 쿠키를 바꾼다. 라우터가 미리 당겨 보는 요청은 그냥 돌려보낸다.
+  if (isRouterPrefetch(request)) return new NextResponse(null, { status: 204 })
+
   const { key } = await params
   const entry = tourEntry(key)
   if (!entry) return NextResponse.redirect(new URL('/', request.url))
