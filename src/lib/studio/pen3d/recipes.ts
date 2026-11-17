@@ -10,6 +10,9 @@
  * - 윤곽선은 반드시 닫는다 (`closed: true`). 열린 윤곽은 떼어낼 때 분해된다
  * - 모든 부품이 접합에 한 번은 등장해야 한다. 조립되지 않는 부품은 쓰레기다
  * - 고리·슬릿의 폭은 **학년 최소 간격보다 크게** 잡는다. 좁으면 녹아 붙는다
+ * - **치수에 비례하지 않는 고정 값은 가장 빡빡한 임계값(간격 4mm · 선분 8mm) 이상으로 둔다.**
+ *   그보다 작으면 개선 라운드가 도안을 키워도 그 값은 그대로여서 레시피가 영구 실패한다.
+ *   `tests/studio-pen3d-recipes.test.ts` 가 size_range 최솟값에서 이걸 검사한다
  */
 
 import {
@@ -131,7 +134,7 @@ const cubeLantern: PenRecipe = {
   id: 'cube-lantern',
   title: '정육면체 조명 갓',
   summary: '정사각 패널 6장을 모서리끼리 붙여 정육면체를 만든다. 안에 LED 티라이트를 넣으면 조명이 된다.',
-  keywords: ['조명', '램프', '등', '정육면체', '큐브', '빛', '상자'],
+  keywords: ['조명', '램프', '등갓', '정육면체', '큐브', '상자'],
   defaults: { size: 45, detail: 1, extras: false },
   size_range: [28, 70],
   nominal_difficulty: 2,
@@ -166,7 +169,7 @@ const pyramidLamp: PenRecipe = {
   id: 'pyramid-lamp',
   title: '사각뿔 등',
   summary: '정사각 밑면 1장과 이등변 삼각형 4장으로 사각뿔을 만든다. 밑면을 빼면 갓이 된다.',
-  keywords: ['피라미드', '사각뿔', '삼각형', '텐트', '고깔', '등'],
+  keywords: ['피라미드', '사각뿔', '삼각형', '텐트', '고깔'],
   defaults: { size: 60, detail: 0, extras: true },
   size_range: [35, 90],
   nominal_difficulty: 2,
@@ -287,7 +290,8 @@ const nameKeyring: PenRecipe = {
     return {
       parts: [
         part('plate', '이름판', 1, [outline(rectPoints(size, h))]),
-        part('hoop', '고리', 1, ring(size * 0.13, 5)),
+        // 바깥 반지름이 9mm 아래로 내려가면 두께 5mm 를 빼고 남는 구멍이 사라진다.
+        part('hoop', '고리', 1, ring(Math.max(9, size * 0.13), 5)),
       ],
       joints: [
         weld(
@@ -316,7 +320,9 @@ const flowerPot: PenRecipe = {
     const petals = detail >= 1 ? 7 : 5
     const parts = [
       part('petal', '꽃잎', petals, [outline(ellipsePoints(size * 0.52, size))]),
-      part('stem', '줄기', 1, [outline(rectPoints(6, size * 1.7))]),
+      // 줄기 폭은 8.5mm 아래로 내려가지 않는다. 6mm 로 두면 초등 선분 하한(8mm)에 걸리고,
+      // 치수를 키워도 이 값은 그대로여서 개선이 통하지 않는다.
+      part('stem', '줄기', 1, [outline(rectPoints(Math.max(8.5, size * 0.34), size * 1.7))]),
     ]
     const joints: PenJoint[] = [
       weld(
@@ -402,7 +408,8 @@ const droneFrame: PenRecipe = {
   nominal_difficulty: 3,
   build: ({ size }) => {
     const armLen = size * 0.45
-    const armW = 12
+    // 팔 폭이 곧 접합 길이다. 최소 접합 길이(8mm)와 선분 하한(8mm) 위로 여유를 둔다.
+    const armW = Math.max(10, size * 0.1)
     return {
       parts: [
         part('plate', '중앙판', 1, [outline(rectPoints(size * 0.3, size * 0.3))]),
@@ -437,7 +444,7 @@ const crossSphere: PenRecipe = {
   id: 'cross-sphere',
   title: '십자 끼움 구슬 장식',
   summary: '가운데까지 슬릿을 낸 원판 2장을 십자로 끼워 입체를 만든다. 접착 없이 끼움으로 조립한다.',
-  keywords: ['구', '공', '장식', '오너먼트', '끼움', '행성', '지구'],
+  keywords: ['구슬', '공 모양', '장식', '오너먼트', '끼움', '행성', '지구'],
   defaults: { size: 45, detail: 0, extras: false },
   size_range: [30, 80],
   nominal_difficulty: 4,

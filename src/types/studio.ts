@@ -90,6 +90,8 @@ export type StudioRound = {
   action: 'generated' | 'repaired'
   /** 무엇을 고쳤는지. `generated` 라운드는 null */
   repair: string | null
+  /** 그 라운드에 쓴 생성 파라미터. 재현에 필요하다 */
+  params: Record<string, number | boolean | string> | null
   ok: boolean
   findings: Finding[]
 }

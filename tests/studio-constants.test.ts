@@ -13,6 +13,7 @@ import {
   DRONE_WALL_CLEARANCE_CM,
   PAGE,
   PEEL_SECONDS_PER_PART,
+  PEN_SAFETY_NOTES,
   PEN_FINDING_SEVERITY,
   PEN_LIMITS,
   SLOT_CLEARANCE_MM,
@@ -132,6 +133,11 @@ describe('3D펜 물리 상수가 docs/STUDIO.md 와 일치한다', () => {
 
   it('부품 간 배치 간격', () => {
     expect(nums(row('부품 간 배치 간격')[1])).toEqual([PAGE.gutter_mm])
+  })
+
+  it('3D펜 안전 고정 문구 4개가 문서에 그대로 있다', () => {
+    expect(PEN_SAFETY_NOTES).toHaveLength(4)
+    for (const note of PEN_SAFETY_NOTES) expect(DOC).toContain(note)
   })
 
   it('선 간격 하한은 압출 선폭보다 크다', () => {

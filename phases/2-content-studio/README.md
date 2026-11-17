@@ -27,3 +27,13 @@
 - 임계값을 완화해 테스트를 통과시키지 마라. 이유: 임계값은 물리 현상이다. 생성기를 고쳐라
 - 기존 매칭 화면의 테스트를 깨지 마라. 이유: 매칭은 유지 대상이다 (ADR-028)
 - 목업·하드코딩된 가짜 산출물을 넣지 마라. 이유: 검증기가 통과시킨 산출물만 화면에 나와야 한다
+
+## 도안 실물 확인
+
+`tests/studio-sample.manual.test.ts` 는 `STUDIO_SAMPLE_DIR` 가 있을 때만 돌고, 레시피별 SVG 와
+지표 표를 그 디렉토리에 쓴다. 숫자만 보고 통과시키지 말고 **A4 로 인쇄해서** 50mm 기준선을
+자로 재 보는 것이 최종 확인이다.
+
+```bash
+STUDIO_SAMPLE_DIR=/tmp/svg npx vitest run tests/studio-sample.manual.test.ts
+```

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { PEN_RECIPES, buildPattern, recipeById, recipeCandidates } from '@/lib/studio/pen3d/recipes'
-import { interiorAngles, isClosedPath, strokeLength, strokesBBox, sizeOf } from '@/lib/studio/geometry'
-import { PAGE_USABLE } from '@/lib/studio/constants'
+import {
+  featureEdges,
+  interiorAngles,
+  isClosedPath,
+  minGap,
+  sizeOf,
+  strokeLength,
+  strokesBBox,
+} from '@/lib/studio/geometry'
+import { PAGE_USABLE, PEN_LIMITS } from '@/lib/studio/constants'
 
 /**
  * 레시피는 **좌표를 만드는 유일한 주체**다 (ADR-029). 그래서 여기서 보는 것은
@@ -132,6 +140,33 @@ describe.each(PEN_RECIPES.map((r) => [r.id, r] as const))('레시피 %s', (_id, 
   it('scale 이 패턴에 기록된다', () => {
     expect(pattern.recipe_id).toBe(recipe.id)
     expect(pattern.scale).toBeGreaterThan(0)
+  })
+})
+
+describe('최소 치수에서도 고칠 수 있는 레시피인가', () => {
+  /**
+   * 치수를 가장 작게 잡았을 때 **가장 빡빡한 학년 임계값**(초등: 간격 4mm · 선분 8mm)을
+   * 만족해야 한다. 치수에 비례하지 않는 고정 값이 임계값보다 작으면, 개선 라운드가 도안을
+   * 키워도 그 값은 그대로여서 레시피가 영구히 실패한다 — 꽃 줄기 폭 6mm 가 그랬다.
+   */
+  it.each(PEN_RECIPES.map((r) => [r.id, r] as const))('%s', (_id, recipe) => {
+    const strictGap = Math.max(
+      ...(['elementary', 'middle', 'high'] as const).map((b) => PEN_LIMITS[b].min_gap_mm),
+    )
+    const strictSegment = Math.max(
+      ...(['elementary', 'middle', 'high'] as const).map((b) => PEN_LIMITS[b].min_segment_mm),
+    )
+    const small = buildPattern(recipe, { ...recipe.defaults, size: recipe.size_range[0] })
+
+    for (const part of small.parts) {
+      const gap = minGap(part.strokes, { pathSkip: Math.max(10, strictGap * 3) })
+      expect(gap, `${part.id} 간격`).toBeGreaterThanOrEqual(strictGap)
+      for (const stroke of part.strokes) {
+        for (const edge of featureEdges(stroke)) {
+          expect(edge, `${part.id} 선분`).toBeGreaterThanOrEqual(strictSegment)
+        }
+      }
+    }
   })
 })
 

@@ -29,12 +29,14 @@
     {
       "step": 4,
       "name": "pen3d-pipeline",
-      "status": "pending"
+      "status": "completed",
+      "summary": "lib/studio/pen3d/pipeline.ts. generatePen(spec, {recipeId, calibration}) — 시수에 맞춘 초기 치수 → 검증 → 개선(확대/축소/장식·선택부품 제거, 최대 3회) → 재검증. 라운드마다 params·findings 기록. 고칠 수 없는 항목(장비 없음)은 1라운드에서 끝낸다. 효과 없는 확대를 반복하지 않는 가드 포함."
     },
     {
       "step": 5,
       "name": "pen3d-render",
-      "status": "pending"
+      "status": "completed",
+      "summary": "lib/studio/pen3d/render.ts. A4 1:1 SVG(mm). 윤곽 실선·접는 선 파선, 부품명 ×수량·치수 표기, 50mm 인쇄 축척 기준선, 검증 미통과 워터마크. XML 이스케이프."
     },
     {
       "step": 6,
