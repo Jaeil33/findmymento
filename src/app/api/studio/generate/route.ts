@@ -8,10 +8,13 @@ import { droneCandidates } from '@/lib/studio/drone/course'
 import { generateDrone } from '@/lib/studio/drone/pipeline'
 import { calibrationFor, nextVersion, studioLineage } from '@/lib/studio/library'
 import { generatePen } from '@/lib/studio/pen3d/pipeline'
+import { PEN_PIECES } from '@/lib/studio/pen3d/pieces'
 import { recipeCandidates } from '@/lib/studio/pen3d/recipes'
+import { generalizeCharacter } from '@/lib/studio/topic'
 import { validateGenerate } from '@/lib/studio/request'
 import { clientKey, rateLimit } from '@/lib/validation'
 import type { LectureSession } from '@/types/domain'
+import type { PenComposition } from '@/lib/studio/pen3d/compose'
 import type { StudioArtifact, StudioSpec } from '@/types/studio'
 
 /**
@@ -66,7 +69,14 @@ export async function POST(request: Request) {
       { status: 400 },
     )
   }
-  const { spec, lineageId: requestedLineage, recipeId } = validated.value
+  const { spec: rawSpec, lineageId: requestedLineage, recipeId } = validated.value
+
+  /**
+   * 캐릭터·상표 이름은 일반 형태로 바꿔 만든다 (ADR-034). 산출물이 인쇄되어 교실로 가므로
+   * 캐릭터 도안을 배포하면 책임이 플랫폼으로 온다. 바꿨다는 사실은 응답에 담아 화면에 적는다.
+   */
+  const general = generalizeCharacter(rawSpec.topic)
+  const spec = general.replaced ? { ...rawSpec, topic: general.text } : rawSpec
 
   // ── 버전 ──────────────────────────────────────────────────────────────────
   let lineageId = requestedLineage
@@ -92,8 +102,26 @@ export async function POST(request: Request) {
     : null
 
   const authoring = recipeId
-    ? { recipe_id: recipeId, title: '', reason: '', tasks: [] as string[], source: 'rule' as const }
-    : await authorContent(spec, candidates, firstCalibration)
+    ? {
+        recipe_id: recipeId,
+        composition: null,
+        title: '',
+        reason: '',
+        tasks: [] as string[],
+        source: 'rule' as const,
+      }
+    : await authorContent(spec, candidates, firstCalibration, {
+        // 조각 조합은 3D펜만 쓴다 (ADR-034). 드론은 검수된 코스 목록 그대로다.
+        pieces:
+          spec.kind === 'pen3d'
+            ? PEN_PIECES.map((p) => ({
+                id: p.id,
+                name: p.name,
+                summary: p.summary,
+                can_be_base: p.can_be_base,
+              }))
+            : undefined,
+      })
 
   const calibration = calibrationFor(
     ds.studioContents,
@@ -102,7 +130,7 @@ export async function POST(request: Request) {
     spec.grade_band,
   )
 
-  const generated = generate(spec, authoring.recipe_id, calibration)
+  const generated = generate(spec, authoring.recipe_id, calibration, authoring.composition ?? null)
 
   // LLM 이 쓴 것은 **제목과 과제 문장뿐이다.** 좌표·명령·지표는 생성기 결과를 그대로 쓴다.
   const title = authoring.title !== '' ? authoring.title : generated.title
@@ -130,6 +158,8 @@ export async function POST(request: Request) {
     rounds: generated.rounds,
     findings: generated.report.findings,
     persisted,
+    // 주제를 바꿔 만든 경우에만 들어온다. 화면이 그대로 보여준다.
+    topic_note: general.note,
     // 수업 조건도 **서버가 쓴 값**을 돌려준다. 회차에 붙은 생성은 회차 행이 정한다 (ADR-016).
     ...(persisted ? {} : { artifact, spec, title }),
   }
@@ -166,12 +196,13 @@ function generate(
   spec: StudioSpec,
   recipeId: string,
   calibration: ReturnType<typeof calibrationFor>,
+  composition: PenComposition | null,
 ) {
   if (spec.kind === 'drone') {
     const result = generateDrone(spec, { recipeId, calibration })
     return { ...result, title: result.artifact.mission.title }
   }
-  const result = generatePen(spec, { recipeId, calibration })
+  const result = generatePen(spec, { recipeId, calibration, composition })
   return { ...result, title: result.artifact.pattern.title }
 }
 

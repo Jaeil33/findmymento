@@ -23,6 +23,8 @@ export type GenerateResultData = {
   artifact: PenArtifact
   /** 서버가 실제로 쓴 수업 조건. 회차에 붙은 생성은 회차 행이 정한다 (ADR-016) */
   spec: StudioSpec
+  /** 주제를 바꿔 만든 경우의 안내. 캐릭터·상표 이름은 일반 형태로 바꾼다 (ADR-034) */
+  topic_note?: string | null
 }
 
 /**
@@ -113,6 +115,12 @@ export function GenerateResult({
           </div>
         }
       />
+
+      {data.topic_note ? (
+        <p className="rounded-lg border border-line bg-muted px-4 py-3 text-xs leading-relaxed text-body">
+          {data.topic_note}
+        </p>
+      ) : null}
 
       <p className="rounded-lg border border-caution/25 bg-caution-bg px-4 py-3 text-xs leading-relaxed text-caution">
         이 산출물은 <strong>저장되지 않습니다.</strong> 체험·데모 세션이라 라이브러리에 쌓이지

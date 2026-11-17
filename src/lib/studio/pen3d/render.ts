@@ -109,8 +109,10 @@ export function renderPenSvg(artifact: PenArtifact, options: RenderOptions): str
     lines.push(
       `<text class="lbl" x="${n(dx + 5.6)}" y="${n(labelY)}">${esc(part.name)} ${part.quantity}장${part.optional ? ' (선택)' : ''}</text>`,
     )
+    // 짧게 적는다. 길면 옆 부품의 라벨 위로 넘어간다 — 종이에서는 그게 바로 읽히지 않는다.
+    const mm = (v: number) => Math.round(v * 10) / 10
     lines.push(
-      `<text class="sub" x="${n(dx)}" y="${n(subY)}">${n(size.w)}×${n(size.h)}mm · 같은 선 위에 ${part.quantity}번 덧그려 ${part.quantity}장을 만듭니다</text>`,
+      `<text class="sub" x="${n(dx)}" y="${n(subY)}">${mm(size.w)}×${mm(size.h)}mm${part.quantity > 1 ? ` · ${part.quantity}번 덧그리기` : ''}</text>`,
     )
     lines.push('</g>')
   }

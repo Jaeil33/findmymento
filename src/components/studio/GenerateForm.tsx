@@ -106,6 +106,7 @@ export function GenerateForm({
         persisted?: boolean
         message?: string
         field?: string
+        topic_note?: string | null
       } & Partial<GenerateResultData>
 
       if (!response.ok || !json.ok) {
@@ -123,6 +124,7 @@ export function GenerateForm({
           rounds: json.rounds ?? [],
           artifact: json.artifact,
           spec: json.spec,
+          topic_note: json.topic_note ?? null,
         })
         return
       }

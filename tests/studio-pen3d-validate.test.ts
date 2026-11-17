@@ -448,3 +448,32 @@ describe('결과 형식', () => {
     expect(validatePen(p, spec())).toEqual(validatePen(p, spec()))
   })
 })
+
+describe('꼬인 윤곽 (ADR-034 — 조합이 들어오면서 생긴 위험)', () => {
+  /**
+   * 조각을 조합하면 사람이 검수하지 않은 윤곽이 들어올 수 있다. 스스로 교차하는 윤곽은
+   * 그려 놓으면 멀쩡해 보이지만 떼어낼 때 교차점에서 찢어진다. 레시피는 사람이 봤지만
+   * 조합은 아무도 보지 않으므로 **검증기가 봐야 한다.**
+   */
+  const bowtie = [
+    { x: 0, y: 0 },
+    { x: 40, y: 30 },
+    { x: 40, y: 0 },
+    { x: 0, y: 30 },
+  ]
+
+  it('스스로 교차하는 윤곽을 잡는다', () => {
+    const p = pattern({ parts: [part({ id: 'a', strokes: [outline(bowtie)] }), part({ id: 'b' })] })
+    expect(codes(p, spec())).toContain('PEN_SELF_INTERSECT')
+  })
+
+  it('error 다 — 통과시킬 수 없는 결함이다', () => {
+    expect(PEN_FINDING_SEVERITY.PEN_SELF_INTERSECT).toBe('error')
+  })
+
+  it('멀쩡한 윤곽에는 걸리지 않는다', () => {
+    expect(codes(pattern(), spec())).not.toContain('PEN_SELF_INTERSECT')
+    const house = buildPattern(recipeById('house-lamp')!, recipeById('house-lamp')!.defaults)
+    expect(codes(house, spec())).not.toContain('PEN_SELF_INTERSECT')
+  })
+})

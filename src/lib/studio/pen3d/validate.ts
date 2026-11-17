@@ -26,6 +26,8 @@ import {
   isClosedPath,
   minGap,
   rectsOverlap,
+  segIntersects,
+  segments,
   strokeLength,
 } from '@/lib/studio/geometry'
 import { layoutPattern } from '@/lib/studio/pen3d/layout'
@@ -35,6 +37,7 @@ import {
   type PenMetrics,
   type PenPart,
   type PenPattern,
+  type Stroke,
   type StudioSpec,
   type ValidationReport,
 } from '@/types/studio'
@@ -60,6 +63,21 @@ function partPerimeter(part: PenPart): number {
   return part.strokes
     .filter((s) => s.kind === 'outline')
     .reduce((sum, s) => sum + strokeLength(s), 0)
+}
+
+/**
+ * 윤곽이 스스로 교차하는가. 닫힌 윤곽에서 **이웃한 변끼리는 끝점을 공유**하므로 건너뛴다
+ * (첫 변과 마지막 변도 이웃이다).
+ */
+function selfIntersects(stroke: Stroke): boolean {
+  const segs = segments(stroke)
+  for (let i = 0; i < segs.length; i += 1) {
+    for (let j = i + 2; j < segs.length; j += 1) {
+      if (i === 0 && j === segs.length - 1) continue
+      if (segIntersects(segs[i]!, segs[j]!)) return true
+    }
+  }
+  return false
 }
 
 function partFeatures(part: PenPart): number[] {
@@ -213,6 +231,17 @@ export function validatePen(
           finding('PEN_PATH_NOT_CLOSED', `${part.name}의 윤곽선이 닫히지 않았습니다.`, {
             where: part.name,
           }),
+        )
+      }
+      // 스스로 교차하는 윤곽은 그려 놓으면 멀쩡해 보이지만 떼어낼 때 교차점에서 찢어진다.
+      // 레시피는 사람이 검수했지만 조합(ADR-034)은 아무도 보지 않으므로 여기서 본다.
+      if (selfIntersects(stroke)) {
+        findings.push(
+          finding(
+            'PEN_SELF_INTERSECT',
+            `${part.name}의 윤곽선이 스스로 교차합니다. 꼬인 선은 떼어낼 때 그 자리에서 찢어집니다.`,
+            { where: part.name },
+          ),
         )
       }
     }

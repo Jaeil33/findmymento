@@ -64,6 +64,16 @@ export const PEN_LIMITS: Record<GradeBand, PenLimit> = {
   },
 }
 
+/**
+ * 조합(ADR-034)이 조각을 줄일 수 있는 하한. 이보다 작은 조각은 쓰지 않는다 —
+ * 가장 빡빡한 학년 기준(선분 8mm)에 여유를 둔 값이고, `tests/studio-pen3d-pieces.test.ts`
+ * 가 모든 조각을 이 치수에서 검사한다.
+ */
+export const COMPOSE_MIN_PIECE_MM = 14
+
+/** 조합 한 건이 쓸 수 있는 조각 종류 수 상한. 몸통 1 + 붙이는 조각 4 */
+export const COMPOSE_MAX_PIECES = 5
+
 export const PEEL_SECONDS_PER_PART = 30
 export const WELD_SECONDS_PER_JOINT = 45
 
@@ -99,6 +109,7 @@ export const PEN_EQUIPMENT_KEYWORDS = ['3d펜', '3d 펜', '3디펜', '필라멘�
 export const PEN_FINDING_SEVERITY: Record<string, Severity> = {
   PEN_EQUIPMENT_MISSING: 'error',
   PEN_PATH_NOT_CLOSED: 'error',
+  PEN_SELF_INTERSECT: 'error',
   PEN_SEGMENT_TOO_SHORT: 'error',
   PEN_ANGLE_TOO_SHARP: 'error',
   PEN_GAP_TOO_SMALL: 'error',

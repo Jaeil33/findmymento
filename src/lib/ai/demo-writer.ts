@@ -812,6 +812,52 @@ const STUDIO_DEFAULT_TASKS = [
 ]
 
 /**
+ * 시연용 조합 (ADR-034). **조각 목록이 주어졌을 때만** 쓴다.
+ *
+ * 체험 세션은 LLM 을 부르지 않으므로(ADR-033), 조합 경로도 여기서 흉내 내야 "물고기"·"토끼"가
+ * 데모 배포에서 동작한다. 실제 LLM 과 **같은 제약**을 지킨다 — 조각 목록 밖으로 나가지 않고,
+ * 비율만 쓴다. 목록에 없는 조각을 쓰면 `parseComposition` 이 버린다.
+ */
+const DEMO_COMPOSITIONS: { re: RegExp; title: string; base: string; parts: unknown[] }[] = [
+  {
+    re: /물고기|생선|바다|금붕어|상어/,
+    title: '물고기',
+    base: 'oval-body',
+    parts: [
+      { piece: 'tail-trapezoid', ratio: 0.5, quantity: 1, attach: 'back' },
+      { piece: 'fin-triangle', ratio: 0.35, quantity: 2, attach: 'top' },
+    ],
+  },
+  {
+    re: /토끼|고양이|강아지|동물|곰|쥐/,
+    title: '동물 얼굴',
+    base: 'round-body',
+    parts: [
+      { piece: 'ear-pointed', ratio: 0.4, quantity: 2, attach: 'top' },
+      { piece: 'limb-bar', ratio: 0.3, quantity: 2, attach: 'bottom', optional: true },
+    ],
+  },
+  {
+    re: /새|나비|비행|날개|천사/,
+    title: '날개 달린 모형',
+    base: 'drop-body',
+    parts: [
+      { piece: 'wing-drop', ratio: 0.7, quantity: 2, attach: 'side' },
+      { piece: 'fin-triangle', ratio: 0.3, quantity: 1, attach: 'front' },
+    ],
+  },
+  {
+    re: /로봇|사람|친구|인형/,
+    title: '사람 모형',
+    base: 'box-body',
+    parts: [
+      { piece: 'round-body', ratio: 0.5, quantity: 1, attach: 'top' },
+      { piece: 'limb-bar', ratio: 0.28, quantity: 4, attach: 'side' },
+    ],
+  },
+]
+
+/**
  * 시연용 레시피 선택. **후보 목록의 첫 항목을 고른다** — 목록 밖으로 나가지 않는 것이
  * 이 기능의 핵심 제약이고, 데모 응답도 같은 제약을 지켜야 한다 (ADR-029).
  * 문장에 숫자를 넣지 않는다 — 가드가 버리기 때문이다.
@@ -826,6 +872,24 @@ export function demoStudioAuthoring(payload: unknown): unknown {
 
   const activity = STUDIO_ACTIVITY.find((a) => a.re.test(topic))
   const title = topic.length > 0 && topic.length <= 24 ? topic : str(first.title)
+
+  // 조각 목록이 왔고 주제가 조합 쪽이면 조합을 돌려준다. 그 외에는 레시피 선택 그대로다.
+  const composable = Array.isArray(p.조각) && p.조각.length > 0
+  const composition = composable ? DEMO_COMPOSITIONS.find((c) => c.re.test(topic)) : undefined
+  if (composition) {
+    return {
+      mode: 'compose',
+      composition: {
+        title: composition.title,
+        base: composition.base,
+        parts: composition.parts,
+      },
+      recipe_id: recipeId,
+      title,
+      reason: `${composition.title} 모양에 가까운 조각으로 조합했습니다.`,
+      tasks: activity ? activity.tasks : STUDIO_DEFAULT_TASKS,
+    }
+  }
 
   return {
     recipe_id: recipeId,

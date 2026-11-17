@@ -14,6 +14,7 @@
  */
 
 import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { parseComposition, type PenComposition } from '@/lib/studio/pen3d/compose'
 import { demoAiEnabled, demoStudioAuthoring } from '@/lib/ai/demo-writer'
 import { numbersWithin, sanitizeList, sanitizeText } from '@/lib/ai/guard'
 import { GRADE_BAND_LABEL } from '@/types/domain'
@@ -30,8 +31,21 @@ export type AuthorCandidate = {
   nominal_difficulty: number
 }
 
+/** LLM 에게 보여주는 조각 한 줄. `pieces.ts` 의 목록을 그대로 줄인 것이다 */
+export type AuthorPiece = {
+  id: string
+  name: string
+  summary: string
+  can_be_base: boolean
+}
+
 export type StudioAuthoring = {
   recipe_id: string
+  /**
+   * 조각 조합 제안 (ADR-034). 조각 목록을 준 경우에만 생길 수 있고,
+   * 목록·범위를 하나라도 벗어나면 `null` 이다 — 그때는 레시피 선택이 그대로 남는다.
+   */
+  composition?: PenComposition | null
   title: string
   /** 왜 이 레시피인지 한 줄. 화면에 그대로 보여준다 */
   reason: string
@@ -58,7 +72,33 @@ const SYSTEM = `너는 초·중·고 실습 수업(3D펜 도안 · 드론 비행
 출력은 JSON 하나만. 설명을 덧붙이지 않는다.
 {"recipe_id":"...","title":"...","reason":"...","tasks":["...","..."]}`
 
+/**
+ * 조각 조합이 가능한 경우에만 덧붙이는 지시 (ADR-034).
+ *
+ * 비율만 받는다 — mm·좌표·접합 규격은 `compose.ts` 가 정한다. 그래서 여기서 아무리
+ * 이상한 비율이 와도 도안의 숫자는 우리가 만든 값이고, 범위를 벗어나면 통째로 버린다.
+ */
+const COMPOSE_SYSTEM = `
+
+**주제에 맞는 레시피가 없으면 조각을 조합해도 된다.**
+
+- mode 를 "compose" 로 하고 composition 을 채운다. 맞는 레시피가 있으면 mode 는 "recipe" 다.
+- base 는 주어진 조각 목록에서 can_be_base 가 true 인 id 하나다.
+- parts 는 1~4개. 각각 {piece, ratio, quantity, attach}.
+  - piece: 조각 목록의 id. **목록 밖의 이름을 지어내지 않는다.**
+  - ratio: 몸통 대비 가로 비율. 0.12~1.2 사이의 소수. 이것이 네가 쓰는 유일한 숫자다.
+  - quantity: 1~6 사이 정수. 같은 조각이 몇 개 필요한가.
+  - attach: top · bottom · front · back · side 중 하나.
+  - optional: 없어도 모양이 되는 조각이면 true. 시간이 모자라면 이것부터 빠진다.
+- composition.title: 무엇을 만드는지 한 줄. 24자 이내.
+- **특정 캐릭터·상표 이름을 쓰지 않는다.** "노란 생쥐 캐릭터" 같은 일반 명사로 쓴다.
+- 조각으로 그 모양을 만들 수 없으면 조합하지 말고 레시피를 고른다.
+
+{"mode":"compose","composition":{"title":"...","base":"...","parts":[{"piece":"...","ratio":0.5,"quantity":1,"attach":"back"}]},"recipe_id":"...","title":"...","reason":"...","tasks":["...","..."]}`
+
 type LlmAuthoring = {
+  mode?: unknown
+  composition?: unknown
   recipe_id?: unknown
   title?: unknown
   reason?: unknown
@@ -108,6 +148,8 @@ export async function authorContent(
   spec: StudioSpec,
   candidates: AuthorCandidate[],
   calibration?: StudioCalibration | null,
+  /** 조각 목록을 주면 조합(ADR-034)을 제안할 수 있다. 3D펜만 해당한다 */
+  options?: { pieces?: AuthorPiece[] },
 ): Promise<StudioAuthoring> {
   const fallback = ruleAuthoring(spec, candidates)
   if (candidates.length === 0) return fallback
@@ -116,6 +158,8 @@ export async function authorContent(
   const hasKey = apiKey !== null
   if (!hasKey && !(await demoAiEnabled())) return fallback
 
+  const composable = (options?.pieces?.length ?? 0) > 0
+
   const payload = {
     주제: spec.topic,
     학년대: GRADE_BAND_LABEL[spec.grade_band],
@@ -123,6 +167,14 @@ export async function authorContent(
     시수_분: spec.duration_minutes,
     장소: spec.venue,
     보유_장비: spec.equipment,
+    조각: composable
+      ? options!.pieces!.map((p) => ({
+          id: p.id,
+          name: p.name,
+          summary: p.summary,
+          can_be_base: p.can_be_base,
+        }))
+      : null,
     후보: candidates.map((r) => ({
       id: r.id,
       title: r.title,
@@ -149,7 +201,7 @@ export async function authorContent(
           max_tokens: 1200,
           // 레시피 선택은 긴 추론이 필요한 일이 아니다. 강사는 생성 버튼 앞에서 기다린다.
           output_config: { effort: 'low' },
-          system: SYSTEM,
+          system: composable ? `${SYSTEM}${COMPOSE_SYSTEM}` : SYSTEM,
           messages: [{ role: 'user', content: JSON.stringify(payload) }],
           betas: ['server-side-fallback-2026-07-01'],
           fallbacks: 'default',
@@ -165,9 +217,14 @@ export async function authorContent(
     const parsed = parse(text)
     if (!parsed) return fallback
 
+    // 조합 제안 (ADR-034). 목록·범위를 하나라도 벗어나면 `null` 이고, 그때는 레시피로 간다.
+    const composition = composable && parsed.mode === 'compose'
+      ? parseComposition(parsed.composition)
+      : null
+
     // 목록 밖의 id 를 돌려줬다면 문장도 믿지 않는다 — 지시를 무시한 응답이다.
     const recipeId = typeof parsed.recipe_id === 'string' ? parsed.recipe_id.trim() : ''
-    if (!candidates.some((r) => r.id === recipeId)) return fallback
+    if (!composition && !candidates.some((r) => r.id === recipeId)) return fallback
 
     const title = sanitizeText(parsed.title, 40)
     const reason = sanitizeText(parsed.reason, 120)
@@ -176,8 +233,9 @@ export async function authorContent(
     )
 
     return {
-      recipe_id: recipeId,
-      title: title ?? fallback.title,
+      recipe_id: composition ? '' : recipeId,
+      composition,
+      title: title ?? composition?.title ?? fallback.title,
       reason: reason ?? fallback.reason,
       tasks,
       source: 'llm',

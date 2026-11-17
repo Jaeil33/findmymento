@@ -11,6 +11,7 @@
  */
 
 import { MAX_REPAIR_ROUNDS, PEN_SAFETY_NOTES, SCALE_DOWN_STEP, SCALE_UP_STEP } from '@/lib/studio/constants'
+import { compositionRecipe, type PenComposition } from '@/lib/studio/pen3d/compose'
 import {
   buildPattern,
   recipeById,
@@ -33,6 +34,12 @@ import type {
 export type PenGenerateOptions = {
   /** 강사 또는 LLM 이 고른 레시피. 없거나 목록에 없으면 규칙 1순위를 쓴다 */
   recipeId?: string | null
+  /**
+   * 조각 조합 (ADR-034). 있으면 **레시피 대신** 이것으로 만든다 —
+   * 조합은 레시피와 같은 형태라 아래 생성·검증·개선 라운드가 그대로 돌아간다.
+   * 강사가 레시피를 직접 고른 경우에는 그쪽이 우선이다.
+   */
+  composition?: PenComposition | null
   /** 같은 레시피·학년대의 성과 피드백 보정 (ADR-032) */
   calibration?: StudioCalibration | null
 }
@@ -61,6 +68,8 @@ const REPAIRABLE = new Set([
 function pickRecipe(spec: StudioSpec, options: PenGenerateOptions): PenRecipe {
   const chosen = options.recipeId ? recipeById(options.recipeId) : null
   if (chosen) return chosen
+  // 강사가 고른 레시피가 없을 때만 조합을 쓴다. 사람이 고른 것이 늘 우선이다.
+  if (options.composition) return compositionRecipe(options.composition)
   // 피드백이 "어려웠다"로 모이면 난이도 상한을 한 단계 낮춰서 고른다 (ADR-032).
   const lower = options.calibration?.lower_difficulty === true
   const candidates = recipeCandidates(spec.topic, spec.grade_band)
