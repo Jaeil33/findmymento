@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { IconAlert, IconArrowRight } from '@/components/ui/Icons'
 import { GUIDES, tourHref, type Guide } from '@/lib/demo/tour'
 import { cn } from '@/lib/cn'
