@@ -34,7 +34,6 @@ import {
   type RecruitmentRequest,
   type Student,
   type SurveyResponse,
-  FIELDS,
 } from '@/types/domain'
 import { ruleSkeleton } from '@/lib/ai/lesson-plan'
 
@@ -1030,21 +1029,6 @@ export const invitations: Invitation[] = [
     created_by: 'admin-1',
   },
 ]
-
-/** 공개 화면에 그대로 쓰는 공급 규모. 숨기면 기관이 나중에 데이터 전체를 의심한다. */
-export function supplyFacts() {
-  const approved = instructors.filter((i) => i.status === 'approved')
-  const coveredFields = new Set(approved.flatMap((i) => i.fields))
-  return {
-    providerCount: providers.filter((p) => p.status === 'approved').length,
-    instructorCount: approved.length,
-    programCount: programs.filter((p) =>
-      approved.some((i) => i.id === p.instructor_id),
-    ).length,
-    coveredFields: FIELDS.filter((f) => coveredFields.has(f)),
-    uncoveredFields: FIELDS.filter((f) => !coveredFields.has(f)),
-  }
-}
 
 /**
  * 교안 시드.

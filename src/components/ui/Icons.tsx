@@ -42,31 +42,10 @@ export const IconCheck = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 )
 
-export const IconClose = (p: SVGProps<SVGSVGElement>) => (
-  <Svg {...p}>
-    <path d="M6 6l12 12M18 6 6 18" />
-  </Svg>
-)
-
-export const IconCalendar = (p: SVGProps<SVGSVGElement>) => (
-  <Svg {...p}>
-    <rect x="3.5" y="5" width="17" height="15" rx="2" />
-    <path d="M3.5 10h17M8 3.5v3M16 3.5v3" />
-  </Svg>
-)
-
 export const IconMapPin = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z" />
     <circle cx="12" cy="10" r="2.5" />
-  </Svg>
-)
-
-export const IconUsers = (p: SVGProps<SVGSVGElement>) => (
-  <Svg {...p}>
-    <path d="M16 19v-1.5A3.5 3.5 0 0 0 12.5 14h-5A3.5 3.5 0 0 0 4 17.5V19" />
-    <circle cx="10" cy="8" r="3" />
-    <path d="M20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.5 5.3a3 3 0 0 1 0 5.4" />
   </Svg>
 )
 
@@ -105,24 +84,10 @@ export const IconShield = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 )
 
-export const IconSearch = (p: SVGProps<SVGSVGElement>) => (
-  <Svg {...p}>
-    <circle cx="11" cy="11" r="6.5" />
-    <path d="m16 16 4 4" />
-  </Svg>
-)
-
 export const IconAlert = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <path d="M12 4.5 21 19.5H3z" />
     <path d="M12 10v4M12 16.8v.2" />
-  </Svg>
-)
-
-export const IconInbox = (p: SVGProps<SVGSVGElement>) => (
-  <Svg {...p}>
-    <path d="M3.5 13.5 6 5h12l2.5 8.5v4a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z" />
-    <path d="M3.5 13.5H9a3 3 0 0 0 6 0h5.5" />
   </Svg>
 )
 

@@ -30,31 +30,6 @@ export function PageHeader({
   )
 }
 
-export function SectionHeading({
-  title,
-  description,
-  actions,
-  note,
-}: {
-  title: string
-  description?: ReactNode
-  actions?: ReactNode
-  note?: ReactNode
-}) {
-  return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
-        <h2 className="text-base font-semibold text-ink">{title}</h2>
-        {description ? (
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-sub">{description}</p>
-        ) : null}
-        {note ? <div className="mt-2">{note}</div> : null}
-      </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
-    </div>
-  )
-}
-
 /** 대시보드 안에서 본문 블록을 구분하는 최소 단위. 섹션 간 간격은 space-y-8. */
 export function Panel({
   title,
