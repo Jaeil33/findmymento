@@ -761,3 +761,75 @@ export function demoInquiryMessage(payload: unknown): unknown {
   if (message.length > 300) message = sentences.filter((s) => !s.startsWith('특히')).join(' ')
   return { message }
 }
+
+// ──────────────────────────────────────────────────────────────
+// 콘텐츠 스튜디오 — 레시피 선택과 문장 (ADR-025 · 029)
+// ──────────────────────────────────────────────────────────────
+
+/** 주제에 이 말이 들어 있으면 그 쪽 활동 문장을 쓴다. 데모에서도 주제가 반영돼 보여야 한다. */
+const STUDIO_ACTIVITY: { re: RegExp; tasks: string[] }[] = [
+  {
+    re: /조명|램프|빛/,
+    tasks: [
+      '도안의 선을 따라 패널을 만들고, 가장자리는 두 번 덧그려 튼튼하게 합니다.',
+      '패널을 직각으로 세워 모서리를 녹여 붙입니다.',
+      '완성한 갓 안에 전등을 넣고 빛이 새는 곳을 찾아 보완합니다.',
+    ],
+  },
+  {
+    re: /드론|비행|프로펠러/,
+    tasks: [
+      '중앙판과 팔을 먼저 만들고, 고리는 두께가 고르게 되도록 천천히 긋습니다.',
+      '팔 네 개를 같은 길이로 맞춰 중앙판에 붙입니다.',
+      '고리를 팔 끝에 올려 붙인 뒤 좌우 균형이 맞는지 손바닥에 올려 확인합니다.',
+    ],
+  },
+  {
+    re: /집|건물|마을|동네|랜드마크|타워/,
+    tasks: [
+      '벽과 지붕을 각각 만들고, 창문 선은 벽 안쪽에서 끊기지 않게 긋습니다.',
+      '벽을 세워 상자 모양을 먼저 만듭니다.',
+      '지붕을 올려 붙이고, 우리 동네에서 본 건물과 다른 점을 한 가지 적습니다.',
+    ],
+  },
+  {
+    re: /꽃|식물|잎|자연/,
+    tasks: [
+      '꽃잎을 하나씩 만들고, 끝이 뾰족해지지 않게 둥글게 마무리합니다.',
+      '꽃잎의 좁은 쪽을 한 점에 모아 서로 붙입니다.',
+      '줄기를 붙이고 꽃잎을 손으로 살짝 벌려 모양을 잡습니다.',
+    ],
+  },
+]
+
+const STUDIO_DEFAULT_TASKS = [
+  '도안의 선 위에 펜을 천천히 움직여 부품을 만듭니다.',
+  '부품이 식은 뒤에 떼어내고 휘어진 곳을 손으로 바로잡습니다.',
+  '조립 순서를 따라 붙이고, 흔들리는 곳을 한 번 더 녹여 고정합니다.',
+]
+
+/**
+ * 시연용 레시피 선택. **후보 목록의 첫 항목을 고른다** — 목록 밖으로 나가지 않는 것이
+ * 이 기능의 핵심 제약이고, 데모 응답도 같은 제약을 지켜야 한다 (ADR-029).
+ * 문장에 숫자를 넣지 않는다 — 가드가 버리기 때문이다.
+ */
+export function demoStudioAuthoring(payload: unknown): unknown {
+  const p = obj(payload)
+  const topic = str(p.주제)
+  const candidates = Array.isArray(p.후보) ? p.후보.map(obj) : []
+  const first = candidates[0] ?? {}
+  const recipeId = str(first.id)
+  const summary = str(first.summary)
+
+  const activity = STUDIO_ACTIVITY.find((a) => a.re.test(topic))
+  const title = topic.length > 0 && topic.length <= 24 ? topic : str(first.title)
+
+  return {
+    recipe_id: recipeId,
+    title,
+    reason: summary
+      ? `주제와 가장 가까운 검수된 도안입니다. ${summary}`
+      : '조건에 맞는 검수된 도안입니다.',
+    tasks: activity ? activity.tasks : STUDIO_DEFAULT_TASKS,
+  }
+}

@@ -435,7 +435,7 @@ export const lectureSessions: LectureSession[] = [
     duration_minutes: 100,
     venue: '메이커실',
     class_traits: ['통합학급 포함', '경험자 다수'],
-    equipment: ['3D 프린터 3대', '노트북 28대'],
+    equipment: ['3D 프린터 3대', '노트북 28대', '3D펜 20자루', 'PLA 필라멘트 5kg', '실리콘 매트 20장'],
   },
   // 배정 강사가 없다 → 강사가 QR·리포트를 못 본다 (E-23). 목록에서 눈에 띄게 표시한다.
   {
@@ -1139,20 +1139,32 @@ function studioContent(args: {
   }
 }
 
+const studioSession = lectureSessions.find((x) => x.id === 'ls-2')!
+
+/** 회차에 붙은 산출물은 **회차의 수업 조건을 그대로 쓴다** (ADR-016). API 라우트와 같은 규칙이다. */
+function sessionSpec(topic: string): StudioSpec {
+  return {
+    kind: 'pen3d',
+    grade_band: studioSession.grade_band,
+    student_count: studioSession.expected_students,
+    duration_minutes: studioSession.duration_minutes,
+    venue: studioSession.venue,
+    equipment: studioSession.equipment,
+    topic,
+    session_id: studioSession.id,
+  }
+}
+
 export const studioContents: StudioContent[] = [
-  // 배정 회차에 붙은 도안. v1 을 수업에 쓴 뒤 v2 로 다시 만들었다 (버전은 쌓인다 — ADR-031).
+  // ── 데모 강사(박서연)의 라이브러리 ──────────────────────────────────────
+  // 버전이 쌓인 산출물. v1 을 수업에 쓴 뒤 v2 를 만들었다 (ADR-031).
   studioContent({
     id: 'sc-1',
     lineage: 'sl-1',
     version: 1,
     instructorId: 'in-2',
     recipeId: 'drone-frame',
-    spec: studioSpec({
-      topic: '드론 프레임 모형',
-      grade_band: 'middle',
-      duration_minutes: 90,
-      session_id: 'ls-1',
-    }),
+    spec: studioSpec({ topic: '드론 프레임 모형', duration_minutes: 90 }),
     createdAt: demoTime(-9, '21:40'),
   }),
   studioContent({
@@ -1161,80 +1173,72 @@ export const studioContents: StudioContent[] = [
     version: 2,
     instructorId: 'in-2',
     recipeId: 'drone-frame',
-    spec: studioSpec({
-      topic: '드론 프레임 모형 — 가드 고리 포함',
-      grade_band: 'middle',
-      duration_minutes: 90,
-      session_id: 'ls-1',
-    }),
+    spec: studioSpec({ topic: '드론 프레임 모형 — 가드 고리까지', duration_minutes: 90 }),
     createdAt: demoTime(-2, '22:05'),
     approve: true,
   }),
-  // 회차에 붙지 않은 라이브러리 단독 산출물.
+  // **검증 실패 사례.** 초등 30분에 육각 보관함은 부품 수와 시간이 들어가지 않는다.
+  // 화면이 실패 이유와 무엇을 바꿔야 하는지를 보여줘야 한다 (ADR-030).
   studioContent({
     id: 'sc-3',
     lineage: 'sl-2',
     version: 1,
-    instructorId: 'in-1',
-    recipeId: 'cube-lantern',
-    spec: studioSpec({ topic: '정육면체 조명 갓', duration_minutes: 90 }),
-    createdAt: demoTime(-5, '20:10'),
-    approve: true,
-  }),
-  // **검증 실패 사례.** 초등 30분에 육각 보관함은 부품 수·시간이 들어가지 않는다.
-  // 화면이 실패 이유와 무엇을 바꿔야 하는지를 보여줘야 한다 (ADR-030).
-  studioContent({
-    id: 'sc-4',
-    lineage: 'sl-3',
-    version: 1,
-    instructorId: 'in-1',
+    instructorId: 'in-2',
     recipeId: 'hex-box',
     spec: studioSpec({ topic: '육각 보관함', grade_band: 'elementary', duration_minutes: 30 }),
     createdAt: demoTime(-1, '23:20'),
   }),
   // 지난 수업 3건 — 성과 피드백이 3건 모여 속도 보정이 작동하는 상태를 만든다 (ADR-032).
   studioContent({
-    id: 'sc-5',
-    lineage: 'sl-4',
+    id: 'sc-4',
+    lineage: 'sl-3',
     version: 1,
-    instructorId: 'in-1',
+    instructorId: 'in-2',
     recipeId: 'cube-lantern',
     spec: studioSpec({ topic: '정육면체 조명', duration_minutes: 90 }),
     createdAt: demoTime(-40, '20:00'),
     approve: true,
   }),
   studioContent({
-    id: 'sc-6',
-    lineage: 'sl-5',
+    id: 'sc-5',
+    lineage: 'sl-4',
     version: 1,
-    instructorId: 'in-1',
+    instructorId: 'in-2',
     recipeId: 'cube-lantern',
     spec: studioSpec({ topic: '정육면체 조명', duration_minutes: 90 }),
     createdAt: demoTime(-33, '20:00'),
     approve: true,
   }),
   studioContent({
-    id: 'sc-7',
-    lineage: 'sl-6',
+    id: 'sc-6',
+    lineage: 'sl-5',
     version: 1,
-    instructorId: 'in-1',
+    instructorId: 'in-2',
     recipeId: 'cube-lantern',
     spec: studioSpec({ topic: '정육면체 조명', duration_minutes: 90 }),
     createdAt: demoTime(-26, '20:00'),
     approve: true,
   }),
+  // ── 발주 기관도 같은 산출물을 본다 (ADR-031) ─────────────────────────────
+  // 메이커실 3D 모델링 회차(ls-2)에 붙은 김도현 강사의 도안. 조건은 회차에서 왔다.
+  studioContent({
+    id: 'sc-7',
+    lineage: 'sl-6',
+    version: 1,
+    instructorId: 'in-1',
+    recipeId: 'cube-lantern',
+    spec: sessionSpec('정육면체 조명 갓 — 메이커실'),
+    createdAt: demoTime(-5, '20:10'),
+    approve: true,
+  }),
 ]
 
-/**
- * 수업 후 성과. **회차 단위 집계뿐이다** (ADR-032) — 누가 완성하지 못했는지는 없다.
- * 세 건 모두 예상보다 오래 걸렸고, 그래서 다음 생성의 속도 보정 계수가 1 을 넘는다.
- */
 export const studioFeedback: StudioFeedback[] = [
   {
     id: 'sf-1',
-    content_id: 'sc-5',
+    content_id: 'sc-4',
     session_id: null,
-    instructor_id: 'in-1',
+    instructor_id: 'in-2',
     attempted_count: 22,
     completed_count: 19,
     actual_minutes: 21,
@@ -1244,21 +1248,21 @@ export const studioFeedback: StudioFeedback[] = [
   },
   {
     id: 'sf-2',
-    content_id: 'sc-6',
+    content_id: 'sc-5',
     session_id: null,
-    instructor_id: 'in-1',
+    instructor_id: 'in-2',
     attempted_count: 24,
     completed_count: 17,
     actual_minutes: 24,
     difficulty_vote: 'too_hard',
-    note: '모서리 12곳 붙이기에서 절반이 막혔습니다. 접합을 줄인 변형이 필요합니다.',
+    note: '모서리 붙이기에서 절반이 막혔습니다. 접합이 적은 변형이 필요합니다.',
     created_at: demoTime(-33, '22:00'),
   },
   {
     id: 'sf-3',
-    content_id: 'sc-7',
+    content_id: 'sc-6',
     session_id: null,
-    instructor_id: 'in-1',
+    instructor_id: 'in-2',
     attempted_count: 20,
     completed_count: 18,
     actual_minutes: 19,

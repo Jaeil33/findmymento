@@ -47,7 +47,8 @@
     {
       "step": 7,
       "name": "studio-api",
-      "status": "pending"
+      "status": "completed",
+      "summary": "lib/studio/author.ts(LLM은 후보 목록에서 고르고 제목·이유·과제 문장만, 숫자 든 문장은 가드가 버림) + lib/studio/request.ts(회차에 붙으면 수업 조건을 회차 행에서 가져온다) + /api/studio/{generate,approve,feedback}, /api/studio/[id]/svg(미통과 403). demo-writer 에 시연용 응답 추가. tests/studio-api.test.ts 34개."
     },
     {
       "step": 8,
