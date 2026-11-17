@@ -53,6 +53,8 @@ const ds: Dataset = {
   qnaAnswers: demo.qnaAnswers,
   inquiries: demo.inquiries,
   invitations: demo.invitations,
+  studioContents: demo.studioContents,
+  studioFeedback: demo.studioFeedback,
 }
 
 const NOTICE_DRAFT = '초안입니다. 내용을 확인한 뒤 섭외 요청 화면에서 직접 보내세요.'

@@ -23,6 +23,8 @@ const sql = readdirSync(MIGRATIONS_DIR)
  * 학생에게 실제로 보여 준 추천 카드와 출처(llm/rule)를 남긴다 — 20260918 마이그레이션.
  */
 const TABLES = [
+  'studio_contents',
+  'studio_feedback',
   'recommendation_logs',
   'organizations',
   'org_members',
@@ -80,14 +82,14 @@ function policiesFor(table: string): string[] {
 }
 
 describe('테이블 구성', () => {
-  it('21개 테이블이 정확히 정의돼 있다', () => {
-    expect(TABLES).toHaveLength(21)
+  it('23개 테이블이 정확히 정의돼 있다', () => {
+    expect(TABLES).toHaveLength(23)
     for (const t of TABLES) {
       expect(sql).toContain(`create table public.${t} (`)
     }
   })
 
-  it('21개 테이블 전부 RLS 가 켜져 있다 — 예외 없음', () => {
+  it('23개 테이블 전부 RLS 가 켜져 있다 — 예외 없음', () => {
     const missing = TABLES.filter(
       (t) => !new RegExp(`alter table public\\.${t}\\s+enable row level security`).test(sql),
     )
@@ -180,6 +182,83 @@ describe('inquiries — anon INSERT 만, SELECT 는 차단 (ADR-014)', () => {
     expect(policies.some((p) => /for select/.test(p))).toBe(true)
     const selectAll = policies.filter((p) => /for all/.test(p) && /to\s+[^;]*anon/.test(p))
     expect(selectAll).toEqual([])
+  })
+})
+
+describe('studio_contents — 산출물 소유 경계 (ADR-031)', () => {
+  const policies = policiesFor('studio_contents')
+  const body = tableBody('studio_contents')
+
+  it('anon 에게 어떤 정책도 주지 않는다 — 학생·보호자에게 도달하는 경로가 없다', () => {
+    for (const policy of policies) {
+      expect(policy).not.toMatch(/to\s+[^;]*anon/)
+    }
+  })
+
+  it('읽기는 작성 강사·발주 기관·운영자 셋만 — lesson_plans 와 같은 경계다', () => {
+    const selects = policies.filter((p) => /for select/.test(p))
+    expect(selects.length).toBeGreaterThan(0)
+    const read = selects.join(' ')
+    expect(read).toContain('app.current_instructor_id()')
+    expect(read).toContain('app.current_org_id()')
+    expect(read).toContain('app.is_admin()')
+  })
+
+  it('INSERT 는 자기 강사 id 로만, 그리고 approved 상태로는 넣을 수 없다 (ADR-030)', () => {
+    const inserts = policies.filter((p) => /for insert/.test(p))
+    expect(inserts.length).toBeGreaterThan(0)
+    const insert = inserts.join(' ')
+    expect(insert).toContain('instructor_id = app.current_instructor_id()')
+    expect(insert).toMatch(/status in \('draft', 'validated', 'failed'\)/)
+  })
+
+  it('버전은 (lineage_id, version) 으로 유니크하다', () => {
+    expect(body).toMatch(/unique \(lineage_id, version\)/)
+  })
+
+  it('승인 외의 수정을 DB 가 막는다 — 산출물을 고치려면 새 버전이다', () => {
+    expect(sql).toMatch(/create (or replace )?function app\.studio_contents_guard/)
+    expect(sql).toMatch(/create trigger studio_contents_guard/)
+  })
+
+  it('검증에 실패한 산출물은 승인될 수 없다 — DB 에서 막는다 (ADR-030)', () => {
+    const guard = sql.slice(sql.indexOf('function app.studio_contents_guard'))
+    expect(guard.slice(0, 2500)).toMatch(/old\.status = 'validated'[\s\S]{0,80}new\.status = 'approved'/)
+  })
+})
+
+describe('studio_feedback — 회차 단위 집계만 (ADR-032)', () => {
+  const body = tableBody('studio_feedback')
+  const policies = policiesFor('studio_feedback')
+
+  it('학생 식별 컬럼이 없다', () => {
+    for (const forbidden of [
+      'student_id',
+      'student_name',
+      'pseudo_code',
+      'name',
+      'school',
+      'grade_year',
+    ]) {
+      expect(body).not.toMatch(new RegExp(`\n\s+${forbidden}\s`, 'i'))
+    }
+  })
+
+  it('집계 수치와 체감 난이도까지만 받는다', () => {
+    expect(body).toContain('attempted_count')
+    expect(body).toContain('completed_count')
+    expect(body).toContain('actual_minutes')
+    expect(body).toContain('difficulty_vote')
+  })
+
+  it('완성 인원이 시도 인원을 넘을 수 없다', () => {
+    expect(body).toMatch(/completed_count <= attempted_count/)
+  })
+
+  it('anon 에게 어떤 정책도 주지 않는다', () => {
+    for (const policy of policies) {
+      expect(policy).not.toMatch(/to\s+[^;]*anon/)
+    }
   })
 })
 

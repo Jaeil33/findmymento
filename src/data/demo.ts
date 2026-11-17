@@ -36,6 +36,13 @@ import {
   type SurveyResponse,
 } from '@/types/domain'
 import { ruleSkeleton } from '@/lib/ai/lesson-plan'
+import { generatePen } from '@/lib/studio/pen3d/pipeline'
+import type {
+  StudioContent,
+  StudioFeedback,
+  StudioSpec,
+  StudioStatus,
+} from '@/types/studio'
 
 /** 고정 시드 난수. 배포마다 숫자가 흔들리면 검수 중에 "버그인가?"를 매번 묻게 된다. */
 function rng(seed: number) {
@@ -1072,5 +1079,191 @@ export const lessonPlans: LessonPlan[] = [
     status: 'draft',
     created_at: demoTime(-1, '21:10'),
     updated_at: demoTime(-1, '21:10'),
+  },
+]
+
+// ──────────────────────────────────────────────────────────────
+// 콘텐츠 스튜디오 (ADR-028 ~ 032)
+//
+// **산출물을 손으로 적어 두지 않는다.** 실제 파이프라인(generatePen)을 돌려서 만든다 —
+// 데모에 보이는 도안·지표·검증 라운드는 전부 진짜 생성 결과다. 손으로 적으면 교실에서
+// 되지 않는 도안이 데모에서만 그럴듯해 보이고, 그게 이 제품이 하지 않기로 한 것이다.
+//
+// 성공 사례만 넣지 않는다. 시수가 모자라 **검증에 실패한 산출물**도 하나 들어 있다.
+// ──────────────────────────────────────────────────────────────
+
+function studioSpec(over: Partial<StudioSpec>): StudioSpec {
+  return {
+    kind: 'pen3d',
+    grade_band: 'middle',
+    student_count: 20,
+    duration_minutes: 90,
+    venue: '교실',
+    equipment: ['3D펜 20자루', 'PLA 필라멘트', '실리콘 매트'],
+    topic: '',
+    session_id: null,
+    ...over,
+  }
+}
+
+function studioContent(args: {
+  id: string
+  lineage: string
+  version: number
+  instructorId: string
+  spec: StudioSpec
+  createdAt: string
+  approve?: boolean
+  recipeId?: string
+}): StudioContent {
+  const generated = generatePen(args.spec, { recipeId: args.recipeId ?? null })
+  // 승인은 검증을 통과한 것에서만 가능하다 (ADR-030). DB 트리거와 같은 규칙을 데모에서도 지킨다.
+  const approved = args.approve === true && generated.status === 'validated'
+  const status: StudioStatus = approved ? 'approved' : generated.status
+  return {
+    id: args.id,
+    lineage_id: args.lineage,
+    version: args.version,
+    instructor_id: args.instructorId,
+    session_id: args.spec.session_id,
+    kind: 'pen3d',
+    title: generated.artifact.pattern.title,
+    recipe_id: generated.recipe_id,
+    spec: args.spec,
+    artifact: generated.artifact,
+    rounds: generated.rounds,
+    status,
+    source: 'rule',
+    created_at: args.createdAt,
+    approved_at: approved ? args.createdAt : null,
+  }
+}
+
+export const studioContents: StudioContent[] = [
+  // 배정 회차에 붙은 도안. v1 을 수업에 쓴 뒤 v2 로 다시 만들었다 (버전은 쌓인다 — ADR-031).
+  studioContent({
+    id: 'sc-1',
+    lineage: 'sl-1',
+    version: 1,
+    instructorId: 'in-2',
+    recipeId: 'drone-frame',
+    spec: studioSpec({
+      topic: '드론 프레임 모형',
+      grade_band: 'middle',
+      duration_minutes: 90,
+      session_id: 'ls-1',
+    }),
+    createdAt: demoTime(-9, '21:40'),
+  }),
+  studioContent({
+    id: 'sc-2',
+    lineage: 'sl-1',
+    version: 2,
+    instructorId: 'in-2',
+    recipeId: 'drone-frame',
+    spec: studioSpec({
+      topic: '드론 프레임 모형 — 가드 고리 포함',
+      grade_band: 'middle',
+      duration_minutes: 90,
+      session_id: 'ls-1',
+    }),
+    createdAt: demoTime(-2, '22:05'),
+    approve: true,
+  }),
+  // 회차에 붙지 않은 라이브러리 단독 산출물.
+  studioContent({
+    id: 'sc-3',
+    lineage: 'sl-2',
+    version: 1,
+    instructorId: 'in-1',
+    recipeId: 'cube-lantern',
+    spec: studioSpec({ topic: '정육면체 조명 갓', duration_minutes: 90 }),
+    createdAt: demoTime(-5, '20:10'),
+    approve: true,
+  }),
+  // **검증 실패 사례.** 초등 30분에 육각 보관함은 부품 수·시간이 들어가지 않는다.
+  // 화면이 실패 이유와 무엇을 바꿔야 하는지를 보여줘야 한다 (ADR-030).
+  studioContent({
+    id: 'sc-4',
+    lineage: 'sl-3',
+    version: 1,
+    instructorId: 'in-1',
+    recipeId: 'hex-box',
+    spec: studioSpec({ topic: '육각 보관함', grade_band: 'elementary', duration_minutes: 30 }),
+    createdAt: demoTime(-1, '23:20'),
+  }),
+  // 지난 수업 3건 — 성과 피드백이 3건 모여 속도 보정이 작동하는 상태를 만든다 (ADR-032).
+  studioContent({
+    id: 'sc-5',
+    lineage: 'sl-4',
+    version: 1,
+    instructorId: 'in-1',
+    recipeId: 'cube-lantern',
+    spec: studioSpec({ topic: '정육면체 조명', duration_minutes: 90 }),
+    createdAt: demoTime(-40, '20:00'),
+    approve: true,
+  }),
+  studioContent({
+    id: 'sc-6',
+    lineage: 'sl-5',
+    version: 1,
+    instructorId: 'in-1',
+    recipeId: 'cube-lantern',
+    spec: studioSpec({ topic: '정육면체 조명', duration_minutes: 90 }),
+    createdAt: demoTime(-33, '20:00'),
+    approve: true,
+  }),
+  studioContent({
+    id: 'sc-7',
+    lineage: 'sl-6',
+    version: 1,
+    instructorId: 'in-1',
+    recipeId: 'cube-lantern',
+    spec: studioSpec({ topic: '정육면체 조명', duration_minutes: 90 }),
+    createdAt: demoTime(-26, '20:00'),
+    approve: true,
+  }),
+]
+
+/**
+ * 수업 후 성과. **회차 단위 집계뿐이다** (ADR-032) — 누가 완성하지 못했는지는 없다.
+ * 세 건 모두 예상보다 오래 걸렸고, 그래서 다음 생성의 속도 보정 계수가 1 을 넘는다.
+ */
+export const studioFeedback: StudioFeedback[] = [
+  {
+    id: 'sf-1',
+    content_id: 'sc-5',
+    session_id: null,
+    instructor_id: 'in-1',
+    attempted_count: 22,
+    completed_count: 19,
+    actual_minutes: 21,
+    difficulty_vote: 'right',
+    note: '덧그리기 횟수를 칠판에 적어 두니 질문이 줄었습니다.',
+    created_at: demoTime(-40, '22:00'),
+  },
+  {
+    id: 'sf-2',
+    content_id: 'sc-6',
+    session_id: null,
+    instructor_id: 'in-1',
+    attempted_count: 24,
+    completed_count: 17,
+    actual_minutes: 24,
+    difficulty_vote: 'too_hard',
+    note: '모서리 12곳 붙이기에서 절반이 막혔습니다. 접합을 줄인 변형이 필요합니다.',
+    created_at: demoTime(-33, '22:00'),
+  },
+  {
+    id: 'sf-3',
+    content_id: 'sc-7',
+    session_id: null,
+    instructor_id: 'in-1',
+    attempted_count: 20,
+    completed_count: 18,
+    actual_minutes: 19,
+    difficulty_vote: 'right',
+    note: null,
+    created_at: demoTime(-26, '22:00'),
   },
 ]

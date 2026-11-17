@@ -14,6 +14,16 @@ import type {
   QnaQuestion,
   SurveyResponse,
 } from '@/types/domain'
+import type {
+  ContentKind,
+  DifficultyVote,
+  StudioArtifact,
+  StudioContent,
+  StudioFeedback,
+  StudioRound,
+  StudioSpec,
+  StudioStatus,
+} from '@/types/studio'
 
 /**
  * 쓰기. **전부 API 라우트에서만 호출한다** — 금칙어 필터·중복 제출·마감 검증·레이트 리밋을
@@ -366,5 +376,172 @@ export async function upsertLessonPlan(input: LessonPlanInput): Promise<{ id: st
     .single()
 
   if (error) throw new Error(error.message)
+  return { id: String(data!.id) }
+}
+
+// ============================================================================
+// 콘텐츠 스튜디오 (ADR-030 · 031 · 032)
+// ============================================================================
+
+export type StudioContentInput = {
+  lineageId: string
+  version: number
+  instructorId: string
+  sessionId: string | null
+  kind: ContentKind
+  title: string
+  recipeId: string
+  spec: StudioSpec
+  artifact: StudioArtifact
+  rounds: StudioRound[]
+  /** `approved` 는 들어올 수 없다 — 승인은 검증을 통과한 행에서만 일어난다 (ADR-030) */
+  status: Exclude<StudioStatus, 'approved'>
+  source: 'llm' | 'rule'
+}
+
+/**
+ * 산출물 저장. **새 행이다** — 기존 버전을 덮어쓰지 않는다 (ADR-031).
+ * `approved` 상태로는 저장할 수 없고, DB 정책도 같은 것을 막는다.
+ */
+export async function insertStudioContent(input: StudioContentInput): Promise<{ id: string }> {
+  const now = new Date().toISOString()
+
+  if (isDemoMode()) {
+    const row: StudioContent = {
+      id: nextId('sc'),
+      lineage_id: input.lineageId,
+      version: input.version,
+      instructor_id: input.instructorId,
+      session_id: input.sessionId,
+      kind: input.kind,
+      title: input.title,
+      recipe_id: input.recipeId,
+      spec: input.spec,
+      artifact: input.artifact,
+      rounds: input.rounds,
+      status: input.status,
+      source: input.source,
+      created_at: now,
+      approved_at: null,
+    }
+    demo.studioContents.push(row)
+    return { id: row.id }
+  }
+
+  const sb = await getServerSupabase()
+  if (!sb) throw new Error('DB 연결이 없습니다.')
+
+  const { data, error } = await sb
+    .from('studio_contents')
+    .insert({
+      lineage_id: input.lineageId,
+      version: input.version,
+      instructor_id: input.instructorId,
+      session_id: input.sessionId,
+      kind: input.kind,
+      title: input.title,
+      recipe_id: input.recipeId,
+      spec: input.spec,
+      artifact: input.artifact,
+      rounds: input.rounds,
+      status: input.status,
+      source: input.source,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw dbError(error)
+  return { id: String(data!.id) }
+}
+
+/**
+ * 강사 승인. **검증을 통과한(`validated`) 산출물만** 승인된다 (ADR-030).
+ * 실 DB 에서는 트리거가 한 번 더 막고, 데모 모드에서는 이 검사가 유일한 경계다.
+ */
+export async function approveStudioContent(input: {
+  id: string
+  instructorId: string
+}): Promise<{ ok: boolean }> {
+  const now = new Date().toISOString()
+
+  if (isDemoMode()) {
+    const row = demo.studioContents.find(
+      (c) => c.id === input.id && c.instructor_id === input.instructorId,
+    )
+    if (!row || row.status !== 'validated') return { ok: false }
+    demo.studioContents[demo.studioContents.indexOf(row)] = {
+      ...row,
+      status: 'approved',
+      approved_at: now,
+    }
+    return { ok: true }
+  }
+
+  const sb = await getServerSupabase()
+  if (!sb) throw new Error('DB 연결이 없습니다.')
+
+  const { error, count } = await sb
+    .from('studio_contents')
+    .update({ status: 'approved', approved_at: now }, { count: 'exact' })
+    .eq('id', input.id)
+    .eq('instructor_id', input.instructorId)
+    .eq('status', 'validated')
+
+  if (error) throw dbError(error)
+  return { ok: (count ?? 0) > 0 }
+}
+
+export type StudioFeedbackInput = {
+  contentId: string
+  sessionId: string | null
+  instructorId: string
+  attemptedCount: number
+  completedCount: number
+  actualMinutes: number
+  difficultyVote: DifficultyVote
+  /** 마스킹을 통과한 값만 들어온다 */
+  note: string | null
+}
+
+/** 수업 후 성과. **회차 단위 집계뿐이다** — 학생 개인 단위 필드를 추가하지 말 것 (ADR-032). */
+export async function insertStudioFeedback(input: StudioFeedbackInput): Promise<{ id: string }> {
+  const now = new Date().toISOString()
+
+  if (isDemoMode()) {
+    const row: StudioFeedback = {
+      id: nextId('sf'),
+      content_id: input.contentId,
+      session_id: input.sessionId,
+      instructor_id: input.instructorId,
+      attempted_count: input.attemptedCount,
+      completed_count: input.completedCount,
+      actual_minutes: input.actualMinutes,
+      difficulty_vote: input.difficultyVote,
+      note: input.note,
+      created_at: now,
+    }
+    demo.studioFeedback.push(row)
+    return { id: row.id }
+  }
+
+  const sb = await getServerSupabase()
+  if (!sb) throw new Error('DB 연결이 없습니다.')
+
+  const { data, error } = await sb
+    .from('studio_feedback')
+    .insert({
+      content_id: input.contentId,
+      session_id: input.sessionId,
+      instructor_id: input.instructorId,
+      attempted_count: input.attemptedCount,
+      completed_count: input.completedCount,
+      actual_minutes: input.actualMinutes,
+      difficulty_vote: input.difficultyVote,
+      note: input.note,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw dbError(error)
   return { id: String(data!.id) }
 }

@@ -38,6 +38,8 @@ const empty: Dataset = {
   qnaAnswers: [],
   inquiries: [],
   invitations: [],
+  studioContents: [],
+  studioFeedback: [],
 }
 
 const demoDs: Dataset = { ...empty, ...demo }

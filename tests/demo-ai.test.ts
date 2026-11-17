@@ -52,6 +52,8 @@ const ds: Dataset = {
   qnaAnswers: demo.qnaAnswers,
   inquiries: demo.inquiries,
   invitations: demo.invitations,
+  studioContents: demo.studioContents,
+  studioFeedback: demo.studioFeedback,
 }
 
 const SUFFICIENT = ['ls-0', 'ls-1', 'ls-2', 'ls-4'].filter(

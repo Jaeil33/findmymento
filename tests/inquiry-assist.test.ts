@@ -52,6 +52,8 @@ const ds: Dataset = {
   qnaAnswers: demo.qnaAnswers,
   inquiries: demo.inquiries,
   invitations: demo.invitations,
+  studioContents: demo.studioContents,
+  studioFeedback: demo.studioFeedback,
 }
 
 const PILOT = '41210'

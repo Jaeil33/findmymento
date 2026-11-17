@@ -41,7 +41,8 @@
     {
       "step": 6,
       "name": "studio-db",
-      "status": "pending"
+      "status": "completed",
+      "summary": "supabase/migrations/20261117000000_content_studio.sql — studio_contents(버전 행·lineage+version 유니크)·studio_feedback(회차 집계만) + RLS(작성 강사·발주 기관·운영자, anon 정책 0개) + app.studio_contents_guard 트리거(승인 외 수정 거부, validated→approved 만 허용). lib/studio/library.ts(목록·버전·집계·보정), dataset/writes 연결, 데모 시드는 실제 파이프라인 생성물. rls-policies 62 + live negative 21."
     },
     {
       "step": 7,

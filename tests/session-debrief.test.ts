@@ -51,6 +51,8 @@ const ds: Dataset = {
   qnaAnswers: demo.qnaAnswers,
   inquiries: demo.inquiries,
   invitations: demo.invitations,
+  studioContents: demo.studioContents,
+  studioFeedback: demo.studioFeedback,
 }
 
 const NOTICE_DRAFT = '초안입니다. 수업의 최종 판단과 책임은 강사에게 있습니다.'

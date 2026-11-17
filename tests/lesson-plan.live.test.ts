@@ -52,6 +52,8 @@ const empty: Dataset = {
   qnaAnswers: [],
   inquiries: [],
   invitations: [],
+  studioContents: [],
+  studioFeedback: [],
 }
 
 /** 파일럿과 같은 조건: 등록된 프로그램이 없는 강사, 교실 120분, 중등 15명. */

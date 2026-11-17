@@ -52,6 +52,8 @@ const ds: Dataset = {
   qnaAnswers: demo.qnaAnswers,
   inquiries: demo.inquiries,
   invitations: demo.invitations,
+  studioContents: demo.studioContents,
+  studioFeedback: demo.studioFeedback,
 }
 
 const NOTICE_DRAFT = '초안입니다. 수치와 표현을 확인한 뒤 사용하세요.'

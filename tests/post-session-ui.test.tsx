@@ -70,6 +70,8 @@ const ds: Dataset = {
   qnaAnswers: demo.qnaAnswers,
   inquiries: demo.inquiries,
   invitations: demo.invitations,
+  studioContents: demo.studioContents,
+  studioFeedback: demo.studioFeedback,
 }
 
 // ls-1: 응답 24건 · 배정 강사 있음 / ls-3: 응답 0건 · 미배정 (E-23·E-24)

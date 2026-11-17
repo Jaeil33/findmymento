@@ -22,6 +22,7 @@ import type {
   Student,
   SurveyResponse,
 } from '@/types/domain'
+import type { StudioContent, StudioFeedback } from '@/types/studio'
 
 /**
  * 조회 전략.
@@ -55,6 +56,9 @@ export type Dataset = {
   qnaAnswers: QnaAnswer[]
   inquiries: Inquiry[]
   invitations: Invitation[]
+  /** 스튜디오 산출물. RLS 가 작성 강사·발주 기관·운영자 외에는 0행을 준다 (ADR-031) */
+  studioContents: StudioContent[]
+  studioFeedback: StudioFeedback[]
 }
 
 function demoDataset(): Dataset {
@@ -76,6 +80,8 @@ function demoDataset(): Dataset {
     qnaAnswers: demo.qnaAnswers,
     inquiries: demo.inquiries,
     invitations: demo.invitations,
+    studioContents: demo.studioContents,
+    studioFeedback: demo.studioFeedback,
   }
 }
 
@@ -121,6 +127,8 @@ export const loadDataset = cache(async (): Promise<Dataset> => {
     qnaAnswers,
     inquiries,
     invitations,
+    studioContents,
+    studioFeedback,
   ] = await Promise.all([
     table<Organization>('organizations', (r) => r as unknown as Organization),
     table<OrgMember>('org_members', (r) => r as unknown as OrgMember),
@@ -181,6 +189,12 @@ export const loadDataset = cache(async (): Promise<Dataset> => {
     // anon 은 여기서 0행을 받는다. 운영자 세션에서만 행이 돌아온다 (ADR-014).
     table<Inquiry>('inquiries', (r) => r as unknown as Inquiry),
     table<Invitation>('invitations', (r) => r as unknown as Invitation),
+    // RLS 가 작성 강사·발주 기관·운영자 외에는 0행을 준다. anon 은 정책 자체가 없다 (ADR-031).
+    table<StudioContent>('studio_contents', (r) => ({
+      ...(r as unknown as StudioContent),
+      rounds: (r.rounds as StudioContent['rounds']) ?? [],
+    })),
+    table<StudioFeedback>('studio_feedback', (r) => r as unknown as StudioFeedback),
   ])
 
   /**
@@ -224,5 +238,7 @@ export const loadDataset = cache(async (): Promise<Dataset> => {
     qnaAnswers,
     inquiries,
     invitations,
+    studioContents,
+    studioFeedback,
   }
 })

@@ -19,6 +19,8 @@ import { describe, expect, it } from 'vitest'
  *   RLS_TEST_PENDING_INSTRUCTOR_ID
  *   RLS_TEST_EXPIRED_INVITE_TOKEN
  *   RLS_TEST_OTHER_INSTRUCTOR_ID         (문의가 배정된 다른 강사)
+ *   RLS_TEST_OTHER_STUDIO_CONTENT_ID     (다른 강사가 만든 스튜디오 산출물)
+ *   RLS_TEST_FAILED_STUDIO_CONTENT_ID    (검증 실패 상태인 자기 산출물)
  */
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -167,6 +169,68 @@ describe.skipIf(!live)('RLS 네거티브 테스트 (실 DB)', () => {
         .select('*')
         .eq('assigned_instructor_id', env('RLS_TEST_OTHER_INSTRUCTOR_ID')),
     )
+  })
+
+  it('15. anon 으로 studio_contents SELECT → 0행 또는 에러 (ADR-031)', async () => {
+    expectDenied(await anonClient().from('studio_contents').select('*'))
+  })
+
+  it('16. anon 으로 studio_feedback SELECT → 0행 또는 에러', async () => {
+    expectDenied(await anonClient().from('studio_feedback').select('*'))
+  })
+
+  it('17. 강사 계정으로 **타 강사의** studio_contents SELECT → 0행 (ADR-031)', async () => {
+    const sb = await sessionClient('RLS_TEST_INSTRUCTOR_EMAIL', 'RLS_TEST_INSTRUCTOR_PASSWORD')
+    expectDenied(
+      await sb.from('studio_contents').select('*').eq('id', env('RLS_TEST_OTHER_STUDIO_CONTENT_ID')),
+    )
+  })
+
+  it('18. 강사 계정으로 남의 이름(instructor_id)으로 studio_contents INSERT → 실패', async () => {
+    const sb = await sessionClient('RLS_TEST_INSTRUCTOR_EMAIL', 'RLS_TEST_INSTRUCTOR_PASSWORD')
+    const { error } = await sb.from('studio_contents').insert({
+      lineage_id: '00000000-0000-0000-0000-000000000001',
+      version: 1,
+      instructor_id: env('RLS_TEST_OTHER_INSTRUCTOR_ID'),
+      kind: 'pen3d',
+      title: 'RLS 테스트',
+      recipe_id: 'cube-lantern',
+      status: 'validated',
+    })
+    expect(error).toBeTruthy()
+  })
+
+  it('19. approved 상태로 바로 INSERT → 실패 (ADR-030)', async () => {
+    const sb = await sessionClient('RLS_TEST_INSTRUCTOR_EMAIL', 'RLS_TEST_INSTRUCTOR_PASSWORD')
+    const { error } = await sb.from('studio_contents').insert({
+      lineage_id: '00000000-0000-0000-0000-000000000002',
+      version: 1,
+      instructor_id: env('RLS_TEST_INSTRUCTOR_ID'),
+      kind: 'pen3d',
+      title: 'RLS 테스트',
+      recipe_id: 'cube-lantern',
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+    })
+    expect(error).toBeTruthy()
+  })
+
+  it('20. 검증 실패한 산출물을 approved 로 UPDATE → 실패 (ADR-030)', async () => {
+    const sb = await sessionClient('RLS_TEST_INSTRUCTOR_EMAIL', 'RLS_TEST_INSTRUCTOR_PASSWORD')
+    const { error } = await sb
+      .from('studio_contents')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .eq('id', env('RLS_TEST_FAILED_STUDIO_CONTENT_ID'))
+    expect(error).toBeTruthy()
+  })
+
+  it('21. 자기 산출물의 artifact 를 UPDATE → 실패 (버전 행이다, ADR-031)', async () => {
+    const sb = await sessionClient('RLS_TEST_INSTRUCTOR_EMAIL', 'RLS_TEST_INSTRUCTOR_PASSWORD')
+    const { error } = await sb
+      .from('studio_contents')
+      .update({ artifact: { tampered: true } })
+      .eq('id', env('RLS_TEST_FAILED_STUDIO_CONTENT_ID'))
+    expect(error).toBeTruthy()
   })
 })
 
