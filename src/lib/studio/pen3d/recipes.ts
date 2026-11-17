@@ -238,10 +238,22 @@ const houseLamp: PenRecipe = {
       sideStrokes.push(outline(rectPoints(w, h).map((p) => ({ x: p.x + x, y: p.y + y }))))
     }
 
+    // 앞뒤 벽의 문. 집을 "네모 몇 장"이 아니라 집으로 보이게 하는 선이다.
+    // 치수는 전부 size 에 비례한다 — 개선 라운드가 도안을 키우면 여백도 같이 커진다.
+    const gableStrokes = [outline(gable)]
+    if (detail >= 1) {
+      const dw = size * 0.3
+      const dh = wallH * 0.5
+      const dx = (size - dw) / 2
+      // 바닥에서 띄운다. 벽 윤곽에 닿으면 떼어낼 때 문이 뚫린 구멍이 된다.
+      const dy = rise + wallH - dh - size * 0.18
+      gableStrokes.push(outline(rectPoints(dw, dh).map((p) => ({ x: p.x + dx, y: p.y + dy }))))
+    }
+
     return {
       parts: [
         part('wall', '측면 벽', 2, sideStrokes),
-        part('gable', '앞뒤 벽 (오각형)', 2, [outline(gable)]),
+        part('gable', '앞뒤 벽 (오각형)', 2, gableStrokes),
         part('roof', '지붕', 2, [outline(rectPoints(size, slant))]),
       ],
       joints: [
@@ -282,14 +294,27 @@ const nameKeyring: PenRecipe = {
   title: '이름 키링',
   summary: '이름을 쓸 판 1장과 고리 1개. 판 안쪽에 자기 이름을 펜으로 직접 그린다.',
   keywords: ['키링', '이름', '열쇠고리', '명찰', '뱃지', '선물'],
-  defaults: { size: 70, detail: 0, extras: false },
+  defaults: { size: 70, detail: 1, extras: false },
   size_range: [45, 110],
   nominal_difficulty: 1,
-  build: ({ size }) => {
+  build: ({ size, detail }) => {
     const h = size * 0.4
+    const plateStrokes = [outline(rectPoints(size, h))]
+    if (detail >= 1) {
+      // 이름 쓸 자리. 테두리에서 띄운 폭이 곧 선 간격이므로 최소 치수에서도 4.5mm 이상 둔다.
+      const inset = Math.max(4.5, size * 0.09)
+      plateStrokes.push(
+        outline(
+          rectPoints(size - inset * 2, h - inset * 2).map((p) => ({
+            x: p.x + inset,
+            y: p.y + inset,
+          })),
+        ),
+      )
+    }
     return {
       parts: [
-        part('plate', '이름판', 1, [outline(rectPoints(size, h))]),
+        part('plate', '이름판', 1, plateStrokes),
         // 바깥 반지름이 9mm 아래로 내려가면 두께 5mm 를 빼고 남는 구멍이 사라진다.
         part('hoop', '고리', 1, ring(Math.max(9, size * 0.13), 5)),
       ],

@@ -193,3 +193,42 @@ describe('후보 추리기 — 규칙이 정하고 LLM 은 이 목록 밖으로 
     expect(recipeCandidates('드론', 'high')).toEqual(recipeCandidates('드론', 'high'))
   })
 })
+
+describe('모양을 알아볼 수 있을 만큼 구체적인가', () => {
+  /**
+   * 윤곽만 있는 도안은 교실에서 "네모 몇 장"으로 보인다. 장식 단계(`detail`)는 그 차이를
+   * 메우는 선이다 — 다만 **시간이 모자라면 개선 라운드가 가장 먼저 떼는 것**도 이 선이므로,
+   * 끈 상태에서도 조립이 되는 모양이어야 한다.
+   */
+  const strokeCount = (recipeId: string, partId: string, detail: number) => {
+    const recipe = recipeById(recipeId)!
+    const pattern = buildPattern(recipe, { ...recipe.defaults, detail })
+    return pattern.parts.find((p) => p.id === partId)?.strokes.length ?? 0
+  }
+
+  it('집 모형은 앞뒤 벽에 문을, 측면 벽에 창을 그린다', () => {
+    expect(strokeCount('house-lamp', 'gable', 1)).toBeGreaterThan(
+      strokeCount('house-lamp', 'gable', 0),
+    )
+    expect(strokeCount('house-lamp', 'wall', 1)).toBeGreaterThan(
+      strokeCount('house-lamp', 'wall', 0),
+    )
+  })
+
+  it('이름 키링은 이름 쓸 자리를 선으로 표시한다', () => {
+    expect(strokeCount('name-keyring', 'plate', 1)).toBeGreaterThan(
+      strokeCount('name-keyring', 'plate', 0),
+    )
+  })
+
+  it('장식을 끄면 윤곽만 남는다 — 개선 라운드가 떼어낼 수 있어야 한다', () => {
+    for (const [id, partId] of [
+      ['house-lamp', 'gable'],
+      ['house-lamp', 'wall'],
+      ['name-keyring', 'plate'],
+      ['cube-lantern', 'panel'],
+    ] as const) {
+      expect(strokeCount(id, partId, 0), `${id}/${partId}`).toBe(1)
+    }
+  })
+})

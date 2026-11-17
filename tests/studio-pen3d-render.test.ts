@@ -118,7 +118,7 @@ describe('표기', () => {
   it('부품 이름과 수량이 적힌다 — 같은 선 위에 몇 번 덧그려야 하는지가 도안의 정보다', () => {
     for (const part of result.artifact.pattern.parts) {
       expect(svg).toContain(part.name)
-      expect(svg).toContain(`×${part.quantity}`)
+      expect(svg).toContain(`${part.quantity}장`)
     }
   })
 
@@ -158,5 +158,68 @@ describe('검증 미통과 표시 (ADR-030)', () => {
 describe('결정론', () => {
   it('같은 산출물이면 같은 SVG 다', () => {
     expect(renderPenSvg(result.artifact, { status: 'validated' })).toBe(svg)
+  })
+})
+
+describe('도안 한 장이 수업에서 그대로 읽히는가', () => {
+  /**
+   * 교실에서는 이 종이 한 장이 전부다. 강사가 화면을 보고 설명해 주지 않아도
+   * **무엇을 몇 개 그리고, 어느 변끼리 붙이는지**가 종이에 있어야 한다.
+   */
+  it('부품마다 번호가 붙는다 — 조립 순서가 그 번호를 가리킨다', () => {
+    for (let i = 1; i <= result.artifact.pattern.parts.length; i += 1) {
+      expect(svg).toContain(`>${i}</text>`)
+    }
+  })
+
+  it('부품 이름·필요 개수·치수를 같이 적는다', () => {
+    const part = result.artifact.pattern.parts[0]!
+    expect(svg).toContain(part.name)
+    expect(svg).toContain(`${part.quantity}장`)
+    expect(svg).toMatch(/\d+(\.\d+)?×\d+(\.\d+)?mm/)
+  })
+
+  it('같은 선 위에 몇 번 덧그리는지 적는다 — 한 장만 인쇄하는 이유다', () => {
+    expect(svg).toContain('덧그려')
+  })
+
+  it('접합을 부품 번호로 적는다 — 어느 변끼리 붙는지가 종이에 있어야 한다', () => {
+    const joint = result.artifact.pattern.joints[0]!
+    expect(svg).toContain('접합')
+    expect(svg).toContain(`${joint.count}곳`)
+  })
+
+  it('선 종류를 밝힌다 — 실선은 그리는 선, 파선은 접는 선이다', () => {
+    expect(svg).toContain('실선')
+    expect(svg).toContain('접는 선')
+  })
+
+  it('안전 문구 한 줄이 종이에 남는다', () => {
+    expect(svg).toMatch(/환기|화상|노즐/)
+  })
+
+  it('설명 글자가 도안 선으로 오해되지 않게 회색으로만 쓴다', () => {
+    // 그리는 선은 #111 이다. 안내 글자는 다른 색이어야 한다.
+    expect(svg).toContain('#777')
+  })
+})
+
+describe('한 장으로 수업이 되는가', () => {
+  it('자리가 남으면 조립 순서를 종이에 싣는다 — 화면을 못 보는 교실이 있다', () => {
+    expect(svg).toContain('조립 순서')
+    expect(svg).toContain('1.')
+  })
+
+  it('범례가 도안 선 위에 겹치지 않는다 — 가장 아래 부품보다 아래에서 시작한다', () => {
+    const bottoms = result.artifact.pattern.parts.map((p) => {
+      const heights = p.strokes.flatMap((s) => s.points.map((pt) => pt.y))
+      return p.origin.y + Math.max(...heights)
+    })
+    const lowestPart = Math.max(...bottoms) + PAGE.margin_mm
+    const legendYs = [...svg.matchAll(/class="leg" x="[\d.]+" y="([\d.]+)"/g)].map((m) =>
+      Number(m[1]),
+    )
+    expect(legendYs.length).toBeGreaterThan(0)
+    for (const y of legendYs) expect(y).toBeGreaterThan(lowestPart)
   })
 })

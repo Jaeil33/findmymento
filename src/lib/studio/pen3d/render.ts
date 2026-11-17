@@ -9,7 +9,7 @@
  * 윤곽은 실선, 접는 선은 파선이다.
  */
 
-import { PAGE } from '@/lib/studio/constants'
+import { PAGE, PEN_SAFETY_NOTES } from '@/lib/studio/constants'
 import { sizeOf, strokesBBox } from '@/lib/studio/geometry'
 import type { PenArtifact, Stroke, StudioStatus } from '@/types/studio'
 import { isUsable } from '@/types/studio'
@@ -27,6 +27,23 @@ function esc(text: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
+}
+
+/** 한 줄이 종이 폭을 넘지 않게 자른다. SVG 에는 줄바꿈이 없다. */
+function wrap(text: string, max: number): string[] {
+  const out: string[] = []
+  let line = ''
+  for (const word of text.split(' ')) {
+    const next = line === '' ? word : `${line} ${word}`
+    if (next.length > max && line !== '') {
+      out.push(line)
+      line = word
+    } else {
+      line = next
+    }
+  }
+  if (line !== '') out.push(line)
+  return out
 }
 
 function pathData(stroke: Stroke, dx: number, dy: number): string {
@@ -47,15 +64,29 @@ export function renderPenSvg(artifact: PenArtifact, options: RenderOptions): str
   )
   lines.push(
     '<style>text{font-family:"Malgun Gothic","Noto Sans KR",sans-serif;fill:#111}' +
-      '.lbl{font-size:3.2px}.ft{font-size:3.4px}.wm{font-size:11px;fill:#d11;opacity:.55}</style>',
+      '.lbl{font-size:3.4px;font-weight:600}.sub{font-size:2.9px;fill:#777}.num{font-size:3.2px;font-weight:700}' +
+      '.ft{font-size:3.4px}.leg{font-size:2.9px;fill:#777}.wm{font-size:11px;fill:#d11;opacity:.55}</style>',
   )
   lines.push(`<rect x="0" y="0" width="${PAGE.width_mm}" height="${PAGE.height_mm}" fill="#fff"/>`)
+
+  /**
+   * 부품 번호. 조립 순서·접합 범례가 같은 번호를 가리킨다 — 교실에서 이 종이 한 장만 보고도
+   * "3번 두 장을 1번 옆면에 붙인다"가 통해야 한다.
+   */
+  const numberOf = new Map(pattern.parts.map((p, i) => [p.id, i + 1]))
+
+  /** 부품 아래쪽에 남는 여백. 하단 범례를 여기에 넣는다 */
+  let lowest: number = margin
 
   for (const part of pattern.parts) {
     const dx = margin + part.origin.x
     const dy = margin + part.origin.y
     const box = strokesBBox(part.strokes)
     const size = sizeOf(box)
+    const num = numberOf.get(part.id) ?? 0
+    // 위에 자리가 없으면 라벨 두 줄이 부품 아래로 내려간다. 범례가 그 위에 겹치면 안 된다.
+    const labelBelow = !(dy > margin + 5)
+    lowest = Math.max(lowest, dy + size.h + (labelBelow ? 8 : 0))
 
     lines.push(`<g id="part-${esc(part.id)}">`)
     for (const stroke of part.strokes) {
@@ -64,12 +95,50 @@ export function renderPenSvg(artifact: PenArtifact, options: RenderOptions): str
         `<path d="${pathData(stroke, dx, dy)}" fill="none" stroke="#111" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"${dash}/>`,
       )
     }
-    // 부품 이름과 수량. 같은 선 위에 몇 번 덧그려야 하는지가 도안의 정보다.
-    const labelY = dy > margin + 3 ? dy - 1.2 : dy + size.h + 3.2
+
+    // 번호 배지 + 이름·개수 + 치수. 위쪽에 자리가 없으면 부품 아래로 내린다.
+    const above = !labelBelow
+    const labelY = above ? dy - 3.8 : dy + size.h + 3.6
+    const subY = above ? dy - 0.8 : dy + size.h + 6.6
     lines.push(
-      `<text class="lbl" x="${n(dx)}" y="${n(labelY)}">${esc(part.name)} ×${part.quantity} · ${n(size.w)}×${n(size.h)}mm</text>`,
+      `<circle cx="${n(dx + 2)}" cy="${n(labelY - 1.1)}" r="2.3" fill="none" stroke="#111" stroke-width="0.3"/>`,
+    )
+    lines.push(
+      `<text class="num" x="${n(dx + 2)}" y="${n(labelY)}" text-anchor="middle">${num}</text>`,
+    )
+    lines.push(
+      `<text class="lbl" x="${n(dx + 5.6)}" y="${n(labelY)}">${esc(part.name)} ${part.quantity}장${part.optional ? ' (선택)' : ''}</text>`,
+    )
+    lines.push(
+      `<text class="sub" x="${n(dx)}" y="${n(subY)}">${n(size.w)}×${n(size.h)}mm · 같은 선 위에 ${part.quantity}번 덧그려 ${part.quantity}장을 만듭니다</text>`,
     )
     lines.push('</g>')
+  }
+
+  // ── 접합 범례 — 어느 부품끼리 어떻게 붙는지 ────────────────────────────────
+  //    부품 아래 남은 자리에만 넣는다. 자리가 없으면 적지 않는다 — 도안 위에 글자를
+  //    겹쳐 쓰면 그리는 선과 섞인다.
+  const legendTop = lowest + 9
+  const legendRoom = PAGE.height_mm - margin - 8 - legendTop
+  const legendLines = [
+    `접합 ${pattern.joints.length}종 (숫자는 부품 번호) · 실선은 그리는 선, 파선은 접는 선입니다. 회색 글자는 안내입니다.`,
+    ...pattern.joints.map((j) => {
+      const a = numberOf.get(j.a) ?? 0
+      const b = numberOf.get(j.b) ?? 0
+      const kind = j.kind === 'slot' ? '끼움' : j.flush ? '맞댐' : '겹침'
+      return `${a}-${b} · ${j.count}곳 · ${kind} · 길이 ${j.length_mm}mm`
+    }),
+    // 조립 순서까지 있어야 **이 종이 한 장으로** 수업이 된다. 화면을 못 보는 교실이 있다.
+    '조립 순서',
+    ...artifact.assembly.flatMap((step, i) => wrap(`${i + 1}. ${step}`, 92)),
+    // 안전 문구는 한 곳에서만 만든다 (`lib/studio/constants.ts`). 종이에는 첫 줄을 싣는다.
+    PEN_SAFETY_NOTES[0],
+  ]
+  if (legendRoom >= legendLines.length * 4) {
+    lines.push(`<path d="M${n(margin)},${n(legendTop - 4)}L${n(PAGE.width_mm - margin)},${n(legendTop - 4)}" stroke="#777" stroke-width="0.2" stroke-dasharray="2 2"/>`)
+    legendLines.forEach((text, i) => {
+      lines.push(`<text class="leg" x="${n(margin)}" y="${n(legendTop + i * 4)}">${esc(text)}</text>`)
+    })
   }
 
   // ── 푸터: 제목·분량·예상 시간 + 인쇄 축척 기준선 ──────────────────────────
