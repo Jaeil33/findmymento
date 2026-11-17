@@ -128,10 +128,25 @@ describe('입력 검증', () => {
     expect((await generate(post(libraryBody({ venue: '카페' })))).status).toBe(400)
   })
 
-  it('드론 비행 코드는 아직 열리지 않았다고 말한다 — 있는 척하지 않는다', async () => {
-    const res = await generate(post(libraryBody({ kind: 'drone' })))
-    expect(res.status).toBe(400)
-    expect((await res.json()).message).toContain('아직')
+  it('드론 비행 코드도 같은 경로로 만들어진다', async () => {
+    const res = await generate(
+      post(
+        libraryBody({
+          kind: 'drone',
+          topic: '드론 사각 순찰 비행',
+          venue: '체육관',
+          equipment: ['DJI Tello 6대', '프로펠러 가드'],
+          studentCount: 10,
+        }),
+      ),
+    )
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('validated')
+    expect(json.recipe_id).toBe('square-patrol')
+    const saved = demo.studioContents.at(-1)!
+    expect(saved.kind).toBe('drone')
+    expect(saved.artifact.kind).toBe('drone')
   })
 
   it('주제에 섞인 학생 이름·연락처는 가린 값으로 들어간다', async () => {

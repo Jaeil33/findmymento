@@ -2,19 +2,22 @@ import { NextResponse } from 'next/server'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { insertStudioContent } from '@/lib/db/writes'
-import { authorPen } from '@/lib/studio/author'
+import { authorContent, type AuthorCandidate } from '@/lib/studio/author'
+import { droneCandidates } from '@/lib/studio/drone/course'
+import { generateDrone } from '@/lib/studio/drone/pipeline'
 import { calibrationFor, nextVersion, studioLineage } from '@/lib/studio/library'
 import { generatePen } from '@/lib/studio/pen3d/pipeline'
 import { recipeCandidates } from '@/lib/studio/pen3d/recipes'
 import { validateGenerate } from '@/lib/studio/request'
 import { clientKey, rateLimit } from '@/lib/validation'
 import type { LectureSession } from '@/types/domain'
+import type { StudioArtifact, StudioSpec } from '@/types/studio'
 
 /**
  * 콘텐츠 생성. **LLM 키가 서버 전용이므로 라우트에서만 호출한다** (CLAUDE.md 아키텍처 규칙).
  *
- * 흐름: 규칙이 후보를 좁힘 → LLM 이 그중 하나를 고르고 문장을 씀 → **생성기가 좌표를 만들고
- * 검증기가 판정** → 개선 → 저장. LLM 이 실패하면 규칙 선택으로 조용히 떨어진다 (ADR-029).
+ * 흐름: 규칙이 후보를 좁힘 → LLM 이 그중 하나를 고르고 문장을 씀 → **생성기가 좌표·명령을
+ * 만들고 검증기가 판정** → 개선 → 저장. LLM 이 실패하면 규칙 선택으로 조용히 떨어진다 (ADR-029).
  *
  * 권한: 강사 본인. 회차에 붙이려면 **그 회차에 배정된 강사**여야 하고, 그때 수업 조건은
  * 회차 행에서 가져온다 — 본문 값은 무시한다 (ADR-015·016).
@@ -64,14 +67,6 @@ export async function POST(request: Request) {
   }
   const { spec, lineageId: requestedLineage, recipeId } = validated.value
 
-  // 드론 비행 코드는 아직 생성기가 없다. 있는 척하지 않는다.
-  if (spec.kind !== 'pen3d') {
-    return NextResponse.json(
-      { ok: false, field: 'kind', message: '드론 비행 코드 생성은 아직 열리지 않았습니다.' },
-      { status: 400 },
-    )
-  }
-
   // ── 버전 ──────────────────────────────────────────────────────────────────
   let lineageId = requestedLineage
   let version = 1
@@ -86,14 +81,18 @@ export async function POST(request: Request) {
   }
 
   // ── 규칙 후보 → LLM 선택 → 생성·검증 ─────────────────────────────────────
-  const candidates = recipeCandidates(spec.topic, spec.grade_band)
+  const candidates: AuthorCandidate[] =
+    spec.kind === 'pen3d'
+      ? recipeCandidates(spec.topic, spec.grade_band)
+      : droneCandidates(spec.topic, spec.grade_band)
+
   const firstCalibration = candidates[0]
     ? calibrationFor(ds.studioContents, ds.studioFeedback, candidates[0].id, spec.grade_band)
     : null
 
   const authoring = recipeId
     ? { recipe_id: recipeId, title: '', reason: '', tasks: [] as string[], source: 'rule' as const }
-    : await authorPen(spec, candidates, firstCalibration)
+    : await authorContent(spec, candidates, firstCalibration)
 
   const calibration = calibrationFor(
     ds.studioContents,
@@ -102,27 +101,23 @@ export async function POST(request: Request) {
     spec.grade_band,
   )
 
-  const result = generatePen(spec, { recipeId: authoring.recipe_id, calibration })
+  const generated = generate(spec, authoring.recipe_id, calibration)
 
-  // LLM 이 쓴 것은 **제목과 과제 문장뿐이다.** 좌표·지표는 생성기 결과를 그대로 쓴다.
-  const title = authoring.title !== '' ? authoring.title : result.artifact.pattern.title
-  const artifact = {
-    ...result.artifact,
-    pattern: { ...result.artifact.pattern, title },
-    tasks: authoring.tasks.length >= 2 ? authoring.tasks : result.artifact.tasks,
-  }
+  // LLM 이 쓴 것은 **제목과 과제 문장뿐이다.** 좌표·명령·지표는 생성기 결과를 그대로 쓴다.
+  const title = authoring.title !== '' ? authoring.title : generated.title
+  const artifact = withTitleAndTasks(generated.artifact, title, authoring.tasks)
   const source = authoring.tasks.length >= 2 && authoring.source === 'llm' ? 'llm' : 'rule'
 
   const payload = {
     ok: true,
-    status: result.status,
-    recipe_id: result.recipe_id,
+    status: generated.status,
+    recipe_id: generated.recipe_id,
     reason: authoring.reason,
     source,
     calibrated: calibration !== null,
-    metrics: result.metrics,
-    rounds: result.rounds,
-    findings: result.report.findings,
+    metrics: generated.metrics,
+    rounds: generated.rounds,
+    findings: generated.report.findings,
   }
 
   try {
@@ -131,13 +126,13 @@ export async function POST(request: Request) {
       version,
       instructorId: actor.instructorId,
       sessionId: spec.session_id,
-      kind: 'pen3d',
+      kind: spec.kind,
       title,
-      recipeId: result.recipe_id,
+      recipeId: generated.recipe_id,
       spec,
       artifact,
-      rounds: result.rounds,
-      status: result.status,
+      rounds: generated.rounds,
+      status: generated.status,
       source,
     })
     return NextResponse.json({ ...payload, saved: true, id: saved.id, lineage_id: lineageId, version })
@@ -146,9 +141,43 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...payload,
       saved: false,
-      assembly: artifact.assembly,
       tasks: artifact.tasks,
       safety_notes: artifact.safety_notes,
     })
+  }
+}
+
+/** 콘텐츠 종류별 생성기. 둘 다 같은 계약을 돌려준다 (ADR-030). */
+function generate(
+  spec: StudioSpec,
+  recipeId: string,
+  calibration: ReturnType<typeof calibrationFor>,
+) {
+  if (spec.kind === 'drone') {
+    const result = generateDrone(spec, { recipeId, calibration })
+    return { ...result, title: result.artifact.mission.title }
+  }
+  const result = generatePen(spec, { recipeId, calibration })
+  return { ...result, title: result.artifact.pattern.title }
+}
+
+/** 제목과 과제 문장만 갈아 끼운다. 그 외에는 생성기 산출물을 그대로 둔다. */
+function withTitleAndTasks(
+  artifact: StudioArtifact,
+  title: string,
+  tasks: string[],
+): StudioArtifact {
+  const nextTasks = tasks.length >= 2 ? tasks : artifact.tasks
+  if (artifact.kind === 'drone') {
+    return {
+      ...artifact,
+      mission: { ...artifact.mission, title },
+      tasks: nextTasks,
+    }
+  }
+  return {
+    ...artifact,
+    pattern: { ...artifact.pattern, title },
+    tasks: nextTasks,
   }
 }

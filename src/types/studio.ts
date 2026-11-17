@@ -229,24 +229,35 @@ export type DroneObstacle = {
   /** gate 전용 — 개구부 폭·높이 */
   opening_w_cm?: number
   opening_h_cm?: number
+  /**
+   * gate 전용 — 어느 축을 따라 통과하는가. 게이트는 **얇은 문틀**이어서 그 면을 가로지르는
+   * 구간만 개구부 판정을 받는다. 옆을 지나가는 구간은 기둥과의 거리로 본다.
+   */
+  facing?: 'x' | 'y'
 }
 
 export type DroneMission = {
   recipe_id: string
   title: string
   model_id: string
+  /** 바닥에 테이프로 표시하는 비행 구역 (cm). 좌표계의 원점은 이 사각형의 왼쪽 위다 */
+  course_cm: { x: number; y: number }
+  /** 구역 안의 이착륙 지점 */
+  takeoff_cm: { x: number; y: number }
   commands: DroneCommand[]
   obstacles: DroneObstacle[]
 }
 
 export type DroneMetrics = {
   command_count: number
+  /** 1회 비행 시간(초) */
+  flight_seconds_one: number
   /** 명령을 적분한 경로 길이 */
   path_cm: number
   max_altitude_cm: number
-  min_clearance_cm: number
-  flight_seconds: number
-  /** 1인 비행 × 학생 수 + 준비 */
+  /** 경로와 장애물·벽 사이 최단거리. 장애물이 없으면 null */
+  min_clearance_cm: number | null
+  /** (1회 비행 + 교대) × 학생 수 */
   estimated_minutes: number
   available_minutes: number
   difficulty: number

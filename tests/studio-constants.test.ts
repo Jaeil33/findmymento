@@ -6,8 +6,15 @@ import {
   CLASS_OVERHEAD_MINUTES,
   CLOSED_TOLERANCE_MM,
   DRONE_FINDING_SEVERITY,
+  DRONE_GATE_MARGIN_CM,
+  DRONE_LAND_SECONDS,
   DRONE_MIN_ALTITUDE_CM,
   DRONE_MODELS,
+  DRONE_SPEED_CM_S,
+  DRONE_SWAP_SECONDS,
+  DRONE_TAKEOFF_ALTITUDE_CM,
+  DRONE_TAKEOFF_SECONDS,
+  DRONE_YAW_DEG_S,
   DRONE_OBSTACLE_CLEARANCE_CM,
   DRONE_SAFETY_NOTES,
   DRONE_WALL_CLEARANCE_CM,
@@ -205,6 +212,20 @@ describe('드론 상수가 docs/STUDIO.md 와 일치한다', () => {
       expect(nums(cells[3])).toEqual([model.max_altitude_cm])
       if (model.flight_seconds !== null) expect(nums(cells[4])).toEqual([model.flight_seconds])
     }
+  })
+
+  it('비행 상수가 문서와 일치한다', () => {
+    expect(nums(row('비행 속도')[1])).toEqual([DRONE_SPEED_CM_S])
+    expect(nums(row('회전 속도')[1])).toEqual([DRONE_YAW_DEG_S])
+    expect(nums(row('이륙 고도')[1])).toEqual([DRONE_TAKEOFF_ALTITUDE_CM])
+    expect(nums(row('이륙 시간')[1])).toEqual([DRONE_TAKEOFF_SECONDS])
+    expect(nums(row('착륙 시간')[1])).toEqual([DRONE_LAND_SECONDS])
+    expect(nums(row('게이트 통과 여유')[1])).toEqual([DRONE_GATE_MARGIN_CM])
+    expect(nums(row('학생 교대')[1])).toEqual([DRONE_SWAP_SECONDS])
+  })
+
+  it('게이트 여유는 벽·장애물 여유보다 작다 — 통과하라고 놓은 물건이다', () => {
+    expect(DRONE_GATE_MARGIN_CM).toBeLessThan(DRONE_OBSTACLE_CLEARANCE_CM)
   })
 
   it('여유 거리와 최소 고도', () => {

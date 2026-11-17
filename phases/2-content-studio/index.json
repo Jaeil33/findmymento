@@ -59,17 +59,20 @@
     {
       "step": 9,
       "name": "studio-feedback",
-      "status": "pending"
+      "status": "completed",
+      "summary": "성과 입력 폼·API·calibrationFor 보정·상세 화면 표시까지 완료. 3건 이상 모이면 다음 생성의 예상 시간에 반영되고 화면에 \"지난 수업 N건 반영\" 배지가 붙는다."
     },
     {
       "step": 10,
       "name": "drone-mission",
-      "status": "pending"
+      "status": "completed",
+      "summary": "lib/studio/drone/{simulate,validate,course,code,pipeline}.ts. 명령을 적분해 실제 경로를 만들고(기수 포함) 13개 검증 항목을 판정한다. 코스 레시피 4종, 기체 3종, Tello 는 djitellopy 파이썬 코드·나머지는 블록 의사코드. 검증기가 생성기 버그 2개(8자 코스 구역 이탈, 게이트 안에서 고도 상승)를 잡아 고쳤다. 테스트 46개."
     },
     {
       "step": 11,
       "name": "drone-ui",
-      "status": "pending"
+      "status": "pending",
+      "summary": "API·생성기·검증기는 완료. 강사 화면에 콘텐츠 종류 선택과 코스 지도·코드 보기가 아직 없다 — 지금은 /api/studio/generate 에 kind:\"drone\" 으로만 생성된다."
     }
   ]
 }

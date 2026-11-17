@@ -16,9 +16,19 @@
 import { createAnthropic } from '@/lib/ai/client'
 import { demoAiEnabled, demoStudioAuthoring } from '@/lib/ai/demo-writer'
 import { numbersWithin, sanitizeList, sanitizeText } from '@/lib/ai/guard'
-import type { PenRecipe } from '@/lib/studio/pen3d/recipes'
 import { GRADE_BAND_LABEL } from '@/types/domain'
 import type { StudioCalibration, StudioSpec } from '@/types/studio'
+
+/**
+ * 후보의 최소 형태. 3D펜 레시피와 드론 코스 레시피가 **같은 저작 레이어**를 쓴다 —
+ * LLM 이 하는 일(목록에서 고르고 문장 쓰기)이 콘텐츠 종류와 무관하기 때문이다.
+ */
+export type AuthorCandidate = {
+  id: string
+  title: string
+  summary: string
+  nominal_difficulty: number
+}
 
 export type StudioAuthoring = {
   recipe_id: string
@@ -33,12 +43,12 @@ export type StudioAuthoring = {
 /** 숫자처럼 보이지만 숫자가 아닌 것들. 가드가 먼저 지운다. */
 const NUMBER_IGNORE = ['3D펜', '3D', 'A4', 'LED'] as const
 
-const SYSTEM = `너는 초·중·고 3D펜 실습 수업을 준비하는 강사를 돕는다.
+const SYSTEM = `너는 초·중·고 실습 수업(3D펜 도안 · 드론 비행 코드)을 준비하는 강사를 돕는다.
 
-**검수된 도안 레시피 목록에서 하나를 고르고, 문장만 쓴다.**
+**검수된 레시피 목록에서 하나를 고르고, 문장만 쓴다.**
 
 - recipe_id 는 주어진 후보 목록의 id 중 하나여야 한다. 목록에 없는 모양을 제안하지 않는다.
-- 좌표·치수·부품 개수·소요 시간을 쓰지 않는다. 그건 프로그램이 계산한다. **문장에 숫자를 넣지 않는다.**
+- 좌표·치수·부품 개수·비행 거리·소요 시간을 쓰지 않는다. 그건 프로그램이 계산한다. **문장에 숫자를 넣지 않는다.**
 - title: 수업 제목 한 줄. 24자 이내. 학생이 무엇을 만드는지 보이게 쓴다.
 - reason: 왜 이 레시피가 주제에 맞는지 한 문장. 80자 이내.
 - tasks: 학생이 할 일 2~4개. 각 60자 이내. 손으로 하는 동작으로 쓴다. 존댓말.
@@ -67,7 +77,7 @@ function parse(text: string): LlmAuthoring | null {
 }
 
 /** 규칙 선택. LLM 이 없거나 실패하면 이게 그대로 화면에 나간다. */
-export function ruleAuthoring(spec: StudioSpec, candidates: PenRecipe[]): StudioAuthoring {
+export function ruleAuthoring(spec: StudioSpec, candidates: AuthorCandidate[]): StudioAuthoring {
   const recipe = candidates[0]
   if (!recipe) {
     return {
@@ -94,9 +104,9 @@ export function ruleAuthoring(spec: StudioSpec, candidates: PenRecipe[]): Studio
  * `tasks` 가 비어 있으면 호출자가 규칙 과제 문장을 쓴다. 그래서 LLM 이 전부 실패해도
  * 산출물의 형태는 달라지지 않는다.
  */
-export async function authorPen(
+export async function authorContent(
   spec: StudioSpec,
-  candidates: PenRecipe[],
+  candidates: AuthorCandidate[],
   calibration?: StudioCalibration | null,
 ): Promise<StudioAuthoring> {
   const fallback = ruleAuthoring(spec, candidates)

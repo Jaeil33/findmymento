@@ -329,11 +329,11 @@ describe('콘텐츠 스튜디오 (ADR-028~032)', () => {
   })
 
   it('시연 응답도 후보 목록 안에서만 고른다 — 목록 밖으로 나가지 않는다', async () => {
-    const { authorPen } = await import('@/lib/studio/author')
+    const { authorContent } = await import('@/lib/studio/author')
     const { recipeCandidates } = await import('@/lib/studio/pen3d/recipes')
     for (const topic of ['정육면체 조명', '우리 동네 집 모형', '드론 프레임', '꽃 한 송이']) {
       const candidates = recipeCandidates(topic, 'middle')
-      const authored = await authorPen(spec({ topic }), candidates)
+      const authored = await authorContent(spec({ topic }), candidates)
       expect(authored.source).toBe('llm')
       expect(candidates.map((c) => c.id)).toContain(authored.recipe_id)
       expect(createMock).not.toHaveBeenCalled()
@@ -341,9 +341,9 @@ describe('콘텐츠 스튜디오 (ADR-028~032)', () => {
   })
 
   it('시연 과제 문장에 숫자가 없다 — 개수·시간은 생성기가 정한다', async () => {
-    const { authorPen } = await import('@/lib/studio/author')
+    const { authorContent } = await import('@/lib/studio/author')
     const { recipeCandidates } = await import('@/lib/studio/pen3d/recipes')
-    const authored = await authorPen(spec(), recipeCandidates('정육면체 조명', 'middle'))
+    const authored = await authorContent(spec(), recipeCandidates('정육면체 조명', 'middle'))
     expect(authored.tasks.length).toBeGreaterThan(0)
     for (const task of authored.tasks) {
       expect(task.replace(/3D펜|3D/g, '')).not.toMatch(/\d/)

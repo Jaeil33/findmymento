@@ -261,3 +261,20 @@ export const PEN_SAFETY_NOTES = [
   '환기를 하고, 얼굴을 도안에 가까이 대지 않습니다.',
   '부품을 뗄 때는 식은 뒤에 떼고, 떼기 어려우면 선생님에게 말합니다.',
 ] as const
+
+// ── 비행 상수 (docs/STUDIO.md 비행 상수 표) ─────────────────────────────────
+
+/** 교실·체육관에서 학생이 조종할 때 쓰는 속도. 기체 최고 속도가 아니다. */
+export const DRONE_SPEED_CM_S = 50
+export const DRONE_YAW_DEG_S = 90
+/** 이륙 명령 하나로 올라가는 기본 높이. */
+export const DRONE_TAKEOFF_ALTITUDE_CM = 100
+export const DRONE_TAKEOFF_SECONDS = 5
+export const DRONE_LAND_SECONDS = 4
+/**
+ * 게이트 개구부 안쪽 여유. 벽·장애물의 50cm 와 다르다 —
+ * 게이트는 **통과하라고 놓은 물건**이고, 50cm 를 요구하면 교육용 게이트는 전부 실격된다.
+ */
+export const DRONE_GATE_MARGIN_CM = 15
+/** 콘(기둥)의 반지름. 교육용 라바콘 기준. */
+export const DRONE_CONE_RADIUS_CM = 15
