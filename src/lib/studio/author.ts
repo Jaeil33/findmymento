@@ -22,14 +22,14 @@ import {
   parseComposition,
   type PenComposition,
 } from "@/lib/studio/pen3d/compose";
-import { readShape } from "@/lib/studio/pen3d/shape";
+import { readArtShape, readShape } from "@/lib/studio/pen3d/shape";
 import {
   SHAPE_AUTHOR_TIMEOUT_MS,
   SHAPE_OUTLINE_ATTEMPTS,
   SHAPE_OUTLINE_TIMEOUT_MS,
 } from "@/lib/studio/constants";
 import {
-  OUTLINE_ONLY_SYSTEM,
+  ART_ONLY_SYSTEM,
   OUTLINE_SYSTEM,
 } from "@/lib/studio/pen3d/outline-prompt";
 import { demoAiEnabled, demoStudioAuthoring } from "@/lib/ai/demo-writer";
@@ -266,13 +266,25 @@ export async function authorContent(
         ? parseComposition(parsed.composition)
         : null;
 
-    // 윤곽 제안 (ADR-036). 읽을 수 없으면 이유를 들고 다음 시도로 간다.
-    const read = outlineAllowed
-      ? readShape(parsed.outline ?? parsed, {
-          word: outlineWord,
-          source: "dsl",
-        })
+    /**
+     * 모양 제안. **색 영역을 먼저 읽고, 안 되면 윤곽으로 한 번 더 읽는다** (ADR-039·040).
+     *
+     * 추가 LLM 호출은 **0회**다 — 같은 응답을 두 파서에 넣는 것뿐이다. 2D 프롬프트는 색
+     * 영역을 요구하지만(`ART_ONLY_SYSTEM`) 모델이 윤곽으로 답하는 경우가 있고, 그때 통째로
+     * 버리면 멀쩡한 모양을 놓치고 명패로 떨어진다.
+     *
+     * 색 영역이 읽히면 덧그릴 선은 코드가 유도한다 — 모델이 선을 그리지 않으므로 색과 선이
+     * 어긋날 수 없다.
+     */
+    const meta = { word: outlineWord, source: "dsl" as const };
+    const art = outlineAllowed
+      ? readArtShape(parsed, meta)
       : { shape: null, reason: null };
+    const read = art.shape
+      ? art
+      : outlineAllowed
+        ? readShape(parsed.outline ?? parsed, meta)
+        : { shape: null, reason: null };
     const shape = read.shape;
 
     // 목록 밖의 id 를 돌려줬다면 문장도 믿지 않는다 — 지시를 무시한 응답이다.
@@ -335,7 +347,7 @@ export async function authorContent(
              */
             system:
               candidates.length === 0 && outlineAllowed
-                ? OUTLINE_ONLY_SYSTEM
+                ? ART_ONLY_SYSTEM
                 : [
                     SYSTEM,
                     composable ? COMPOSE_SYSTEM : "",

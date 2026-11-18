@@ -92,7 +92,8 @@ describe('2D 프롬프트', () => {
     createMock.mockResolvedValue(reply(outlineReply()))
     await authorContent(spec(), [], null, { outline: { allow: true, word: '물고기' } })
 
-    expect(systemOf()).toContain('"outline"')
+    // 2D 는 색 영역을 요구한다 (ADR-039). 조합(접합이 있는 입체)은 2D 가 쓸 수 없다.
+    expect(systemOf()).toContain('"art"')
     expect(systemOf()).not.toContain('"compose"')
     expect(systemOf()).not.toContain('조각 목록')
   })
@@ -102,7 +103,9 @@ describe('2D 프롬프트', () => {
     await authorContent(spec(), [], null, { outline: { allow: true, word: '물고기' } })
 
     expect(systemOf()).not.toContain('검수된 레시피 목록에서 하나를 고르고')
-    expect(systemOf()).toContain('윤곽')
+    // 모양을 **직접 그리라**고 한다. 그리고 덧그릴 선은 모델이 그리지 않는다 (ADR-040)
+    expect(systemOf()).toContain('색이 있는 여러 영역')
+    expect(systemOf()).toContain('덧그릴 선을 그리지 않는다')
   })
 
   it('목록이 있으면 고르는 길도 열어 둔다 (아틀라스 적중)', async () => {
