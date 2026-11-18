@@ -26,10 +26,12 @@ import {
   PAGE_USABLE,
   PEN_LIMITS,
   SHAPE_ASPECT,
+  SHAPE_COORD_TOLERANCE,
   SHAPE_MARGIN,
   SHAPE_MAX_DETAILS,
   SHAPE_MAX_HOLES,
   SHAPE_POINTS,
+  SHAPE_POINTS_TOLERATED,
   SHAPE_SMOOTH_MAX,
   WELD_MIN_LENGTH_MM,
   type PenLimit,
@@ -136,65 +138,155 @@ export type ShapeMeta = {
   words?: string[]
 }
 
-function pointsIn(raw: unknown, min: number, max: number): NormPoint[] | null {
-  if (!Array.isArray(raw)) return null
-  if (raw.length < min || raw.length > max) return null
-  const out: NormPoint[] = []
-  for (const entry of raw) {
-    if (typeof entry !== 'object' || entry === null) return null
-    const { x, y } = entry as Record<string, unknown>
-    if (typeof x !== 'number' || typeof y !== 'number') return null
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return null
-    if (x < 0 || x > 1 || y < 0 || y > 1) return null
-    out.push({ x, y })
-  }
-  return out
-}
-
-function outlineList(raw: unknown, max: number): NormPoint[][] | null {
-  if (raw === undefined || raw === null) return []
-  if (!Array.isArray(raw)) return null
-  if (raw.length > max) return null
-  const out: NormPoint[][] = []
-  for (const entry of raw) {
-    const points = pointsIn(entry, 3, SHAPE_POINTS[1])
-    if (!points) return null
-    out.push(points)
-  }
-  return out
+/**
+ * 좌표 하나. 0~1 을 **살짝** 벗어난 값은 끌어당기고, 많이 벗어난 값은 `null` 이다.
+ *
+ * 당겨도 되는 이유: 모양은 바로 뒤에서 bbox 로 다시 정규화되므로 치수의 결정권은 그대로
+ * 코드에 있다. 반대로 통째로 버리면, 0.02 만큼 넘긴 응답 하나 때문에 강사는 실패 화면을 본다.
+ */
+function coord(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  if (value < -SHAPE_COORD_TOLERANCE || value > 1 + SHAPE_COORD_TOLERANCE) return null
+  return Math.min(1, Math.max(0, value))
 }
 
 /**
- * 윤곽 제안을 읽는다. **조금이라도 어긋나면 `null`** 이고, 그때 호출자는 다음 순서로 간다.
+ * 점 하나. `{x, y}` 와 `[x, y]` 를 모두 받는다.
  *
- * 돌려주는 좌표는 **가로 1 로 정규화**된 값이다 (y 는 0~`aspect`). mm 는 `shapeRecipe` 가
- * `params.size` 를 곱해 만든다.
+ * 형태를 하나로 못 박아 놓고 버리면, 모델이 같은 모양을 **다른 표기**로 보낸 것 때문에 강사가
+ * 실패 화면을 본다. 어느 표기든 숫자 두 개이고, 그 숫자의 뜻(비율)과 쓰임(코드가 mm 로 환산)은
+ * 달라지지 않는다 — 경계는 그대로다 (ADR-036).
  */
-export function parseShape(raw: unknown, meta: ShapeMeta): PenShape | null {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null
-  const body = raw as Record<string, unknown>
+function point(entry: unknown): NormPoint | null {
+  if (Array.isArray(entry)) {
+    const px = coord(entry[0])
+    const py = coord(entry[1])
+    return px === null || py === null ? null : { x: px, y: py }
+  }
+  if (typeof entry !== 'object' || entry === null) return null
+  const body = entry as Record<string, unknown>
+  const px = coord(body.x ?? body.X)
+  const py = coord(body.y ?? body.Y)
+  return px === null || py === null ? null : { x: px, y: py }
+}
 
-  const title = typeof body.title === 'string' ? body.title.trim() : ''
-  if (title.length < 1 || title.length > 40) return null
+/**
+ * 점 목록. 요청 범위보다 **많이** 오면 등간격으로 솎아서 쓴다 — 촘촘한 것은 지시를 무시한
+ * 것이 아니라 더 그린 것이다. `SHAPE_POINTS_TOLERATED` 를 넘으면 버린다.
+ */
+function pointsIn(raw: unknown, min: number, max: number): NormPoint[] | null {
+  if (!Array.isArray(raw)) return null
+  if (raw.length < min || raw.length > SHAPE_POINTS_TOLERATED) return null
 
-  const silhouette = pointsIn(body.silhouette, SHAPE_POINTS[0], SHAPE_POINTS[1])
-  if (!silhouette) return null
+  const all: NormPoint[] = []
+  for (const entry of raw) {
+    const parsed = point(entry)
+    if (!parsed) return null
+    all.push(parsed)
+  }
 
-  const details = outlineList(body.details, SHAPE_MAX_DETAILS)
+  if (all.length <= max) return all
+  const stride = all.length / max
+  const thinned: NormPoint[] = []
+  for (let i = 0; i < max; i += 1) thinned.push(all[Math.floor(i * stride)]!)
+  return thinned
+}
+
+/**
+ * 내부선·구멍 목록. **읽을 수 없는 선은 그 선만 버린다** — 모양 전체를 버리지 않는다.
+ *
+ * 운영에서 이것 때문에 2D 가 실패했다: 모델이 내부선을 `[{points:[...]}]` 로 보냈는데
+ * 목록 형식이 어긋났다고 **실루엣까지** 버렸다. 눈·귀 선 하나의 표기 때문에 도안을 못 만드는
+ * 것은 말이 안 된다. 실루엣만 읽히면 도안은 나오고, 내부선은 있으면 더 좋은 것이다.
+ */
+function outlineList(raw: unknown, max: number): NormPoint[][] {
+  if (!Array.isArray(raw)) return []
+  const out: NormPoint[][] = []
+  for (const entry of raw.slice(0, max)) {
+    // `[[x,y],...]` 와 `{points:[...]}` 를 모두 받는다
+    const list = Array.isArray(entry)
+      ? entry
+      : typeof entry === 'object' && entry !== null
+        ? firstArray(entry as Record<string, unknown>, SILHOUETTE_KEYS)
+        : undefined
+    const points = pointsIn(list, 3, SHAPE_POINTS[1])
+    if (points) out.push(points)
+  }
+  return out
+}
+
+/** 윤곽 점 목록이 들어올 수 있는 키 이름. 뜻이 같으면 이름이 달라도 받는다 */
+const SILHOUETTE_KEYS = ['silhouette', 'points', 'path', 'outline_points', 'contour'] as const
+const DETAIL_KEYS = ['details', 'inner', 'inner_lines', 'lines'] as const
+
+function firstArray(body: Record<string, unknown>, keys: readonly string[]): unknown {
+  for (const key of keys) {
+    if (Array.isArray(body[key])) return body[key]
+  }
+  return undefined
+}
+
+/**
+ * 제안을 읽고 **왜 못 읽었는지**까지 돌려준다.
+ *
+ * 이유가 필요한 곳이 둘이다: 오프라인 아틀라스 생산의 보고서와, 왜 버렸는지 말할 수 없으면
+ * 프롬프트를 고칠 수 없다는 사실. 런타임은 `parseShape` 로 모양만 쓴다.
+ */
+export function readShape(
+  raw: unknown,
+  meta: ShapeMeta,
+): { shape: PenShape | null; reason: string | null } {
+  const no = (reason: string) => ({ shape: null, reason })
+
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return no('객체가 아닙니다')
+  let body = raw as Record<string, unknown>
+
+  /**
+   * 한 겹 감싸서 보내는 경우를 받아 준다 — `{outline: {...}}`, `{shape: {...}}`.
+   * 감싼 이름이 달라서 버리면, 모델은 같은 모양을 보냈는데 강사는 실패를 본다.
+   */
+  if (firstArray(body, SILHOUETTE_KEYS) === undefined) {
+    for (const key of ['outline', 'shape', 'silhouette']) {
+      const nested = body[key]
+      if (typeof nested === 'object' && nested !== null && !Array.isArray(nested)) {
+        body = nested as Record<string, unknown>
+        break
+      }
+    }
+  }
+
+  const rawTitle = typeof body.title === 'string' ? body.title.trim() : ''
+  // 제목이 없거나 너무 길면 단어를 쓴다 — 문장 하나 때문에 모양을 버리지 않는다
+  const title = rawTitle.length >= 1 && rawTitle.length <= 40 ? rawTitle : meta.word.trim()
+  if (title.length < 1 || title.length > 40) return no('제목과 단어가 모두 비어 있습니다')
+
+  const silhouette = pointsIn(
+    firstArray(body, SILHOUETTE_KEYS),
+    SHAPE_POINTS[0],
+    SHAPE_POINTS[1],
+  )
+  if (!silhouette) {
+    return no(
+      `윤곽 점 목록을 읽을 수 없습니다 (키: ${Object.keys(body).join(', ') || '없음'}; 점 ${SHAPE_POINTS[0]}~${SHAPE_POINTS_TOLERATED}개, 좌표 0~1)`,
+    )
+  }
+
+  const details = outlineList(firstArray(body, DETAIL_KEYS), SHAPE_MAX_DETAILS)
   const holes = outlineList(body.holes, SHAPE_MAX_HOLES)
-  if (!details || !holes) return null
 
   // 정규화 공간에서의 붙은 점 정리 — 0.2% 보다 가까운 점은 같은 점이다
   const outer = dedupe(silhouette, 0.002)
-  if (outer.length < SHAPE_POINTS[0]) return null
-  if (selfIntersects(outer)) return null
+  if (outer.length < SHAPE_POINTS[0]) return no('겹친 점을 빼면 점이 너무 적습니다')
+  if (selfIntersects(outer)) return no('윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)')
 
   const box = bbox(outer)
   const width = box.max.x - box.min.x
   const height = box.max.y - box.min.y
-  if (width < 0.05 || height < 0.05) return null
+  if (width < 0.05 || height < 0.05) return no('윤곽이 한 방향으로 납작합니다')
   const aspect = round3(height / width)
-  if (aspect < SHAPE_ASPECT[0] || aspect > SHAPE_ASPECT[1]) return null
+  if (aspect < SHAPE_ASPECT[0] || aspect > SHAPE_ASPECT[1]) {
+    return no(`종횡비 ${aspect} 가 허용 범위(${SHAPE_ASPECT[0]}~${SHAPE_ASPECT[1]}) 밖입니다`)
+  }
 
   // 가로를 1 로 맞춘다. 세로는 같은 배율이므로 종횡비가 보존된다.
   const map = (p: NormPoint): NormPoint => ({
@@ -230,7 +322,17 @@ export function parseShape(raw: unknown, meta: ShapeMeta): PenShape | null {
     const signature = JSON.stringify([shape.silhouette.points, shape.details, shape.holes])
     shape.id = `dsl-${fnv1a(signature)}`
   }
-  return shape
+  return { shape, reason: null }
+}
+
+/**
+ * 윤곽 제안을 읽는다. **조금이라도 어긋나면 `null`** 이고, 그때 호출자는 다음 순서로 간다.
+ *
+ * 돌려주는 좌표는 **가로 1 로 정규화**된 값이다 (y 는 0~`aspect`). mm 는 `shapeRecipe` 가
+ * `params.size` 를 곱해 만든다.
+ */
+export function parseShape(raw: unknown, meta: ShapeMeta): PenShape | null {
+  return readShape(raw, meta).shape
 }
 
 // ============================================================================

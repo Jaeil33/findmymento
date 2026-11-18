@@ -166,8 +166,13 @@ export async function POST(request: Request) {
          */
         outline: spec.kind === 'pen3d' ? { allow: true, word: spec.topic } : undefined,
         // 조각 조합은 3D펜만 쓴다 (ADR-034). 드론은 검수된 코스 목록 그대로다.
+        /**
+         * 조각 조합은 **입체 요청에만** 준다 (ADR-034·037). 2D 에 조합 지시문을 같이 보내면
+         * 모델이 조합으로 답하고, 2D 경로는 조합(접합이 있는 입체)을 쓸 수 없어 실패한다 —
+         * 운영에서 "물고기"·"피카츄" 2D 가 전부 실패 화면이 된 원인이다.
+         */
         pieces:
-          spec.kind === 'pen3d'
+          spec.kind === 'pen3d' && form === 'solid'
             ? PEN_PIECES.map((p) => ({
                 id: p.id,
                 name: p.name,

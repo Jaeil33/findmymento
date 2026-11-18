@@ -86,6 +86,19 @@ export const COMPOSE_MAX_PIECES = 5
  */
 export const SHAPE_POINTS: [number, number] = [8, 64]
 
+/**
+ * 받아는 주는 점 개수 상한. 요청 범위(`SHAPE_POINTS`)보다 많이 와도 **코드가 솎아서** 쓴다 —
+ * 점이 촘촘한 것은 지시를 무시한 것이 아니라 더 그린 것이고, 솎는 일은 결정론이다.
+ * 이것보다 많으면 버린다.
+ */
+export const SHAPE_POINTS_TOLERATED = 200
+
+/**
+ * 좌표가 0~1 을 살짝 벗어난 것은 **끌어당겨** 쓴다. 모양은 바로 뒤에서 bbox 로 다시 정규화되므로
+ * 당겨도 치수의 결정권은 그대로 코드에 있다. 이 폭을 넘으면 지시를 무시한 응답이므로 버린다.
+ */
+export const SHAPE_COORD_TOLERANCE = 0.25
+
 /** 내부 디테일선 상한. 간격 임계값을 지키면서 A4 에 들어가는 한계다 */
 export const SHAPE_MAX_DETAILS = 6
 
@@ -104,6 +117,21 @@ export const SHAPE_SMOOTH_MAX = 6
  * (ADR-038). 넘기면 그 단계를 포기하고 다음 수단으로 간다.
  */
 export const SHAPE_AUTHOR_TIMEOUT_MS = 12_000
+
+/**
+ * 윤곽을 **직접 그려 받는** 호출 한 번의 상한. 목록에서 고르기(12초)와 다르다 — 점 수십 개를
+ * 쓰는 응답이고 실측 13~20초다. 12초로 두면 거의 전부 타임아웃이었다.
+ */
+export const SHAPE_OUTLINE_TIMEOUT_MS = 18_000
+
+/**
+ * 윤곽 제안을 **몇 번까지** 받을 것인가 (ADR-036).
+ *
+ * 1회로 두면 "윤곽이 스스로 교차한다"처럼 **다시 그리면 풀리는** 거절에서 강사가 바로 실패
+ * 화면을 본다(실측: 물고기가 그랬다). 거절 이유를 되먹여 한 번 더 그려 달라고 한다.
+ * 타임아웃·한도는 다시 걸어도 같으므로 재시도하지 않는다.
+ */
+export const SHAPE_OUTLINE_ATTEMPTS = 2
 export const SHAPE_REVIEW_TIMEOUT_MS = 8_000
 
 /** 보정이 목표로 삼는 여유. 임계값에 딱 걸치면 반올림에서 뒤집힌다 */

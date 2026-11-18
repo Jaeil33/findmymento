@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { parseShape, shapeRecipe } from '@/lib/studio/pen3d/shape'
 import { buildPattern } from '@/lib/studio/pen3d/recipes'
 import { validatePen } from '@/lib/studio/pen3d/validate'
-import { LAYER_COUNT, PEN_LIMITS, SHAPE_POINTS } from '@/lib/studio/constants'
+import {
+  LAYER_COUNT,
+  PEN_LIMITS,
+  SHAPE_POINTS,
+  SHAPE_POINTS_TOLERATED,
+} from '@/lib/studio/constants'
 import { isClosedPath } from '@/lib/studio/geometry'
 import { GRADE_BANDS } from '@/types/domain'
 import type { GradeBand } from '@/types/domain'
@@ -78,16 +83,30 @@ describe('parseShape — 범위 밖은 통째로 버린다', () => {
     expect(parse(proposal())!.id).toBe(shape!.id)
   })
 
-  it('좌표가 0~1 밖이면 null', () => {
+  /**
+   * 조금 벗어난 것은 **끌어당겨** 쓴다 — 모양은 바로 뒤에서 bbox 로 다시 정규화되므로 치수의
+   * 결정권은 그대로 코드에 있다. 0.02 만큼 넘긴 응답 하나 때문에 강사가 실패 화면을 보면 안 된다.
+   * 많이 벗어난 것은 지시를 무시한 응답이므로 버린다.
+   */
+  it('좌표가 살짝 벗어나면 당겨 쓰고, 많이 벗어나면 null', () => {
+    const nudged = parse(proposal({ silhouette: blob().map((p) => ({ x: p.x, y: p.y - 0.05 })) }))
+    expect(nudged).not.toBeNull()
+    expect(nudged!.silhouette.points.every((p) => p.x >= 0 && p.y >= 0)).toBe(true)
+
     expect(parse(proposal({ silhouette: ring(20, () => 0.8) }))).toBeNull()
-    expect(
-      parse(proposal({ silhouette: blob().map((p) => ({ x: p.x, y: p.y - 0.05 })) })),
-    ).toBeNull()
+    expect(parse(proposal({ silhouette: ring(20, () => 2) }))).toBeNull()
   })
 
-  it('점 개수가 범위 밖이면 null', () => {
+  it('점이 모자라면 null, 많으면 솎아서 받고, 터무니없이 많으면 null', () => {
     expect(parse(proposal({ silhouette: ring(SHAPE_POINTS[0] - 1, () => 0.4) }))).toBeNull()
-    expect(parse(proposal({ silhouette: ring(SHAPE_POINTS[1] + 1, () => 0.4) }))).toBeNull()
+
+    const dense = parse(proposal({ silhouette: ring(SHAPE_POINTS[1] + 40, () => 0.4) }))
+    expect(dense).not.toBeNull()
+    expect(dense!.silhouette.points.length).toBeLessThanOrEqual(SHAPE_POINTS[1])
+
+    expect(
+      parse(proposal({ silhouette: ring(SHAPE_POINTS_TOLERATED + 10, () => 0.4) })),
+    ).toBeNull()
   })
 
   it('숫자가 아닌 값·빠진 값이면 null', () => {
@@ -98,15 +117,32 @@ describe('parseShape — 범위 밖은 통째로 버린다', () => {
     expect(parse('코끼리')).toBeNull()
   })
 
-  it('제목이 없거나 너무 길면 null', () => {
-    expect(parse(proposal({ title: '' }))).toBeNull()
-    expect(parse(proposal({ title: '가'.repeat(41) }))).toBeNull()
+  it('제목이 없거나 너무 길면 단어를 쓴다 — 문장 하나 때문에 모양을 버리지 않는다', () => {
+    expect(parse(proposal({ title: '' }))?.title).toBe('코끼리')
+    expect(parse(proposal({ title: '가'.repeat(41) }))?.title).toBe('코끼리')
   })
 
-  it('내부선·구멍이 상한을 넘으면 null', () => {
-    const one = ring(12, () => 0.05)
-    expect(parse(proposal({ details: Array.from({ length: 7 }, () => one) }))).toBeNull()
-    expect(parse(proposal({ holes: Array.from({ length: 3 }, () => one) }))).toBeNull()
+  /**
+   * 내부선은 **있으면 더 좋은 것**이다. 표기가 어긋나거나 개수가 많다고 실루엣까지 버리면,
+   * 눈·귀 선 하나 때문에 도안을 못 만든다 — 운영에서 2D 가 실패한 원인이 이것이었다.
+   */
+  it('내부선·구멍이 상한을 넘으면 앞에서 상한까지만 쓴다 (모양은 살린다)', () => {
+    const one = ring(12, () => 0.05).map((p) => ({ x: p.x - 0.1, y: p.y - 0.1 }))
+    const many = parse(proposal({ details: Array.from({ length: 9 }, () => one) }))
+    expect(many).not.toBeNull()
+    expect(many!.details.length).toBeLessThanOrEqual(6)
+  })
+
+  it('읽을 수 없는 내부선은 그 선만 버린다', () => {
+    const shape = parse(proposal({ details: [...proposal().details, 'eyes', [{ x: 'a' }]] }))
+    expect(shape).not.toBeNull()
+    expect(shape!.details.length).toBe(1)
+  })
+
+  it('내부선을 {points:[...]} 로 감싸 보내도 받는다', () => {
+    const wrapped = { points: proposal().details[0] }
+    const shape = parse(proposal({ details: [wrapped] }))
+    expect(shape!.details.length).toBe(1)
   })
 
   it('스스로 교차하는 윤곽은 고치지 않고 버린다', () => {

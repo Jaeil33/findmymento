@@ -28,11 +28,11 @@ import {
   toRecord,
   type WordEntry,
 } from '@/lib/studio/atlas-build'
-import { SHAPE_AUTHOR_TIMEOUT_MS } from '@/lib/studio/constants'
+import { SHAPE_OUTLINE_TIMEOUT_MS } from '@/lib/studio/constants'
 import { buildPattern } from '@/lib/studio/pen3d/recipes'
-import { OUTLINE_SYSTEM } from '@/lib/studio/pen3d/outline-prompt'
+import { OUTLINE_ONLY_SYSTEM } from '@/lib/studio/pen3d/outline-prompt'
 import { reviewShape } from '@/lib/studio/pen3d/review'
-import { parseShape, shapeRecipe } from '@/lib/studio/pen3d/shape'
+import { readShape, shapeRecipe } from '@/lib/studio/pen3d/shape'
 import { generalizeCharacter } from '@/lib/studio/topic'
 import type { AtlasRecord, PenShape } from '@/types/studio'
 
@@ -73,20 +73,19 @@ function parseArgs(argv: string[]): Args {
   return args
 }
 
-const SYSTEM = `너는 초·중·고 실습 수업에 쓸 3D펜 도안의 **윤곽**을 만든다.
+/** 런타임의 2D 저작과 **같은 프롬프트**다 (ADR-036) */
+const SYSTEM = OUTLINE_ONLY_SYSTEM
 
-주어진 단어 하나의 **알아볼 수 있는 실루엣**을 그린다. 아래 규칙을 그대로 따른다.${OUTLINE_SYSTEM}
-
-reason 에는 이 실루엣이 그 단어의 무엇을 살렸는지 한 문장(60자 이내)을 쓴다.`
-
-type Attempt = { shape: PenShape | null; summary: string | null; raw: string }
+type Attempt = { shape: PenShape | null; summary: string | null; reason: string | null }
 
 async function propose(entry: WordEntry, apiKey: string, note: string | null): Promise<Attempt> {
   const client = createAnthropic(apiKey)
   const response = await client.beta.messages.create(
     {
       model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
-      max_tokens: 4000,
+      max_tokens: 2400,
+      // 런타임(저작 레이어)과 같은 조건으로 돈다 — 여기서 잰 시간이 운영의 시간이다
+      output_config: { effort: 'low' },
       system: SYSTEM,
       messages: [
         {
@@ -101,30 +100,30 @@ async function propose(entry: WordEntry, apiKey: string, note: string | null): P
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
     },
-    { timeout: SHAPE_AUTHOR_TIMEOUT_MS * 3, maxRetries: 1 },
+    { timeout: SHAPE_OUTLINE_TIMEOUT_MS, maxRetries: 0 },
   )
 
   const raw = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
   const start = raw.indexOf('{')
   const end = raw.lastIndexOf('}')
   if (response.stop_reason === 'refusal' || start < 0 || end <= start) {
-    return { shape: null, summary: null, raw }
+    return { shape: null, summary: null, reason: '응답에 JSON 이 없습니다 (거절 또는 빈 응답)' }
   }
 
   let parsed: Record<string, unknown>
   try {
     parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>
   } catch {
-    return { shape: null, summary: null, raw }
+    return { shape: null, summary: null, reason: 'JSON 을 읽을 수 없습니다' }
   }
 
-  const shape = parseShape(parsed.outline, {
+  const read = readShape(parsed.outline ?? parsed, {
     word: entry.word,
     source: 'atlas',
     id: atlasId(entry.word),
     words: entry.words,
   })
-  return { shape, summary: sanitizeText(parsed.reason, 80), raw }
+  return { shape: read.shape, summary: sanitizeText(parsed.reason, 80), reason: read.reason }
 }
 
 type Outcome =
@@ -145,8 +144,8 @@ async function build(entry: WordEntry, apiKey: string, retries: number): Promise
     }
 
     if (!proposal.shape) {
-      note = '윤곽을 읽을 수 없었습니다 (좌표 범위·점 개수·자기교차를 확인하세요)'
-      console.log(`  ${attempt}회: 제안을 버렸습니다`)
+      note = proposal.reason ?? '윤곽을 읽을 수 없었습니다'
+      console.log(`  ${attempt}회: 제안을 버렸습니다 — ${note}`)
       continue
     }
 
