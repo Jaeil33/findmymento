@@ -123,22 +123,16 @@ export function GenerateResult({
       ) : null}
 
       <p className="rounded-sm border border-caution/25 bg-caution-bg px-4 py-3 text-xs leading-relaxed text-caution">
-        이 산출물은 <strong>저장되지 않습니다.</strong> 체험·데모 세션이라 라이브러리에 쌓이지
-        않고, 화면을 벗어나면 사라집니다.
+        체험 세션이라 이 산출물은 <strong>저장되지 않습니다.</strong>
         {/* 통과하지 못한 도안에는 쓸 수 있다는 말을 붙이지 않는다 — 버튼도 열리지 않는다 (ADR-030). */}
         {usable
-          ? ' 인쇄하거나 SVG 를 내려받으면 그대로 수업에 쓸 수 있습니다.'
-          : ' 검증을 통과하지 못해 인쇄와 내려받기는 열리지 않습니다. 아래 걸린 항목을 보고 조건을 바꿔 다시 만들어 주세요.'}
-        {printBlocked
-          ? ' 인쇄 창이 브라우저에 막혔습니다 — SVG 를 내려받아 인쇄해 주세요.'
-          : null}
+          ? ' 인쇄하거나 SVG 를 내려받아 수업에 쓰세요.'
+          : ' 검증을 통과하지 못해 인쇄·내려받기는 열리지 않습니다.'}
+        {printBlocked ? ' 인쇄 창이 막혔습니다 — SVG 를 내려받아 인쇄해 주세요.' : null}
       </p>
 
       {/* 1. 검증 결과 — 도안보다 먼저 */}
-      <Panel
-        title="검증 결과"
-        description="생성 → 검증 → 개선 → 재검증의 전 과정입니다. 통과하지 못한 도안은 내려받기와 인쇄가 막혀 있습니다."
-      >
+      <Panel title="검증 결과" description="생성 → 검증 → 개선 → 재검증 전 과정">
         <ValidationReport rounds={data.rounds} status={status} gradeBand={spec.grade_band} />
         {data.reason !== '' ? (
           <p className="mt-4 border-t border-line pt-4 text-sm leading-relaxed text-body">
@@ -178,7 +172,7 @@ export function GenerateResult({
       </section>
 
       {/* 3. 도안 */}
-      <Panel title="도안" description="A4 1:1. 같은 모양은 한 번만 인쇄하고 수량을 표기합니다.">
+      <Panel title="도안" description="A4 1:1 · 같은 모양은 한 번만 인쇄하고 수량 표기">
         <StencilPreview artifact={artifact} status={status} />
       </Panel>
 

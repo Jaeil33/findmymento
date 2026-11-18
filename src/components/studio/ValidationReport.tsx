@@ -83,9 +83,7 @@ export function ValidationReport({
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-semibold text-ink">
-          {GRADE_BAND_LABEL[gradeBand]} 기준으로 검사했습니다
-        </p>
+        <p className="text-sm font-semibold text-ink">{GRADE_BAND_LABEL[gradeBand]} 판정 기준</p>
         <dl className="mt-2.5 grid grid-cols-2 border-y border-line sm:grid-cols-5">
           {criteria.map((c) => (
             <div key={c.label} className="rule-cell px-3 py-2.5 first:pl-0 sm:first:pl-3">
@@ -140,9 +138,8 @@ export function ValidationReport({
 
       {status === 'failed' ? (
         <p className="border-l-2 border-negative bg-negative-bg px-3.5 py-3 text-sm leading-relaxed text-negative">
-          개선을 {rounds.length - 1}번 시도했지만 기준을 넘지 못했습니다. 기준을 낮춰 통과시키지
-          않습니다 — 선 간격과 제작 시간은 교실에서 그대로 드러나기 때문입니다. 위 조치를 적용해
-          다시 만들어 주세요.
+          개선 {rounds.length - 1}번으로도 기준을 넘지 못했습니다. 기준을 낮춰 통과시키지
+          않습니다 — 위 조치를 적용해 다시 만들어 주세요.
         </p>
       ) : null}
     </div>

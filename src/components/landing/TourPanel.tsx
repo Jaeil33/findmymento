@@ -52,8 +52,8 @@ export function TourPanel({ live }: { live: boolean }) {
       <div className="mt-4 flex flex-col gap-3 border-l-2 border-line-strong bg-muted/60 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs leading-relaxed text-body">
           {live
-            ? '체험 중에는 데모 데이터만 보입니다. 실제 기관·학생 데이터는 조회되지 않고, 체험에서 만들거나 고친 것도 실제 DB 에 저장되지 않습니다.'
-            : '지금은 데모 데이터로 동작하는 검수용 배포입니다. 화면의 숫자·이름은 시연용 예시입니다.'}
+            ? '체험 중에는 데모 데이터만 보입니다. 만들거나 고친 것은 저장되지 않습니다.'
+            : '데모 데이터로 동작하는 검수용 배포입니다. 숫자·이름은 시연용 예시입니다.'}
         </p>
         <p className="flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-xs">
           {secondary.map((entry) => (

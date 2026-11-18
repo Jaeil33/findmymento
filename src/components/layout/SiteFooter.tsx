@@ -39,8 +39,7 @@ export function SiteFooter() {
           <div>
             <Wordmark />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-sub">
-              실습 수업에 쓸 도안을 만들고 검증하는 곳입니다. 검증을 통과한 산출물만 교실로
-              나갑니다.
+              특강에서 끝나던 관심을 우리 지역 강사와 잇습니다.
             </p>
             <p className="mt-4 inline-flex items-center gap-1.5 border border-line px-2.5 py-1 text-xs font-medium text-body">
               <IconMapPin width={13} height={13} className="text-point" />
