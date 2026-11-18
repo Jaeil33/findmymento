@@ -79,6 +79,12 @@ export default async function StudioContentPage({
                 {(await demoAiEnabled()) ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}
               </Badge>
             ) : null}
+            {/* 저장된 행에서도 출처를 읽는다 — 모양 id 가 출처다 (ADR-036) */}
+            {content.recipe_id.startsWith('atlas-') ? (
+              <Badge tone="positive">검수된 실루엣</Badge>
+            ) : content.recipe_id.startsWith('dsl-') ? (
+              <Badge tone="caution">자동 생성 모양 · 검수 전</Badge>
+            ) : null}
             {calibration ? (
               <Badge tone="caution">
                 지난 수업 {calibration.sample_count}건 반영 (시간 ×{calibration.speed_factor})

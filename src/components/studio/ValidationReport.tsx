@@ -27,6 +27,13 @@ const NEXT_ACTION: Record<string, string> = {
   PEN_PART_OUT_OF_PAGE: '부품이 A4 한 장에 들어가지 않습니다. 더 작은 도안을 고르세요.',
   PEN_DIFFICULTY_MISMATCH: '일부러 고른 것이면 그대로 쓰셔도 됩니다.',
   PEN_TIME_TIGHT: '먼저 끝낸 학생에게 줄 과제를 하나 준비해 주세요.',
+  PEN_SELF_INTERSECT: '모양이 꼬였습니다. 주제를 더 단순한 단어로 적어 다시 만들어 주세요.',
+  PEN_SHAPE_UNREVIEWED: '인쇄 전에 아래 미리보기에서 모양을 한 번 확인해 주세요.',
+  PEN_SHAPE_UNRECOGNIZED:
+    '주제를 더 단순한 단어로 적으면 모양이 또렷해집니다. 지금 모양이 괜찮으면 그대로 쓰셔도 됩니다.',
+  PEN_SHAPE_UNAVAILABLE: '주제를 더 일반적인 단어로 적어 보거나, 3D 로 바꿔 만들어 주세요.',
+  PEN_FLAT_NO_SILHOUETTE: '2D 는 떼어낼 수 있는 닫힌 윤곽이 필요합니다. 다른 주제로 만들어 주세요.',
+  PEN_LAYER_COUNT_INVALID: '수업 시간을 늘리거나 2D 로 만들어 주세요.',
 }
 
 function FindingRow({ finding }: { finding: Finding }) {

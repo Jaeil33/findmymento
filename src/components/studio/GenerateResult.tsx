@@ -30,6 +30,26 @@ export type GenerateResultData = {
    * 쓸 수 있으므로(ADR-035), 화면 밖에서 미리 계산한 값으로 표시하면 거짓말이 된다.
    */
   demo_ai?: boolean
+  /**
+   * 모양이 어디서 왔는가 (ADR-036). **"검수된 실루엣"과 "자동 생성"을 구분해 적는다** —
+   * 이 구분을 지우면 강사는 검수되지 않은 모양을 검수된 것으로 믿는다.
+   */
+  shape_source?: 'recipe' | 'atlas' | 'dsl' | 'compose'
+  /** 이미지 2차 검토 결과 (ADR-038). `skipped` 는 "못 했다"이고 "안 닮았다"가 아니다 */
+  shape_review?: 'looks_like' | 'unrecognized' | 'skipped'
+  shape_missing?: string | null
+  /** 꼭 맞는 실루엣이 없어 가장 가까운 것으로 대체한 경우의 안내 */
+  nearest_note?: string | null
+}
+
+const SHAPE_SOURCE_BADGE: Record<
+  NonNullable<GenerateResultData['shape_source']>,
+  { tone: 'positive' | 'caution' | 'neutral'; label: string } | null
+> = {
+  recipe: { tone: 'positive', label: '검수된 도안' },
+  atlas: { tone: 'positive', label: '검수된 실루엣' },
+  dsl: { tone: 'caution', label: '자동 생성 모양 · 검수 전' },
+  compose: { tone: 'neutral', label: '검수된 조각 조합' },
 }
 
 /**
@@ -60,6 +80,7 @@ export function GenerateResult({
   const demo = data.demo_ai ?? demoAi
   const metrics = artifact.metrics
   const usable = isUsable(status)
+  const shapeBadge = data.shape_source ? SHAPE_SOURCE_BADGE[data.shape_source] : null
 
   /** 인쇄는 브라우저 인쇄다. 서버에서 PDF 를 만들지 않는다 (docs/STUDIO.md). */
   function print() {
@@ -104,6 +125,10 @@ export function GenerateResult({
             {data.source === 'llm' ? (
               <Badge tone="neutral">{demo ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}</Badge>
             ) : null}
+            {shapeBadge ? <Badge tone={shapeBadge.tone}>{shapeBadge.label}</Badge> : null}
+            {data.shape_review === 'looks_like' ? (
+              <Badge tone="neutral">모양 확인 통과</Badge>
+            ) : null}
           </span>
         }
         actions={
@@ -126,6 +151,12 @@ export function GenerateResult({
       {data.topic_note ? (
         <p className="rounded-sm border border-line bg-muted px-4 py-3 text-xs leading-relaxed text-body">
           {data.topic_note}
+        </p>
+      ) : null}
+
+      {data.nearest_note ? (
+        <p className="rounded-sm border border-caution/25 bg-caution-bg px-4 py-3 text-xs leading-relaxed text-caution">
+          {data.nearest_note}
         </p>
       ) : null}
 

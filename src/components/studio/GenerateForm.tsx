@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { AssistProgress } from '@/components/ai/AssistProgress'
 import { GenerateResult, type GenerateResultData } from '@/components/studio/GenerateResult'
 import { Button } from '@/components/ui/Button'
+import { Chip } from '@/components/ui/Chip'
 import { Input, Select } from '@/components/ui/Input'
 import { VENUES, GRADE_BAND_LABEL, type GradeBand, type Venue } from '@/types/domain'
+import { SHAPE_FORMS, SHAPE_FORM_LABEL, type ShapeForm } from '@/types/studio'
 
 /**
  * 생성 폼. **회차를 고르면 수업 조건 입력이 닫힌다** — 학년대·인원·시수·장소·장비는 기관이
@@ -25,12 +27,32 @@ export type SessionOption = {
 
 export type RecipeOption = { id: string; title: string; difficulty: number }
 
-const STAGES = [
-  '수업 조건 확인',
-  '검수된 도안 후보 고르기',
-  '도안 좌표 만들기',
-  '검증하고 필요하면 고치기',
-]
+/**
+ * 진행 단계. 2D 와 3D 가 지나는 길이 다르므로 문구도 다르다 (ADR-036·037).
+ * 실제로 하지 않는 일을 적지 않는다 — 기다리는 동안 보는 유일한 설명이다.
+ */
+const STAGES: Record<ShapeForm, string[]> = {
+  flat: [
+    '수업 조건 확인',
+    '검수된 실루엣 찾기',
+    '없으면 윤곽 제안받기',
+    '좌표·치수 만들기',
+    '검증하고 모양 확인하기',
+  ],
+  solid: [
+    '수업 조건 확인',
+    '검수된 도안 후보 고르기',
+    '좌표·치수 만들기',
+    '검증하고 필요하면 고치기',
+  ],
+}
+
+/** 고른 모드가 **무엇을 만들어 주는지**를 한 줄로 적는다. 2D·3D 는 결과물이 다르다 */
+const FORM_HINT: Record<ShapeForm, string> = {
+  flat: '윤곽 한 장을 그려 떼어냅니다. 키링·명패·장식으로 쓰고, 짧은 시수에서도 끝납니다.',
+  solid:
+    '부품을 조립하거나, 같은 모양을 여러 장 겹쳐 두께를 만듭니다. 그리는 시간이 더 걸립니다.',
+}
 
 type Failure = { message: string; field?: string }
 
@@ -59,6 +81,8 @@ export function GenerateForm({
   const [venue, setVenue] = useState<Venue>('교실')
   const [equipment, setEquipment] = useState('3D펜 20자루, PLA 필라멘트, 실리콘 매트')
   const [recipeId, setRecipeId] = useState('')
+  // 기본값은 2D 다 — 짧은 시수에서 실패하지 않는 쪽이다 (ADR-037).
+  const [form, setForm] = useState<ShapeForm>('flat')
   const [pending, setPending] = useState(false)
   const [stage, setStage] = useState(0)
   const [failure, setFailure] = useState<Failure | null>(null)
@@ -77,7 +101,10 @@ export function GenerateForm({
     setPending(true)
     setFailure(null)
     setStage(0)
-    ticker.current = setInterval(() => setStage((s) => Math.min(s + 1, STAGES.length - 1)), 1400)
+    ticker.current = setInterval(
+      () => setStage((s) => Math.min(s + 1, STAGES[form].length - 1)),
+      1400,
+    )
 
     try {
       const response = await fetch('/api/studio/generate', {
@@ -88,7 +115,8 @@ export function GenerateForm({
           topic,
           sessionId: sessionId || null,
           lineageId,
-          recipeId: recipeId || null,
+          recipeId: form === 'flat' ? null : recipeId || null,
+          form,
           gradeBand,
           studentCount: Number(studentCount),
           durationMinutes: Number(durationMinutes),
@@ -108,6 +136,7 @@ export function GenerateForm({
         field?: string
         topic_note?: string | null
         demo_ai?: boolean
+        nearest_note?: string | null
       } & Partial<GenerateResultData>
 
       if (!response.ok || !json.ok) {
@@ -127,6 +156,10 @@ export function GenerateForm({
           spec: json.spec,
           topic_note: json.topic_note ?? null,
           demo_ai: json.demo_ai,
+          shape_source: json.shape_source,
+          shape_review: json.shape_review,
+          shape_missing: json.shape_missing ?? null,
+          nearest_note: json.nearest_note ?? null,
         })
         return
       }
@@ -165,11 +198,23 @@ export function GenerateForm({
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
         placeholder="예) 바다에 사는 물고기 모양 장식 만들기"
-        hint="문장으로 적어도 됩니다. 맞는 도안이 없으면 검수된 조각으로 모양을 짭니다."
+        hint="단어나 문장으로 적습니다. 검수된 도안에 없는 주제면 적은 단어대로 윤곽을 만듭니다."
         error={failure?.field === 'topic' ? failure.message : undefined}
         required
         maxLength={80}
       />
+
+      <fieldset className="space-y-2">
+        <legend className="block text-sm font-semibold text-ink">무엇으로 만들까요</legend>
+        <div className="flex flex-wrap gap-2">
+          {SHAPE_FORMS.map((value) => (
+            <Chip key={value} selected={form === value} onClick={() => setForm(value)}>
+              {SHAPE_FORM_LABEL[value]}
+            </Chip>
+          ))}
+        </div>
+        <p className="text-xs leading-relaxed text-sub">{FORM_HINT[form]}</p>
+      </fieldset>
 
       {sessions.length > 0 ? (
         <Select
@@ -235,17 +280,20 @@ export function GenerateForm({
         </div>
       )}
 
-      <Select
-        label="도안 직접 고르기 (선택)"
-        value={recipeId}
-        onChange={(e) => setRecipeId(e.target.value)}
-        options={recipes.map((r) => ({
-          value: r.id,
-          label: `${r.title} · 난이도 ${r.difficulty}`,
-        }))}
-        placeholder="주제에 맞는 도안을 자동으로 고르기"
-        hint="고르지 않으면 주제와 학년대로 후보를 좁힌 뒤 그중에서 고릅니다."
-      />
+{/* 검수된 레시피는 전부 입체다. 2D 에서는 고를 것이 없다 (ADR-037). */}
+      {form === 'solid' ? (
+        <Select
+          label="도안 직접 고르기 (선택)"
+          value={recipeId}
+          onChange={(e) => setRecipeId(e.target.value)}
+          options={recipes.map((r) => ({
+            value: r.id,
+            label: `${r.title} · 난이도 ${r.difficulty}`,
+          }))}
+          placeholder="주제에 맞는 모양을 자동으로 고르기"
+          hint="고르지 않으면 주제와 같은 모양을 찾고, 없으면 적은 단어대로 윤곽을 만듭니다."
+        />
+      ) : null}
 
       {failure && !failure.field ? (
         <p className="rounded-md border border-negative/20 bg-negative-bg px-3 py-2 text-sm text-negative">
@@ -255,7 +303,7 @@ export function GenerateForm({
 
       {pending ? (
         <div className="rounded-md border border-line bg-muted px-4 py-3">
-          <AssistProgress stages={STAGES} active={stage} />
+          <AssistProgress stages={STAGES[form]} active={stage} />
         </div>
       ) : null}
 
