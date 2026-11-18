@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { GenerateForm, type SessionOption } from '@/components/studio/GenerateForm'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
+import { tourStudioLlmAvailable } from '@/lib/ai/client'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { instructorSessions } from '@/lib/db/queries'
@@ -48,6 +49,9 @@ export default async function StudioNewPage({
     difficulty: r.nominal_difficulty,
   }))
 
+  // 체험 세션이어도 도안 저작은 실제 AI 가 한다 (ADR-035). 그 사실을 적어 둔다.
+  const tourLlm = await tourStudioLlmAvailable()
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -64,6 +68,13 @@ export default async function StudioNewPage({
           </Link>
         }
       />
+
+      {tourLlm ? (
+        <p className="border-l-2 border-point bg-point-bg px-4 py-3 text-sm leading-relaxed text-body">
+          체험 중이지만 <strong>도안 저작은 실제 AI</strong>가 합니다. 적으신 문장을 읽고 검수된
+          조각으로 모양을 짭니다 — 하루 사용량을 넘으면 시연용 문장으로 바뀝니다.
+        </p>
+      ) : null}
 
       <Panel title="수업 조건">
         <GenerateForm

@@ -107,6 +107,7 @@ export function GenerateForm({
         message?: string
         field?: string
         topic_note?: string | null
+        demo_ai?: boolean
       } & Partial<GenerateResultData>
 
       if (!response.ok || !json.ok) {
@@ -125,6 +126,7 @@ export function GenerateForm({
           artifact: json.artifact,
           spec: json.spec,
           topic_note: json.topic_note ?? null,
+          demo_ai: json.demo_ai,
         })
         return
       }
@@ -162,8 +164,8 @@ export function GenerateForm({
         label="교육 주제"
         value={topic}
         onChange={(e) => setTopic(e.target.value)}
-        placeholder="예) 우리 동네 랜드마크 만들기"
-        hint="무엇을 만드는 수업인지 적으면 검수된 도안 중에서 맞는 것을 고릅니다."
+        placeholder="예) 바다에 사는 물고기 모양 장식 만들기"
+        hint="문장으로 적어도 됩니다. 맞는 도안이 없으면 검수된 조각으로 모양을 짭니다."
         error={failure?.field === 'topic' ? failure.message : undefined}
         required
         maxLength={80}

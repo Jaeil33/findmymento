@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
-import { demoDataMode } from '@/lib/demo/mode'
+import { demoDataMode, tourActive } from '@/lib/demo/mode'
+import { TOUR_LLM_PER_VISITOR } from '@/lib/ai/tour-budget'
 import { insertStudioContent } from '@/lib/db/writes'
 import { authorContent, type AuthorCandidate } from '@/lib/studio/author'
 import { droneCandidates } from '@/lib/studio/drone/course'
@@ -27,6 +28,10 @@ import type { StudioArtifact, StudioSpec } from '@/types/studio'
  * 회차 행에서 가져온다 — 본문 값은 무시한다 (ADR-015·016).
  *
  * 검증에 실패한 산출물도 200 으로 돌려준다. 화면이 실패 이유를 보여줘야 하기 때문이다 (ADR-030).
+ *
+ * **체험 세션도 여기서는 실제 LLM 을 쓴다** (ADR-035). 방문자가 적은 문장을 읽고 검수된
+ * 조각으로 모양을 짜는 것이 이 제품이라, 고정된 시연 응답으로는 보여 줄 수 없다. 대신
+ * 방문자별·하루 총량 상한을 걸고, 걸리면 거절이 아니라 시연용 응답으로 떨어진다.
  */
 export async function POST(request: Request) {
   // LLM 호출이 붙는다. 교안과 같은 상한을 쓴다.
@@ -101,6 +106,22 @@ export async function POST(request: Request) {
     ? calibrationFor(ds.studioContents, ds.studioFeedback, candidates[0].id, spec.grade_band)
     : null
 
+  /**
+   * 체험 세션에 LLM 을 열어 줄 것인가 (ADR-035).
+   *
+   * 방문자 한 명이 연달아 누르는 것부터 막는다 — 하루 총량은 그다음 방어선이다
+   * (`lib/ai/tour-budget.ts`). 레시피를 직접 고른 요청은 저작 자체를 하지 않으므로
+   * 여기서 세지 않는다.
+   */
+  const tourStudio =
+    !recipeId &&
+    (await tourActive()) &&
+    rateLimit(
+      clientKey(request.headers, 'studio-tour-llm'),
+      TOUR_LLM_PER_VISITOR.limit,
+      TOUR_LLM_PER_VISITOR.windowMs,
+    )
+
   const authoring = recipeId
     ? {
         recipe_id: recipeId,
@@ -109,8 +130,10 @@ export async function POST(request: Request) {
         reason: '',
         tasks: [] as string[],
         source: 'rule' as const,
+        engine: 'rule' as const,
       }
     : await authorContent(spec, candidates, firstCalibration, {
+        tourStudio,
         // 조각 조합은 3D펜만 쓴다 (ADR-034). 드론은 검수된 코스 목록 그대로다.
         pieces:
           spec.kind === 'pen3d'
@@ -154,6 +177,8 @@ export async function POST(request: Request) {
     reason: authoring.reason,
     source,
     calibrated: calibration !== null,
+    // 문장을 실제로 누가 썼는가. 화면 표시는 **이 값**이 정한다 (ADR-025·035).
+    demo_ai: authoring.engine === 'demo',
     metrics: generated.metrics,
     rounds: generated.rounds,
     findings: generated.report.findings,

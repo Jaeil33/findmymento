@@ -25,6 +25,11 @@ export type GenerateResultData = {
   spec: StudioSpec
   /** 주제를 바꿔 만든 경우의 안내. 캐릭터·상표 이름은 일반 형태로 바꾼다 (ADR-034) */
   topic_note?: string | null
+  /**
+   * 이 문장을 시연용 응답이 썼는가. 서버가 정한다 — 체험 세션도 도안 저작에서는 실제 LLM 을
+   * 쓸 수 있으므로(ADR-035), 화면 밖에서 미리 계산한 값으로 표시하면 거짓말이 된다.
+   */
+  demo_ai?: boolean
 }
 
 /**
@@ -45,12 +50,14 @@ export function GenerateResult({
   onReset,
 }: {
   data: GenerateResultData
-  /** 시연용 문장을 쓰고 있는가. 실제 LLM 이 쓴 것처럼 표시하지 않는다 (ADR-025) */
+  /** 화면을 열 때 계산한 기본값. 이번 생성의 응답이 있으면 그쪽이 먼저다 (ADR-035) */
   demoAi: boolean
   onReset: () => void
 }) {
   const [printBlocked, setPrintBlocked] = useState(false)
   const { artifact, spec, status } = data
+  // 서버가 말한 값이 우선이다 — 같은 체험 세션에서도 예산에 따라 엔진이 갈린다.
+  const demo = data.demo_ai ?? demoAi
   const metrics = artifact.metrics
   const usable = isUsable(status)
 
@@ -95,7 +102,7 @@ export function GenerateResult({
               · {spec.venue}
             </span>
             {data.source === 'llm' ? (
-              <Badge tone="neutral">{demoAi ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}</Badge>
+              <Badge tone="neutral">{demo ? DEMO_SOURCE_LABEL : SOURCE_LABEL.llm}</Badge>
             ) : null}
           </span>
         }

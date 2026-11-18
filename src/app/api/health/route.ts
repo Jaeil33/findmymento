@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
+import { tourLlmBudget, tourLlmEnabled } from '@/lib/ai/tour-budget'
 import { isDemoMode, siteUrl } from '@/lib/supabase/env'
 
 /**
@@ -25,6 +26,12 @@ export async function GET() {
     mode: isDemoMode() ? 'demo' : 'live',
     // llm: 실제 LLM · demo: 시연용 AI 응답(ADR-025) · rule: 규칙 문장
     ai_mode: isSet(process.env.ANTHROPIC_API_KEY) ? 'llm' : demoAi ? 'demo' : 'rule',
+    // 체험 세션의 도안 저작이 실제 LLM 을 쓰는가 (ADR-035). used 는 이 인스턴스 기준이다.
+    tour_llm: {
+      enabled: tourLlmEnabled() && isSet(process.env.ANTHROPIC_API_KEY),
+      used: tourLlmBudget().used,
+      max: tourLlmBudget().max,
+    },
     site_url: site,
     // 입장코드 자리에 예시 6자리를 넣은 학생 진입 URL. 도메인 오타가 여기서 보인다.
     student_entry_example: `${site}/s/123456`,

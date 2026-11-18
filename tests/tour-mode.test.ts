@@ -8,7 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  * - 체험 세션에서는 실 DB 클라이언트가 **만들어지지 않는다** (anon·service_role 둘 다)
  * - 조회는 데모 시드로, 쓰기는 메모리로 간다. 실 DB 에는 아무 일도 일어나지 않는다
  * - 역할 쿠키는 그 조건 안에서만 읽힌다. 실 DB 경로의 역할 판별은 세 테이블 조회 그대로다
- * - LLM 키를 쓰지 않는다. 익명 방문자의 클릭이 소유자의 API 예산을 쓰면 안 된다
+ * - 일반 LLM 키를 쓰지 않는다. 익명 방문자의 클릭이 소유자의 API 예산을 쓰면 안 된다
+ *   (예외 하나 — 도안 저작은 예산 상한 안에서 실제 LLM 을 쓴다. `tests/tour-llm.test.ts` 가 고정한다)
  *
  * 그래서 Supabase 키가 **들어가 있는 실 배포에서도** 이 입구를 열어 둘 수 있다.
  */
@@ -213,7 +214,8 @@ describe('역할', () => {
 })
 
 describe('AI — 익명 방문자가 LLM 예산을 쓰지 못한다', () => {
-  it('체험 세션에서는 키가 있어도 LLM 을 부르지 않는다', async () => {
+  // 도안 저작만 예외다 (ADR-035). 그 경로는 `tourStudioKey()` 로 따로 키를 얻고 예산을 깎는다.
+  it('체험 세션에서는 키가 있어도 일반 경로가 LLM 을 부르지 않는다', async () => {
     goLive()
     startTour('instructor')
     expect(await llmKeyForRequest()).toBeNull()

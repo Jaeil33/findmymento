@@ -165,6 +165,10 @@ Project Settings → Environment Variables. Production·Preview 둘 다 체크.
 | `SUPABASE_SERVICE_ROLE_KEY` | 같은 화면 (Reveal) | **`NEXT_PUBLIC_` 접두사를 절대 붙이지 말 것.** 없으면 심사·초대·문의 배정이 안 된다 |
 | `ANTHROPIC_API_KEY` | 선택 | 없으면 추천이 규칙 기반으로 동작한다 (E-06, ADR-004) |
 | `ANTHROPIC_WORKSPACE_ID` | 키가 조직 단위일 때 | Console → Settings → Workspaces 의 ID(`wrkspc_...`). 작업공간에 묶이지 않은 키는 이 값이 없으면 **모든 AI 호출이 400** 이고 화면은 규칙 문장으로 조용히 떨어진다 |
+| `TOUR_LLM` | 선택 | `off` 면 체험 세션의 도안 저작도 시연용 응답이 된다 (ADR-035) |
+| `TOUR_LLM_DAILY_MAX` | 선택 | 체험이 하루에 쓸 수 있는 LLM 호출. 기본 150, `0` 이면 끔. **인스턴스별 카운터**라 정확한 과금 상한이 아니다 — 금액 상한은 Anthropic 콘솔에서 건다 |
+
+**체험(비로그인) 경로의 비용**: 익명 방문자가 쓰는 LLM은 도안 저작 하나뿐이고, 위 두 변수와 방문자별 상한(10분 5회)이 브레이크다. 상한에 걸리면 화면은 멈추지 않고 시연용 문장으로 돌아간다.
 
 입력 후 **재배포해야 적용된다** (Deployments → 최신 → Redeploy).
 
@@ -175,6 +179,7 @@ Project Settings → Environment Variables. Production·Preview 둘 다 체크.
 ```json
 {
   "mode": "live",
+  "tour_llm": { "enabled": true, "used": 0, "max": 150 },
   "site_url": "https://<배포도메인>",
   "student_entry_example": "https://<배포도메인>/s/123456",
   "config": {

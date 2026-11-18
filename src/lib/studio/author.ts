@@ -13,7 +13,7 @@
  * 서버 전용이다. 클라이언트 컴포넌트에서 import 하지 않는다.
  */
 
-import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { createAnthropic, llmKeyForRequest, tourStudioKey } from '@/lib/ai/client'
 import { parseComposition, type PenComposition } from '@/lib/studio/pen3d/compose'
 import { demoAiEnabled, demoStudioAuthoring } from '@/lib/ai/demo-writer'
 import { numbersWithin, sanitizeList, sanitizeText } from '@/lib/ai/guard'
@@ -52,6 +52,11 @@ export type StudioAuthoring = {
   /** 학생이 할 일. 숫자가 없는 문장만 살아남는다 */
   tasks: string[]
   source: 'llm' | 'rule'
+  /**
+   * 이 문장을 **실제로 누가 썼는가.** `source` 는 "저작 레이어를 탔는가"이고, 이쪽은
+   * 화면 표시를 정한다 — 시연용 문장을 실제 AI 가 쓴 것처럼 적지 않기 위해서다 (ADR-025).
+   */
+  engine: 'llm' | 'demo' | 'rule'
 }
 
 /** 숫자처럼 보이지만 숫자가 아닌 것들. 가드가 먼저 지운다. */
@@ -82,6 +87,8 @@ const COMPOSE_SYSTEM = `
 
 **주제에 맞는 레시피가 없으면 조각을 조합해도 된다.**
 
+- 후보 레시피의 **모양**이 주제와 다르면 조합을 쓴다. 모양이 다른 레시피를 고르면 강사는 엉뚱한 도안을 받는다.
+  "물고기"에 육각 상자를 고르지 않는다. 주제가 상자·조명·화분처럼 레시피와 같은 모양일 때만 레시피다.
 - mode 를 "compose" 로 하고 composition 을 채운다. 맞는 레시피가 있으면 mode 는 "recipe" 다.
 - base 는 주어진 조각 목록에서 can_be_base 가 true 인 id 하나다.
 - parts 는 1~4개. 각각 {piece, ratio, quantity, attach}.
@@ -126,6 +133,7 @@ export function ruleAuthoring(spec: StudioSpec, candidates: AuthorCandidate[]): 
       reason: '조건에 맞는 검수된 도안이 없습니다.',
       tasks: [],
       source: 'rule',
+      engine: 'rule',
     }
   }
   const topic = spec.topic.trim()
@@ -135,6 +143,7 @@ export function ruleAuthoring(spec: StudioSpec, candidates: AuthorCandidate[]): 
     reason: `${GRADE_BAND_LABEL[spec.grade_band]} ${spec.duration_minutes}분 수업에 맞는 검수된 도안입니다. ${recipe.summary}`,
     tasks: [],
     source: 'rule',
+    engine: 'rule',
   }
 }
 
@@ -148,15 +157,25 @@ export async function authorContent(
   spec: StudioSpec,
   candidates: AuthorCandidate[],
   calibration?: StudioCalibration | null,
-  /** 조각 목록을 주면 조합(ADR-034)을 제안할 수 있다. 3D펜만 해당한다 */
-  options?: { pieces?: AuthorPiece[] },
+  options?: {
+    /** 조각 목록을 주면 조합(ADR-034)을 제안할 수 있다. 3D펜만 해당한다 */
+    pieces?: AuthorPiece[]
+    /**
+     * 체험 세션에서도 실제 LLM 을 쓸 것인가 (ADR-035). **스튜디오 생성 라우트만 준다.**
+     * 예산 상한에 걸리면 조용히 시연용 응답으로 떨어진다.
+     */
+    tourStudio?: boolean
+  },
 ): Promise<StudioAuthoring> {
   const fallback = ruleAuthoring(spec, candidates)
   if (candidates.length === 0) return fallback
 
-  const apiKey = await llmKeyForRequest()
+  // 체험 키는 예산을 깎으므로 **일반 키가 없을 때만** 본다. 순서를 바꾸면 실 계정이 체험 예산을 쓴다.
+  const apiKey =
+    (await llmKeyForRequest()) ?? (options?.tourStudio ? await tourStudioKey() : null)
   const hasKey = apiKey !== null
-  if (!hasKey && !(await demoAiEnabled())) return fallback
+  const demoAllowed = await demoAiEnabled()
+  if (!hasKey && !demoAllowed) return fallback
 
   const composable = (options?.pieces?.length ?? 0) > 0
 
@@ -191,40 +210,18 @@ export async function authorContent(
       : null,
   }
 
-  try {
-    let text: string
-    if (hasKey) {
-      const client = createAnthropic(apiKey)
-      const response = await client.beta.messages.create(
-        {
-          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
-          max_tokens: 1200,
-          // 레시피 선택은 긴 추론이 필요한 일이 아니다. 강사는 생성 버튼 앞에서 기다린다.
-          output_config: { effort: 'low' },
-          system: composable ? `${SYSTEM}${COMPOSE_SYSTEM}` : SYSTEM,
-          messages: [{ role: 'user', content: JSON.stringify(payload) }],
-          betas: ['server-side-fallback-2026-07-01'],
-          fallbacks: 'default',
-        },
-        { timeout: 15_000, maxRetries: 1 },
-      )
-      if (response.stop_reason === 'refusal') return fallback
-      text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
-    } else {
-      text = JSON.stringify(demoStudioAuthoring(payload))
-    }
-
+  /** 응답 하나를 가드에 통과시킨다. 하나라도 걸리면 `null` — 호출자가 다음 수단으로 간다. */
+  function accept(text: string, engine: 'llm' | 'demo'): StudioAuthoring | null {
     const parsed = parse(text)
-    if (!parsed) return fallback
+    if (!parsed) return null
 
     // 조합 제안 (ADR-034). 목록·범위를 하나라도 벗어나면 `null` 이고, 그때는 레시피로 간다.
-    const composition = composable && parsed.mode === 'compose'
-      ? parseComposition(parsed.composition)
-      : null
+    const composition =
+      composable && parsed.mode === 'compose' ? parseComposition(parsed.composition) : null
 
     // 목록 밖의 id 를 돌려줬다면 문장도 믿지 않는다 — 지시를 무시한 응답이다.
     const recipeId = typeof parsed.recipe_id === 'string' ? parsed.recipe_id.trim() : ''
-    if (!composition && !candidates.some((r) => r.id === recipeId)) return fallback
+    if (!composition && !candidates.some((r) => r.id === recipeId)) return null
 
     const title = sanitizeText(parsed.title, 40)
     const reason = sanitizeText(parsed.reason, 120)
@@ -239,9 +236,52 @@ export async function authorContent(
       reason: reason ?? fallback.reason,
       tasks,
       source: 'llm',
+      engine,
     }
-  } catch {
-    // 키 만료·한도·타임아웃·스키마 변경 전부 여기로 떨어진다.
-    return fallback
   }
+
+  if (hasKey) {
+    try {
+      const client = createAnthropic(apiKey)
+      const response = await client.beta.messages.create(
+        {
+          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+          max_tokens: 1200,
+          // 레시피 선택은 긴 추론이 필요한 일이 아니다. 강사는 생성 버튼 앞에서 기다린다.
+          output_config: { effort: 'low' },
+          system: composable ? `${SYSTEM}${COMPOSE_SYSTEM}` : SYSTEM,
+          messages: [{ role: 'user', content: JSON.stringify(payload) }],
+          betas: ['server-side-fallback-2026-07-01'],
+          fallbacks: 'default',
+        },
+        { timeout: 15_000, maxRetries: 1 },
+      )
+      if (response.stop_reason !== 'refusal') {
+        const authored = accept(
+          response.content.map((b) => (b.type === 'text' ? b.text : '')).join(''),
+          'llm',
+        )
+        if (authored) return authored
+      }
+    } catch {
+      // 키 만료·한도·타임아웃·스키마 변경 전부 여기로 떨어진다. 다음 수단으로 간다.
+    }
+  }
+
+  /**
+   * LLM 이 없거나(데모 배포) 실패했을 때의 시연용 응답 (ADR-025).
+   *
+   * 체험 세션에서 키가 죽어 있으면 여기로 온다. **규칙 선택보다 시연용 응답이 낫다** —
+   * 규칙은 후보 1순위를 그대로 집어 주므로 "물고기"에 이름 키링이 나온다 (ADR-035).
+   */
+  if (demoAllowed) {
+    try {
+      const authored = accept(JSON.stringify(demoStudioAuthoring(payload)), 'demo')
+      if (authored) return authored
+    } catch {
+      // 시연용 응답까지 실패하면 규칙이다.
+    }
+  }
+
+  return fallback
 }
