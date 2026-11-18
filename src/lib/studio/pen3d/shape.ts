@@ -51,11 +51,14 @@ import {
   strokesBBox,
   STRAIGHT_ANGLE_DEG,
 } from '@/lib/studio/geometry'
+import { snapColor } from '@/lib/studio/palette'
+import { traceFromArt } from '@/lib/studio/pen3d/contour'
 import { penGapOptions } from '@/lib/studio/pen3d/validate'
 import type { PenRecipe, PenRecipeParams } from '@/lib/studio/pen3d/recipes'
 import type { GradeBand } from '@/types/domain'
 import type {
   NormPoint,
+  PaletteName,
   PartArt,
   PenJoint,
   PenPart,
@@ -236,6 +239,49 @@ function outlineList(raw: unknown, max: number, maxY = 1): NormPoint[][] {
 const SILHOUETTE_KEYS = ['silhouette', 'points', 'path', 'outline_points', 'contour'] as const
 const DETAIL_KEYS = ['details', 'inner', 'inner_lines', 'lines'] as const
 
+/**
+ * 색 영역 개수 상한 (ADR-039). 자전거의 "바퀴 둘 + 프레임 + 안장 + 손잡이" 가 5개라 그보다
+ * 넉넉히 둔다. 상한이 필요한 이유는 품질이 아니라 **예산**이다 — 영역이 수십 개면 응답이
+ * 길어져 타임아웃에 걸리고, 그러면 모양이 아예 나오지 않는다.
+ */
+const ART_MAX_REGIONS = 14
+
+/** 한 영역의 점 개수. 덧그릴 선이 아니라 그림이므로 윤곽보다 촘촘해도 된다 */
+const ART_POINTS = [3, 120] as const
+
+type RawRegion = { outline: NormPoint[]; holes: NormPoint[][]; color: PaletteName; z: number }
+
+/**
+ * 색 영역 목록을 읽는다. **읽을 수 없는 영역은 그 영역만 버린다** — 영역 하나 때문에 모양
+ * 전체를 버리면 강사는 열 개 중 아홉이 멀쩡한 그림을 놓치고 실패 화면을 본다.
+ *
+ * 좌표는 아직 정규화 전이다. 변환은 `readShape` 가 윤곽과 **같은 `map`** 으로 한다.
+ */
+function readArtRegions(raw: unknown, maxY: number): RawRegion[] {
+  if (!Array.isArray(raw)) return []
+
+  const out: RawRegion[] = []
+  for (const entry of raw.slice(0, ART_MAX_REGIONS)) {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) continue
+    const body = entry as Record<string, unknown>
+
+    const outline = pointsIn(
+      firstArray(body, SILHOUETTE_KEYS),
+      ART_POINTS[0],
+      ART_POINTS[1],
+      maxY,
+    )
+    if (!outline) continue
+
+    const holes = outlineList(body.holes, SHAPE_MAX_HOLES, maxY)
+    // `z` 는 배열 순서가 기본이다 — 모델이 안 주면 먼저 보낸 것이 아래로 깔린다
+    const z = typeof body.z === 'number' && Number.isFinite(body.z) ? body.z : out.length
+
+    out.push({ outline, holes, color: snapColor(body.color ?? body.fill ?? body.colour), z })
+  }
+  return out
+}
+
 function firstArray(body: Record<string, unknown>, keys: readonly string[]): unknown {
   for (const key of keys) {
     if (Array.isArray(body[key])) return body[key]
@@ -294,6 +340,15 @@ export function readShape(
   const details = outlineList(firstArray(body, DETAIL_KEYS), SHAPE_MAX_DETAILS, maxY)
   const holes = outlineList(body.holes, SHAPE_MAX_HOLES, maxY)
 
+  /**
+   * 색 영역 (ADR-039). **같은 `map` 을 쓰려고 여기서 읽는다.**
+   *
+   * 호출자가 따로 변환해 넣으면 두 레이어가 다른 자를 쓰게 된다 — `dedupe` 가 점을 하나
+   * 빼면 bbox 가 미세하게 달라지고, 그 차이만큼 색이 선에서 밀린다. 변환이 한 곳에 있으면
+   * 그 일이 일어날 수 없다.
+   */
+  const artRaw = readArtRegions(body.art, maxY)
+
   // 정규화 공간에서의 붙은 점 정리 — 0.2% 보다 가까운 점은 같은 점이다
   const outer = dedupe(silhouette, 0.002)
   if (outer.length < SHAPE_POINTS[0]) return no('겹친 점을 빼면 점이 너무 적습니다')
@@ -334,16 +389,21 @@ export function readShape(
     holes: keep(holes),
     hanger: body.hanger === true,
     aspect,
-    // 색 영역은 `readArt` 가 **같은 `map` 으로** 변환해 넣는다 (ADR-039). 여기서 비워 두는
-    // 이유: 이 함수는 `trace` 레이어만 읽는다. 두 레이어를 한 함수에서 읽으면 좌표계가
-    // 갈라졌을 때 어느 쪽이 기준인지 알 수 없게 된다.
-    art: [],
+    // 덧그릴 선과 **같은 `map`** 을 지난 색 영역이다 (ADR-039)
+    art: artRaw.map((region) => ({
+      color: region.color,
+      z: region.z,
+      outline: { points: region.outline.map(map), closed: true as const },
+      holes: region.holes.map((hole) => ({ points: hole.map(map), closed: true as const })),
+    })),
     source: meta.source,
     reviewed: meta.source === 'atlas',
   }
 
   if (shape.id === '') {
-    const signature = JSON.stringify([shape.silhouette.points, shape.details, shape.holes])
+    // 색까지 서명에 넣는다 — 같은 기하에 다른 색이면 **다른 도안**이고, 성과 피드백의
+    // 집계 키(ADR-032)도 달라야 한다
+    const signature = JSON.stringify([shape.silhouette.points, shape.details, shape.holes, shape.art])
     shape.id = `dsl-${fnv1a(signature)}`
   }
   return { shape, reason: null }
@@ -357,6 +417,82 @@ export function readShape(
  */
 export function parseShape(raw: unknown, meta: ShapeMeta): PenShape | null {
   return readShape(raw, meta).shape
+}
+
+/**
+ * **색 영역 제안을 모양으로 만든다** (ADR-039·040).
+ *
+ * 모델은 색 영역만 보낸다. 덧그릴 선은 보내지 않는다 — 그것은 `traceFromArt` 가 라스터
+ * 등고선으로 **유도한다.** 모델에게 선까지 그리게 하면 색과 선이 어긋난 도안이 나오고,
+ * 그 어긋남은 인쇄한 뒤에야 보인다.
+ *
+ * 유도한 선과 색 영역을 **하나의 payload** 로 묶어 `readShape` 에 넘긴다. 정규화·종횡비
+ * 검사·보정이 한 곳에서만 일어나므로 두 레이어가 같은 자를 쓴다.
+ */
+export function readArtShape(
+  raw: unknown,
+  meta: ShapeMeta,
+): { shape: PenShape | null; reason: string | null } {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return { shape: null, reason: '객체가 아닙니다' }
+  }
+  let body = raw as Record<string, unknown>
+
+  // 한 겹 감싸서 보내는 경우를 받아 준다 — `{art: {regions: [...]}}`
+  if (!Array.isArray(body.art) && !Array.isArray(body.regions)) {
+    for (const key of ['art', 'picture', 'drawing']) {
+      const nested = body[key]
+      if (typeof nested === 'object' && nested !== null && !Array.isArray(nested)) {
+        body = { ...body, ...(nested as Record<string, unknown>) }
+        break
+      }
+    }
+  }
+
+  const maxY = yCeiling(meta.source)
+  const regions = readArtRegions(body.art ?? body.regions, maxY)
+  if (regions.length === 0) {
+    return { shape: null, reason: '색 영역을 읽을 수 없습니다 (art 에 영역 배열을 넣어 주세요)' }
+  }
+
+  // 유도는 입력과 **같은 좌표계**에서 일어난다. 정규화는 `readShape` 가 한 번만 한다.
+  const trace = traceFromArt(
+    regions.map((region) => ({
+      color: region.color,
+      z: region.z,
+      outline: { points: region.outline, closed: true as const },
+      holes: region.holes.map((hole) => ({ points: hole, closed: true as const })),
+    })),
+  )
+  if (!trace) {
+    return { shape: null, reason: '색 영역에서 덧그릴 선을 뽑지 못했습니다' }
+  }
+
+  /**
+   * **색 영역의 경계가 곧 내부선이다** — 이것이 없으면 자전거가 덩어리가 된다.
+   *
+   * 바깥 등고선만 뽑으면 바퀴 둘과 프레임이 하나로 합쳐지고, 학생이 덧그릴 선에는 바퀴가
+   * 없다. 실측에서 그렇게 나왔다: 색 영역 7.2개 · 윤곽 점 56개인데 검토는 "바퀴 둘과 뼈대가
+   * 보이지 않습니다" 였다. 색은 들어왔지만 **학생이 그리는 선**에는 안 들어온 것이다.
+   *
+   * 그래서 각 영역의 외곽을 내부선 후보로 넘긴다. 걸러내는 일은 이미 있는 코드가 한다 —
+   * `keep` 이 실루엣 밖으로 나가거나 스스로 교차하는 것을 빼고, `SHAPE_MAX_DETAILS` 가 개수를
+   * 자르고, `build` 의 `acceptsExtra` 가 간격 임계값에 걸리는 것을 뺀다. 몸통 영역의 외곽은
+   * 실루엣과 겹치므로 `keep` 에서 자연히 떨어진다.
+   *
+   * **간격이 모자라면 모양이 아니라 디테일이 먼저 깎인다** 는 규칙이 여기서 그대로 작동한다.
+   */
+  return readShape(
+    {
+      title: body.title,
+      silhouette: trace.points,
+      details: regions.map((region) => region.outline),
+      holes: regions.flatMap((region) => region.holes),
+      hanger: body.hanger,
+      art: body.art ?? body.regions,
+    },
+    meta,
+  )
 }
 
 // ============================================================================

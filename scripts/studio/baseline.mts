@@ -33,9 +33,9 @@ import { atlasMatches, atlasShape } from '@/lib/studio/atlas'
 import { atlasGate, atlasId, gateSpec, parseWordList, type WordEntry } from '@/lib/studio/atlas-build'
 import { SHAPE_OUTLINE_TIMEOUT_MS } from '@/lib/studio/constants'
 import { buildPattern } from '@/lib/studio/pen3d/recipes'
-import { OUTLINE_ONLY_SYSTEM } from '@/lib/studio/pen3d/outline-prompt'
+import { ART_ONLY_SYSTEM, OUTLINE_ONLY_SYSTEM } from '@/lib/studio/pen3d/outline-prompt'
 import { reviewShape } from '@/lib/studio/pen3d/review'
-import { readShape, shapeRecipe } from '@/lib/studio/pen3d/shape'
+import { readArtShape, readShape, shapeRecipe } from '@/lib/studio/pen3d/shape'
 import { validatePen } from '@/lib/studio/pen3d/validate'
 import { generalizeCharacter } from '@/lib/studio/topic'
 import type { PenShape } from '@/types/studio'
@@ -52,6 +52,8 @@ type Args = {
   limit: number
   attempts: number
   concurrency: number
+  /** `outline` = 개편 전 경로(ADR-036). `art` = 색 영역 경로(ADR-039·040) */
+  engine: 'outline' | 'art'
 }
 
 const DEFAULT_WORDS = [
@@ -72,6 +74,7 @@ function parseArgs(argv: string[]): Args {
     limit: 1000,
     attempts: 2,
     concurrency: 4,
+    engine: 'outline',
   }
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i]
@@ -83,6 +86,7 @@ function parseArgs(argv: string[]): Args {
     else if (flag === '--limit' && value) (args.limit = Number(value)), (i += 1)
     else if (flag === '--attempts' && value) (args.attempts = Number(value)), (i += 1)
     else if (flag === '--concurrency' && value) (args.concurrency = Number(value)), (i += 1)
+    else if (flag === '--engine' && value) (args.engine = value === 'art' ? 'art' : 'outline'), (i += 1)
   }
   if (args.words.length === 0 && args.singles.length === 0) args.words = [...DEFAULT_WORDS]
   return args
@@ -94,7 +98,12 @@ function parseArgs(argv: string[]): Args {
 
 type Proposal = { shape: PenShape | null; reason: string | null; ms: number; refused: boolean }
 
-async function propose(entry: WordEntry, apiKey: string, note: string | null): Promise<Proposal> {
+async function propose(
+  entry: WordEntry,
+  apiKey: string,
+  note: string | null,
+  engine: 'outline' | 'art',
+): Promise<Proposal> {
   const started = Date.now()
   const client = createAnthropic(apiKey)
   const response = await client.beta.messages.create(
@@ -102,7 +111,7 @@ async function propose(entry: WordEntry, apiKey: string, note: string | null): P
       model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
       max_tokens: 2400,
       output_config: { effort: 'low' },
-      system: OUTLINE_ONLY_SYSTEM,
+      system: engine === 'art' ? ART_ONLY_SYSTEM : OUTLINE_ONLY_SYSTEM,
       messages: [
         {
           role: 'user',
@@ -136,12 +145,14 @@ async function propose(entry: WordEntry, apiKey: string, note: string | null): P
     return { shape: null, reason: 'JSON 을 읽을 수 없습니다', ms, refused: false }
   }
 
-  const read = readShape(parsed.outline ?? parsed, {
+  const meta = {
     word: entry.word,
-    source: 'atlas',
+    source: 'atlas' as const,
     id: atlasId(entry.word),
     words: entry.words,
-  })
+  }
+  const read =
+    engine === 'art' ? readArtShape(parsed, meta) : readShape(parsed.outline ?? parsed, meta)
   return { shape: read.shape, reason: read.reason, ms, refused: false }
 }
 
@@ -169,6 +180,8 @@ type Attempt = {
   /** 윤곽 점 개수 — 구체성의 보조 지표 (Q5 의 B 지표) */
   points: number | null
   details: number | null
+  /** 색 영역 개수 (ADR-039). `outline` 엔진에서는 항상 0 이다 */
+  regions: number | null
   ms: number
   llm_calls: number
 }
@@ -195,6 +208,7 @@ async function runAttempt(
   n: number,
   /** 아틀라스가 적중했으면 그 모양. 있으면 LLM 을 부르지 않는다 */
   preset: PenShape | null,
+  engine: 'outline' | 'art',
 ): Promise<Attempt> {
   const base: Attempt = {
     n,
@@ -206,6 +220,7 @@ async function runAttempt(
     missing: null,
     points: null,
     details: null,
+    regions: null,
     ms: 0,
     llm_calls: 0,
   }
@@ -217,7 +232,7 @@ async function runAttempt(
   } else {
     let proposal: Proposal
     try {
-      proposal = await propose(entry, apiKey, note)
+      proposal = await propose(entry, apiKey, note, engine)
     } catch (error) {
       return { ...base, stage: 'error', reason: `호출 실패: ${(error as Error).message.slice(0, 80)}`, llm_calls: 1 }
     }
@@ -233,6 +248,7 @@ async function runAttempt(
 
   base.points = shape.silhouette.points.length
   base.details = shape.details.length
+  base.regions = shape.art.length
 
   // 런타임 관문 — 강사가 실제로 겪는 조건 하나 (중등 · 2D). 헤드라인 숫자가 이것이다.
   const spec = gateSpec('middle', 'flat')
@@ -276,7 +292,12 @@ async function runAttempt(
   }
 }
 
-async function runWord(raw: WordEntry, apiKey: string, maxAttempts: number): Promise<WordResult> {
+async function runWord(
+  raw: WordEntry,
+  apiKey: string,
+  maxAttempts: number,
+  engine: 'outline' | 'art',
+): Promise<WordResult> {
   // 현재 코드의 동작을 그대로 잰다 — 일반화를 끄지 않는다 (Q4 는 다음 단계에서 걷어낸다)
   const general = generalizeCharacter(raw.word)
   const entry: WordEntry = general.replaced
@@ -295,7 +316,7 @@ async function runWord(raw: WordEntry, apiKey: string, maxAttempts: number): Pro
   const rounds = preset ? 1 : maxAttempts
 
   for (let n = 1; n <= rounds; n += 1) {
-    const attempt = await runAttempt(entry, apiKey, note, n, preset)
+    const attempt = await runAttempt(entry, apiKey, note, n, preset, engine)
     attempts.push(attempt)
     if (attempt.stage === 'pass') break
     note = attempt.reason
@@ -394,7 +415,7 @@ function buildReport(results: WordResult[], args: Args, elapsedMs: number): stri
     '# 베이스라인 — 개편 전 현재 성능',
     '',
     `측정 시각: ${new Date().toISOString()}`,
-    `모델: \`${process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'}\` · 시도 상한 ${args.attempts}회 · 동시 ${args.concurrency}`,
+    `모델: \`${process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'}\` · 엔진 \`${args.engine}\` · 시도 상한 ${args.attempts}회 · 동시 ${args.concurrency}`,
     '',
     '**이 숫자는 코드를 고치기 전의 것이다.** 고친 뒤에는 다시 뜰 수 없다.',
     '',
@@ -452,6 +473,7 @@ function buildReport(results: WordResult[], args: Args, elapsedMs: number): stri
     `| 윤곽 점 개수 평균 | ${avg(pointSamples).toFixed(1)}개 |`,
     `| 윤곽 점 개수 범위 | ${pointSamples.length ? `${Math.min(...pointSamples)}~${Math.max(...pointSamples)}` : '—'} |`,
     `| 내부선 개수 평균 | ${avg(detailSamples).toFixed(1)}개 |`,
+    `| 색 영역 개수 평균 | ${avg(results.flatMap((r) => r.attempts.map((a) => a.regions)).filter((x): x is number => x !== null)).toFixed(1)}개 |`,
     '',
     '프롬프트가 점 14~28개를 권하고 있으므로 이 평균이 "구체적이지 않음"의 기하적 실체다.',
     '',
@@ -510,7 +532,7 @@ async function main() {
   let done = 0
 
   const results = await runPool(entries, args.concurrency, async (entry) => {
-    const result = await runWord(entry, apiKey, args.attempts)
+    const result = await runWord(entry, apiKey, args.attempts, args.engine)
     done += 1
     const mark = result.pass_at_1 ? '✓1' : result.pass_at_2 ? '✓2' : '✗ '
     console.log(
