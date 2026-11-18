@@ -3,7 +3,8 @@ import { notFound, redirect } from 'next/navigation'
 import { GenerateForm, type SessionOption } from '@/components/studio/GenerateForm'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
-import { tourStudioLlmAvailable } from '@/lib/ai/client'
+import { llmKeyForRequest, tourStudioLlmAvailable } from '@/lib/ai/client'
+import { atlasCount } from '@/lib/studio/atlas'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { instructorSessions } from '@/lib/db/queries'
@@ -52,6 +53,15 @@ export default async function StudioNewPage({
   // 체험 세션이어도 도안 저작은 실제 AI 가 한다 (ADR-035). 그 사실을 적어 둔다.
   const tourLlm = await tourStudioLlmAvailable()
 
+  /**
+   * 2D 를 기본값으로 둘 수 있는가 (ADR-036·037).
+   *
+   * 2D 는 **모양 경로가 하나뿐이다** — 검수된 실루엣이거나 LLM 윤곽 제안이다. 아틀라스가 비어
+   * 있고 키도 없는 세션(체험)에서 2D 를 기본값으로 두면 강사·방문자는 **첫 화면부터 실패**를 본다.
+   * 그래서 기본값을 조건에서 계산한다 — 아틀라스가 쌓이거나 키가 붙는 순간 저절로 2D 가 된다.
+   */
+  const flatReady = atlasCount() > 0 || (await llmKeyForRequest()) !== null
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -83,6 +93,7 @@ export default async function StudioNewPage({
           lineageId={lineage ?? null}
           defaultTopic={head?.spec.topic ?? ''}
           defaultSessionId={session ?? head?.session_id ?? ''}
+          defaultForm={flatReady ? 'flat' : 'solid'}
           // 시연용 문장을 쓰는 세션이면 결과 화면이 그렇게 표시한다 (ADR-025).
           demoAi={await demoAiEnabled()}
         />

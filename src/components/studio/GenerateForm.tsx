@@ -62,6 +62,7 @@ export function GenerateForm({
   lineageId = null,
   defaultTopic = '',
   defaultSessionId = '',
+  defaultForm = 'flat',
   demoAi = false,
 }: {
   sessions: SessionOption[]
@@ -69,6 +70,11 @@ export function GenerateForm({
   lineageId?: string | null
   defaultTopic?: string
   defaultSessionId?: string
+  /**
+   * 처음 고를 모드. 서버가 정한다 — 2D 는 검수된 실루엣이나 LLM 키가 있어야 만들 수 있으므로,
+   * 둘 다 없는 세션에서는 `solid` 로 열어야 첫 화면이 실패가 아니다 (ADR-036·037).
+   */
+  defaultForm?: ShapeForm
   /** 시연용 문장을 쓰는 세션인가. 결과 화면이 실제 AI 처럼 표시하지 않기 위해 받는다 (ADR-025) */
   demoAi?: boolean
 }) {
@@ -81,8 +87,9 @@ export function GenerateForm({
   const [venue, setVenue] = useState<Venue>('교실')
   const [equipment, setEquipment] = useState('3D펜 20자루, PLA 필라멘트, 실리콘 매트')
   const [recipeId, setRecipeId] = useState('')
-  // 기본값은 2D 다 — 짧은 시수에서 실패하지 않는 쪽이다 (ADR-037).
-  const [form, setForm] = useState<ShapeForm>('flat')
+  // 기본값은 2D 다 — 짧은 시수에서 실패하지 않는 쪽이다 (ADR-037). 단 2D 를 만들 수단이
+  // 없는 세션에서는 서버가 `solid` 를 넘긴다.
+  const [form, setForm] = useState<ShapeForm>(defaultForm)
   const [pending, setPending] = useState(false)
   const [stage, setStage] = useState(0)
   const [failure, setFailure] = useState<Failure | null>(null)

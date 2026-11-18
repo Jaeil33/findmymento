@@ -36,6 +36,14 @@ const form = () => render(<GenerateForm sessions={[]} recipes={recipes} />)
 const sentBody = () => JSON.parse((fetchMock.mock.calls[0]![1] as { body: string }).body)
 
 describe('2D/3D 선택', () => {
+  it('서버가 3D 를 기본값으로 주면 그대로 연다 — 2D 를 만들 수단이 없는 세션이다', () => {
+    render(<GenerateForm sessions={[]} recipes={recipes} defaultForm="solid" />)
+    expect(screen.getByRole('button', { name: SHAPE_FORM_LABEL.solid })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
   it('두 모드가 칩으로 있고 기본값은 2D 다', () => {
     form()
     const flat = screen.getByRole('button', { name: SHAPE_FORM_LABEL.flat })
