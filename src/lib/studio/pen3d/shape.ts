@@ -48,13 +48,18 @@ import {
   segIntersects,
   segments,
   strokeLength,
+  strokesBBox,
   STRAIGHT_ANGLE_DEG,
 } from '@/lib/studio/geometry'
+import { snapColor } from '@/lib/studio/palette'
+import { traceFromArt } from '@/lib/studio/pen3d/contour'
 import { penGapOptions } from '@/lib/studio/pen3d/validate'
 import type { PenRecipe, PenRecipeParams } from '@/lib/studio/pen3d/recipes'
 import type { GradeBand } from '@/types/domain'
 import type {
   NormPoint,
+  PaletteName,
+  PartArt,
   PenJoint,
   PenPart,
   PenShape,
@@ -144,10 +149,25 @@ export type ShapeMeta = {
  * 당겨도 되는 이유: 모양은 바로 뒤에서 bbox 로 다시 정규화되므로 치수의 결정권은 그대로
  * 코드에 있다. 반대로 통째로 버리면, 0.02 만큼 넘긴 응답 하나 때문에 강사는 실패 화면을 본다.
  */
-function coord(value: unknown): number | null {
+function coord(value: unknown, ceiling = 1): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
-  if (value < -SHAPE_COORD_TOLERANCE || value > 1 + SHAPE_COORD_TOLERANCE) return null
-  return Math.min(1, Math.max(0, value))
+  if (value < -SHAPE_COORD_TOLERANCE || value > ceiling + SHAPE_COORD_TOLERANCE) return null
+  return Math.min(ceiling, Math.max(0, value))
+}
+
+/**
+ * 세로 좌표의 상한. **두 공간의 자가 다르다.**
+ *
+ * LLM 에게 요구하는 것은 0~1 이고, 거기서 벗어난 응답은 통째로 버린다 (ADR-036) — `1`.
+ * 반대로 아틀라스는 `readShape` 가 **가로를 1 로** 맞춘 값을 그대로 저장하고, 세로는 종횡비가
+ * 보존되므로 1 을 넘는다 (연필은 3.5 가 정상이다). 저장된 항목을 LLM 용 자로 다시 재면
+ * 검수를 통과해 들어간 세로로 긴 실루엣이 **조회 시점에 사라진다.**
+ *
+ * 늘리는 것은 세로뿐이고 상한은 이미 있는 종횡비 임계값이다 — 새 임계값을 만들지 않는다.
+ * 가로는 어느 쪽이든 0~1 이다.
+ */
+function yCeiling(source: ShapeMeta['source']): number {
+  return source === 'atlas' ? SHAPE_ASPECT[1] : 1
 }
 
 /**
@@ -157,16 +177,16 @@ function coord(value: unknown): number | null {
  * 실패 화면을 본다. 어느 표기든 숫자 두 개이고, 그 숫자의 뜻(비율)과 쓰임(코드가 mm 로 환산)은
  * 달라지지 않는다 — 경계는 그대로다 (ADR-036).
  */
-function point(entry: unknown): NormPoint | null {
+function point(entry: unknown, maxY = 1): NormPoint | null {
   if (Array.isArray(entry)) {
     const px = coord(entry[0])
-    const py = coord(entry[1])
+    const py = coord(entry[1], maxY)
     return px === null || py === null ? null : { x: px, y: py }
   }
   if (typeof entry !== 'object' || entry === null) return null
   const body = entry as Record<string, unknown>
   const px = coord(body.x ?? body.X)
-  const py = coord(body.y ?? body.Y)
+  const py = coord(body.y ?? body.Y, maxY)
   return px === null || py === null ? null : { x: px, y: py }
 }
 
@@ -174,13 +194,13 @@ function point(entry: unknown): NormPoint | null {
  * 점 목록. 요청 범위보다 **많이** 오면 등간격으로 솎아서 쓴다 — 촘촘한 것은 지시를 무시한
  * 것이 아니라 더 그린 것이다. `SHAPE_POINTS_TOLERATED` 를 넘으면 버린다.
  */
-function pointsIn(raw: unknown, min: number, max: number): NormPoint[] | null {
+function pointsIn(raw: unknown, min: number, max: number, maxY = 1): NormPoint[] | null {
   if (!Array.isArray(raw)) return null
   if (raw.length < min || raw.length > SHAPE_POINTS_TOLERATED) return null
 
   const all: NormPoint[] = []
   for (const entry of raw) {
-    const parsed = point(entry)
+    const parsed = point(entry, maxY)
     if (!parsed) return null
     all.push(parsed)
   }
@@ -199,7 +219,7 @@ function pointsIn(raw: unknown, min: number, max: number): NormPoint[] | null {
  * 목록 형식이 어긋났다고 **실루엣까지** 버렸다. 눈·귀 선 하나의 표기 때문에 도안을 못 만드는
  * 것은 말이 안 된다. 실루엣만 읽히면 도안은 나오고, 내부선은 있으면 더 좋은 것이다.
  */
-function outlineList(raw: unknown, max: number): NormPoint[][] {
+function outlineList(raw: unknown, max: number, maxY = 1): NormPoint[][] {
   if (!Array.isArray(raw)) return []
   const out: NormPoint[][] = []
   for (const entry of raw.slice(0, max)) {
@@ -209,7 +229,7 @@ function outlineList(raw: unknown, max: number): NormPoint[][] {
       : typeof entry === 'object' && entry !== null
         ? firstArray(entry as Record<string, unknown>, SILHOUETTE_KEYS)
         : undefined
-    const points = pointsIn(list, 3, SHAPE_POINTS[1])
+    const points = pointsIn(list, 3, SHAPE_POINTS[1], maxY)
     if (points) out.push(points)
   }
   return out
@@ -218,6 +238,49 @@ function outlineList(raw: unknown, max: number): NormPoint[][] {
 /** 윤곽 점 목록이 들어올 수 있는 키 이름. 뜻이 같으면 이름이 달라도 받는다 */
 const SILHOUETTE_KEYS = ['silhouette', 'points', 'path', 'outline_points', 'contour'] as const
 const DETAIL_KEYS = ['details', 'inner', 'inner_lines', 'lines'] as const
+
+/**
+ * 색 영역 개수 상한 (ADR-039). 자전거의 "바퀴 둘 + 프레임 + 안장 + 손잡이" 가 5개라 그보다
+ * 넉넉히 둔다. 상한이 필요한 이유는 품질이 아니라 **예산**이다 — 영역이 수십 개면 응답이
+ * 길어져 타임아웃에 걸리고, 그러면 모양이 아예 나오지 않는다.
+ */
+const ART_MAX_REGIONS = 14
+
+/** 한 영역의 점 개수. 덧그릴 선이 아니라 그림이므로 윤곽보다 촘촘해도 된다 */
+const ART_POINTS = [3, 120] as const
+
+type RawRegion = { outline: NormPoint[]; holes: NormPoint[][]; color: PaletteName; z: number }
+
+/**
+ * 색 영역 목록을 읽는다. **읽을 수 없는 영역은 그 영역만 버린다** — 영역 하나 때문에 모양
+ * 전체를 버리면 강사는 열 개 중 아홉이 멀쩡한 그림을 놓치고 실패 화면을 본다.
+ *
+ * 좌표는 아직 정규화 전이다. 변환은 `readShape` 가 윤곽과 **같은 `map`** 으로 한다.
+ */
+function readArtRegions(raw: unknown, maxY: number): RawRegion[] {
+  if (!Array.isArray(raw)) return []
+
+  const out: RawRegion[] = []
+  for (const entry of raw.slice(0, ART_MAX_REGIONS)) {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) continue
+    const body = entry as Record<string, unknown>
+
+    const outline = pointsIn(
+      firstArray(body, SILHOUETTE_KEYS),
+      ART_POINTS[0],
+      ART_POINTS[1],
+      maxY,
+    )
+    if (!outline) continue
+
+    const holes = outlineList(body.holes, SHAPE_MAX_HOLES, maxY)
+    // `z` 는 배열 순서가 기본이다 — 모델이 안 주면 먼저 보낸 것이 아래로 깔린다
+    const z = typeof body.z === 'number' && Number.isFinite(body.z) ? body.z : out.length
+
+    out.push({ outline, holes, color: snapColor(body.color ?? body.fill ?? body.colour), z })
+  }
+  return out
+}
 
 function firstArray(body: Record<string, unknown>, keys: readonly string[]): unknown {
   for (const key of keys) {
@@ -260,10 +323,13 @@ export function readShape(
   const title = rawTitle.length >= 1 && rawTitle.length <= 40 ? rawTitle : meta.word.trim()
   if (title.length < 1 || title.length > 40) return no('제목과 단어가 모두 비어 있습니다')
 
+  // 저장된 아틀라스 항목은 "가로 1" 공간이라 세로가 1 을 넘는다. LLM 응답은 0~1 그대로다.
+  const maxY = yCeiling(meta.source)
   const silhouette = pointsIn(
     firstArray(body, SILHOUETTE_KEYS),
     SHAPE_POINTS[0],
     SHAPE_POINTS[1],
+    maxY,
   )
   if (!silhouette) {
     return no(
@@ -271,8 +337,17 @@ export function readShape(
     )
   }
 
-  const details = outlineList(firstArray(body, DETAIL_KEYS), SHAPE_MAX_DETAILS)
-  const holes = outlineList(body.holes, SHAPE_MAX_HOLES)
+  const details = outlineList(firstArray(body, DETAIL_KEYS), SHAPE_MAX_DETAILS, maxY)
+  const holes = outlineList(body.holes, SHAPE_MAX_HOLES, maxY)
+
+  /**
+   * 색 영역 (ADR-039). **같은 `map` 을 쓰려고 여기서 읽는다.**
+   *
+   * 호출자가 따로 변환해 넣으면 두 레이어가 다른 자를 쓰게 된다 — `dedupe` 가 점을 하나
+   * 빼면 bbox 가 미세하게 달라지고, 그 차이만큼 색이 선에서 밀린다. 변환이 한 곳에 있으면
+   * 그 일이 일어날 수 없다.
+   */
+  const artRaw = readArtRegions(body.art, maxY)
 
   // 정규화 공간에서의 붙은 점 정리 — 0.2% 보다 가까운 점은 같은 점이다
   const outer = dedupe(silhouette, 0.002)
@@ -314,12 +389,21 @@ export function readShape(
     holes: keep(holes),
     hanger: body.hanger === true,
     aspect,
+    // 덧그릴 선과 **같은 `map`** 을 지난 색 영역이다 (ADR-039)
+    art: artRaw.map((region) => ({
+      color: region.color,
+      z: region.z,
+      outline: { points: region.outline.map(map), closed: true as const },
+      holes: region.holes.map((hole) => ({ points: hole.map(map), closed: true as const })),
+    })),
     source: meta.source,
     reviewed: meta.source === 'atlas',
   }
 
   if (shape.id === '') {
-    const signature = JSON.stringify([shape.silhouette.points, shape.details, shape.holes])
+    // 색까지 서명에 넣는다 — 같은 기하에 다른 색이면 **다른 도안**이고, 성과 피드백의
+    // 집계 키(ADR-032)도 달라야 한다
+    const signature = JSON.stringify([shape.silhouette.points, shape.details, shape.holes, shape.art])
     shape.id = `dsl-${fnv1a(signature)}`
   }
   return { shape, reason: null }
@@ -333,6 +417,82 @@ export function readShape(
  */
 export function parseShape(raw: unknown, meta: ShapeMeta): PenShape | null {
   return readShape(raw, meta).shape
+}
+
+/**
+ * **색 영역 제안을 모양으로 만든다** (ADR-039·040).
+ *
+ * 모델은 색 영역만 보낸다. 덧그릴 선은 보내지 않는다 — 그것은 `traceFromArt` 가 라스터
+ * 등고선으로 **유도한다.** 모델에게 선까지 그리게 하면 색과 선이 어긋난 도안이 나오고,
+ * 그 어긋남은 인쇄한 뒤에야 보인다.
+ *
+ * 유도한 선과 색 영역을 **하나의 payload** 로 묶어 `readShape` 에 넘긴다. 정규화·종횡비
+ * 검사·보정이 한 곳에서만 일어나므로 두 레이어가 같은 자를 쓴다.
+ */
+export function readArtShape(
+  raw: unknown,
+  meta: ShapeMeta,
+): { shape: PenShape | null; reason: string | null } {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return { shape: null, reason: '객체가 아닙니다' }
+  }
+  let body = raw as Record<string, unknown>
+
+  // 한 겹 감싸서 보내는 경우를 받아 준다 — `{art: {regions: [...]}}`
+  if (!Array.isArray(body.art) && !Array.isArray(body.regions)) {
+    for (const key of ['art', 'picture', 'drawing']) {
+      const nested = body[key]
+      if (typeof nested === 'object' && nested !== null && !Array.isArray(nested)) {
+        body = { ...body, ...(nested as Record<string, unknown>) }
+        break
+      }
+    }
+  }
+
+  const maxY = yCeiling(meta.source)
+  const regions = readArtRegions(body.art ?? body.regions, maxY)
+  if (regions.length === 0) {
+    return { shape: null, reason: '색 영역을 읽을 수 없습니다 (art 에 영역 배열을 넣어 주세요)' }
+  }
+
+  // 유도는 입력과 **같은 좌표계**에서 일어난다. 정규화는 `readShape` 가 한 번만 한다.
+  const trace = traceFromArt(
+    regions.map((region) => ({
+      color: region.color,
+      z: region.z,
+      outline: { points: region.outline, closed: true as const },
+      holes: region.holes.map((hole) => ({ points: hole, closed: true as const })),
+    })),
+  )
+  if (!trace) {
+    return { shape: null, reason: '색 영역에서 덧그릴 선을 뽑지 못했습니다' }
+  }
+
+  /**
+   * **색 영역의 경계가 곧 내부선이다** — 이것이 없으면 자전거가 덩어리가 된다.
+   *
+   * 바깥 등고선만 뽑으면 바퀴 둘과 프레임이 하나로 합쳐지고, 학생이 덧그릴 선에는 바퀴가
+   * 없다. 실측에서 그렇게 나왔다: 색 영역 7.2개 · 윤곽 점 56개인데 검토는 "바퀴 둘과 뼈대가
+   * 보이지 않습니다" 였다. 색은 들어왔지만 **학생이 그리는 선**에는 안 들어온 것이다.
+   *
+   * 그래서 각 영역의 외곽을 내부선 후보로 넘긴다. 걸러내는 일은 이미 있는 코드가 한다 —
+   * `keep` 이 실루엣 밖으로 나가거나 스스로 교차하는 것을 빼고, `SHAPE_MAX_DETAILS` 가 개수를
+   * 자르고, `build` 의 `acceptsExtra` 가 간격 임계값에 걸리는 것을 뺀다. 몸통 영역의 외곽은
+   * 실루엣과 겹치므로 `keep` 에서 자연히 떨어진다.
+   *
+   * **간격이 모자라면 모양이 아니라 디테일이 먼저 깎인다** 는 규칙이 여기서 그대로 작동한다.
+   */
+  return readShape(
+    {
+      title: body.title,
+      silhouette: trace.points,
+      details: regions.map((region) => region.outline),
+      holes: regions.flatMap((region) => region.holes),
+      hanger: body.hanger,
+      art: body.art ?? body.regions,
+    },
+    meta,
+  )
 }
 
 // ============================================================================
@@ -497,12 +657,25 @@ function mkPart(
   quantity: number,
   strokes: Stroke[],
   optional = false,
+  /** mm 공간의 색 영역. **`strokes` 와 같은 프레임이어야 한다** (ADR-039) */
+  art: PartArt[] = [],
 ): PenPart {
+  // `normalizeStrokes` 는 윤곽 bbox 의 좌상단을 원점으로 옮긴다. 색 영역을 **같은 양만큼**
+  // 옮기지 않으면 두 레이어가 어긋나 찍히고, 그 어긋남은 인쇄한 뒤에야 보인다.
+  const box = strokesBBox(strokes)
+  const shift = (points: Point[]): Point[] =>
+    points.map((p) => ({ x: p.x - box.min.x, y: p.y - box.min.y }))
+
   return {
     id,
     name,
     quantity,
     strokes: normalizeStrokes(strokes),
+    art: art.map((region) => ({
+      ...region,
+      outline: shift(region.outline),
+      holes: region.holes.map(shift),
+    })),
     origin: { x: 0, y: 0 },
     optional,
   }
@@ -598,6 +771,18 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
       const outline = sanitize(scaleTo(shape.silhouette.points, width), limit)
       const strokes: Stroke[] = [closedStroke(outline)]
 
+      /**
+       * 색 영역을 **윤곽과 같은 배율로** 키운다 (ADR-039). `sanitize` 를 지나지 않는 이유:
+       * 그 함수는 학년 임계값에 맞춰 선분을 합치고 꼭짓점을 자르는 **덧그릴 선용 보정**이고,
+       * 색 영역은 펜이 지나가지 않으므로 그 보정을 받을 이유가 없다. 받으면 그림만 뭉개진다.
+       */
+      const art: PartArt[] = shape.art.map((region) => ({
+        color: region.color,
+        z: region.z,
+        outline: scaleTo(region.outline.points, width),
+        holes: region.holes.map((hole) => scaleTo(hole.points, width)),
+      }))
+
       if (detail >= 1) {
         for (const extra of extras) {
           const candidate = closedStroke(sanitize(scaleTo(extra.points, width), limit))
@@ -610,7 +795,7 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
 
       // ── 2D — 조립하지 않는다 (ADR-037) ───────────────────────────────────
       if (flat) {
-        const parts = [mkPart('body', shape.title, 1, strokes)]
+        const parts = [mkPart('body', shape.title, 1, strokes, false, art)]
         const joints: PenJoint[] = []
         if (shape.hanger) {
           parts.push(mkPart('hoop', '고리', 1, hangerStrokes()))
@@ -633,7 +818,7 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
         Math.max(WELD_MIN_LENGTH_MM, perimeter * LAYER_WELD_RATIO),
         perimeter / 2 - 0.1,
       )
-      const parts = [mkPart('layer', `${shape.title} 층`, count, strokes)]
+      const parts = [mkPart('layer', `${shape.title} 층`, count, strokes, false, art)]
       const joints = [
         mkWeld(
           'layer-stack',

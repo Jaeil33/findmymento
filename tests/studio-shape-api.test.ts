@@ -23,6 +23,18 @@ vi.mock('@anthropic-ai/sdk', () => ({
 }))
 vi.mock('@/lib/auth/actor', () => ({ getActor: async () => state.actor }))
 
+/**
+ * 아틀라스는 이 파일에서 **비워 둔다.**
+ *
+ * 여기서 보는 것은 윤곽 제안(DSL)·레시피·이미지 검토 경로다. 모양 경로의 순서가
+ * 레시피 → 아틀라스 → 윤곽 제안이므로(ADR-036), 아틀라스에 주제와 겹치는 단어가 하나라도
+ * 들어오면 이 파일의 시험이 조용히 다른 가지로 새어 나간다 — 단어를 적재했을 뿐인데
+ * 라우트 시험이 깨지고, 깨지지 않더라도 보려던 가지를 안 보게 된다.
+ * 적재 내용과 무관하게 같은 가지를 보도록 목록을 고정한다.
+ * 아틀라스 자체의 품질은 `tests/studio-atlas.test.ts` 가 본다.
+ */
+vi.mock('@/data/atlas/records', () => ({ ATLAS_RECORDS: [] }))
+
 const { POST: generate } = await import('@/app/api/studio/generate/route')
 
 const INSTRUCTOR: Actor = {
@@ -161,13 +173,21 @@ describe('2D 요청', () => {
     expect(last.findings.map((f: { code: string }) => f.code)).toContain('PEN_SHAPE_UNRECOGNIZED')
   })
 
-  it('제안이 깨지고 아틀라스가 비어 있으면 실패로 끝낸다', async () => {
+  /**
+   * **2D 는 빈손으로 끝나지 않는다** (ADR-042). 예전에는 여기서 `failed` +
+   * `PEN_SHAPE_UNAVAILABLE` 이 나갔고, 화면에 "더 일반적인 단어로 적어 보세요" 가 적혔다.
+   */
+  it('제안이 깨지고 코퍼스도 미적중이면 **명패로 떨어지고 실패하지 않는다**', async () => {
     replies({ mode: 'outline', outline: { title: '코끼리' }, recipe_id: '', title: '', reason: '', tasks: [] })
-    const json = await (await generate(post(body()))).json()
+    const json = await (await generate(post(body({ topic: '읽을수없는주제엑스와이지' })))).json()
 
     expect(json.ok).toBe(true)
-    expect(json.status).toBe('failed')
-    expect(json.findings.map((f: { code: string }) => f.code)).toContain('PEN_SHAPE_UNAVAILABLE')
+    expect(json.status).not.toBe('failed')
+
+    const codes = json.findings.map((f: { code: string }) => f.code)
+    // 바닥으로 내려갔다는 사실은 **적힌다** — 차단이 아니라 고지다
+    expect(codes).toContain('PEN_SHAPE_FALLBACK')
+    expect(codes).not.toContain('PEN_SHAPE_UNAVAILABLE')
   })
 
   it('잘못된 모드 값은 400 이다', async () => {

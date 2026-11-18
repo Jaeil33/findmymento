@@ -1,0 +1,2732 @@
+{
+  "measured_at": "2026-11-18T12:40:03.827Z",
+  "args": {
+    "words": [
+      "scripts/studio/words/animals.txt",
+      "scripts/studio/words/life.txt",
+      "scripts/studio/words/nature.txt",
+      "scripts/studio/words/places.txt",
+      "scripts/studio/words/symbols.txt",
+      "scripts/studio/words/vehicles.txt"
+    ],
+    "singles": [],
+    "json": "baseline.json",
+    "report": "baseline-report.md",
+    "limit": 1000,
+    "attempts": 2,
+    "concurrency": 4
+  },
+  "results": [
+    {
+      "word": "코끼리",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 코와 귀, 상아가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "코와 귀, 상아가 보이지 않습니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 8196,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 7754,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "proposal"
+    },
+    {
+      "word": "고양이",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 10437,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 0,
+          "ms": 17713,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "강아지",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 2,
+          "ms": 16601,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "토끼",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 0,
+          "ms": 8743,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "사자",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 24,
+          "details": 4,
+          "ms": 11022,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "호랑이",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 머리와 얼굴 형태가 뚜렷하지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "머리와 얼굴 형태가 뚜렷하지 않습니다.",
+          "points": 21,
+          "details": 1,
+          "ms": 15315,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 호랑이의 귀와 눈, 코, 줄무늬가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "호랑이의 귀와 눈, 코, 줄무늬가 없습니다.",
+          "points": 21,
+          "details": 0,
+          "ms": 8076,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "반달곰",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 가슴의 반달무늬와 얼굴, 귀 구분이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "가슴의 반달무늬와 얼굴, 귀 구분이 없습니다.",
+          "points": 24,
+          "details": 4,
+          "ms": 11222,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 귀와 얼굴, 가슴의 반달무늬가 없습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "귀와 얼굴, 가슴의 반달무늬가 없습니다",
+          "points": 24,
+          "details": 0,
+          "ms": 8508,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "기린",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 0,
+          "ms": 14843,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "물고기",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 9078,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 꼬리지느러미가 없고 눈이 몸 밖에 있어요.",
+          "runtime_errors": [],
+          "atlas_failures": [
+            "high·flat: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": "꼬리지느러미가 없고 눈이 몸 밖에 있어요.",
+          "points": 20,
+          "details": 2,
+          "ms": 9340,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "돌고래",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 뾰족한 주둥이와 가로로 누운 꼬리지느러미가 없습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "뾰족한 주둥이와 가로로 누운 꼬리지느러미가 없습니다",
+          "points": 21,
+          "details": 1,
+          "ms": 16304,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 둥근 주둥이와 가로로 누운 꼬리지느러미가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "둥근 주둥이와 가로로 누운 꼬리지느러미가 없습니다.",
+          "points": 20,
+          "details": 1,
+          "ms": 6912,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "거북이",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 등딱지 밖으로 나온 머리가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "등딱지 밖으로 나온 머리가 없습니다.",
+          "points": 24,
+          "details": 0,
+          "ms": 9758,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 머리와 네 다리, 등딱지 무늬가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "머리와 네 다리, 등딱지 무늬가 없습니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 9336,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "오리",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 21,
+          "details": 0,
+          "ms": 8314,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "펭귄",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 25,
+          "details": 0,
+          "ms": 9435,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "나비",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 몸통과 더듬이가 없어 나비로 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "몸통과 더듬이가 없어 나비로 보이지 않습니다.",
+          "points": 27,
+          "details": 0,
+          "ms": 9680,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 30,
+          "details": 0,
+          "ms": 8835,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "무당벌레",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 등 가운데 선과 점무늬, 머리와 다리가 없습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "등 가운데 선과 점무늬, 머리와 다리가 없습니다",
+          "points": 19,
+          "details": 0,
+          "ms": 8540,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "JSON 을 읽을 수 없습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 11577,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "proposal"
+    },
+    {
+      "word": "공룡",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "validate",
+          "reason": "검증 error: PEN_GAP_TOO_SMALL",
+          "runtime_errors": [
+            "PEN_GAP_TOO_SMALL"
+          ],
+          "atlas_failures": [
+            "elementary·flat: PEN_ANGLE_TOO_SHARP",
+            "elementary·flat: PEN_GAP_TOO_SMALL",
+            "middle·flat: PEN_GAP_TOO_SMALL",
+            "middle·solid: PEN_GAP_TOO_SMALL",
+            "high·flat: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 28,
+          "details": 0,
+          "ms": 8989,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 23,
+          "details": 0,
+          "ms": 8967,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "개구리",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 눈과 다리가 없어 개구리로 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "눈과 다리가 없어 개구리로 보이지 않습니다.",
+          "points": 27,
+          "details": 0,
+          "ms": 7538,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 눈과 다리 형태가 드러나지 않습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "눈과 다리 형태가 드러나지 않습니다",
+          "points": 31,
+          "details": 0,
+          "ms": 9064,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "조랑말",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 10770,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 말의 머리와 목, 네 다리 형태가 드러나지 않습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "말의 머리와 목, 네 다리 형태가 드러나지 않습니다",
+          "points": 25,
+          "details": 0,
+          "ms": 8706,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "다람쥐",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 귀와 다리, 풍성한 꼬리 형태가 드러나지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "귀와 다리, 풍성한 꼬리 형태가 드러나지 않습니다.",
+          "points": 25,
+          "details": 0,
+          "ms": 9412,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 귀와 얼굴, 풍성한 꼬리 형태가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "귀와 얼굴, 풍성한 꼬리 형태가 보이지 않습니다.",
+          "points": 27,
+          "details": 0,
+          "ms": 9788,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "연필",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 깎인 심 끝과 나무 부분 구분이 없어요.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "깎인 심 끝과 나무 부분 구분이 없어요.",
+          "points": 15,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "가위",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 교차하는 날과 손잡이 고리가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "교차하는 날과 손잡이 고리가 보이지 않습니다.",
+          "points": 23,
+          "details": 0,
+          "ms": 8999,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 손잡이 고리와 벌어진 날이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "손잡이 고리와 벌어진 날이 없습니다.",
+          "points": 21,
+          "details": 0,
+          "ms": 9056,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "책가방",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 9732,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 어깨끈과 덮개, 잠금장치가 없어 보입니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "어깨끈과 덮개, 잠금장치가 없어 보입니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 10950,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "머그컵",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 13,
+          "details": 1,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "의자",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "우산",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 26,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "시계",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 시곗바늘과 시각 눈금이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "시곗바늘과 시각 눈금이 없습니다.",
+          "points": 18,
+          "details": 2,
+          "ms": 10852,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 시곗바늘이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "시곗바늘이 보이지 않습니다.",
+          "points": 18,
+          "details": 6,
+          "ms": 13128,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "안경",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "proposal",
+          "reason": "윤곽이 스스로 교차합니다 (꼬인 선은 떼어낼 때 찢어집니다)",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 8376,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 귀에 거는 다리가 없어 가면처럼 보입니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "귀에 거는 다리가 없어 가면처럼 보입니다",
+          "points": 20,
+          "details": 2,
+          "ms": 9509,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "모자",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 23,
+          "details": 1,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "신발",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 21,
+          "details": 3,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "열쇠",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "전구",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 27,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "휴대폰",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 16,
+          "details": 2,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "가방",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 0,
+          "ms": 8559,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "숟가락",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "포크",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 0,
+          "ms": 7153,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "주사기",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 끝의 가는 바늘이 없어 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [
+            "high·flat: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": "끝의 가는 바늘이 없어 보이지 않습니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 16952,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 가느다란 바늘과 밀대 손잡이가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "가느다란 바늘과 밀대 손잡이가 보이지 않습니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 13661,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "나무",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 19,
+          "details": 0,
+          "ms": 8540,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "튤립",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 27,
+          "details": 0,
+          "ms": 9915,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "태양",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 24,
+          "details": 1,
+          "ms": 8300,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "초승달",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 0,
+          "ms": 7648,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "구름",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 뭉게뭉게한 둥근 덩어리 윤곽이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "뭉게뭉게한 둥근 덩어리 윤곽이 없습니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 8498,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 뭉게뭉게한 둥근 덩어리 느낌이 없습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "뭉게뭉게한 둥근 덩어리 느낌이 없습니다",
+          "points": 21,
+          "details": 0,
+          "ms": 6964,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "눈송이",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 여섯 갈래로 뻗은 가지 모양이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "여섯 갈래로 뻗은 가지 모양이 없습니다.",
+          "points": 32,
+          "details": 1,
+          "ms": 9548,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [
+            "high·flat: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 12,
+          "details": 0,
+          "ms": 13888,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "무지개",
+      "path": "dsl",
+      "generalized": "동물 친구개",
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 25,
+          "details": 0,
+          "ms": 9416,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "나뭇잎",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 19,
+          "details": 0,
+          "ms": 8926,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "선인장",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 26,
+          "details": 1,
+          "ms": 16912,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "버섯",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 0,
+          "ms": 8312,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "사과",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "validate",
+          "reason": "검증 error: PEN_GAP_TOO_SMALL",
+          "runtime_errors": [
+            "PEN_GAP_TOO_SMALL"
+          ],
+          "atlas_failures": [
+            "middle·flat: PEN_GAP_TOO_SMALL",
+            "high·flat: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 23,
+          "details": 0,
+          "ms": 7673,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [
+            "middle·solid: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 19,
+          "details": 0,
+          "ms": 6945,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "수박",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 껍질 무늬와 둥근 형태가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "껍질 무늬와 둥근 형태가 없습니다.",
+          "points": 16,
+          "details": 0,
+          "ms": 8076,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 껍질 줄무늬와 둥근 형태가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "껍질 줄무늬와 둥근 형태가 없습니다.",
+          "points": 16,
+          "details": 0,
+          "ms": 8910,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "바나나",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 0,
+          "ms": 11080,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "당근",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [
+            "middle·solid: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 21,
+          "details": 0,
+          "ms": 8599,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "딸기",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 0,
+          "ms": 8395,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "조개",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 부챗살 주름과 경첩 부분이 없어 보입니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "부챗살 주름과 경첩 부분이 없어 보입니다.",
+          "points": 22,
+          "details": 0,
+          "ms": 8635,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 부채꼴 모양과 방사형 주름이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "부채꼴 모양과 방사형 주름이 없습니다.",
+          "points": 20,
+          "details": 0,
+          "ms": 7986,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "불꽃",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 0,
+          "ms": 8526,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "학교",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 15,
+          "details": 3,
+          "ms": 15781,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "궁전",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 19,
+          "details": 3,
+          "ms": 15258,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "타워",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 2,
+          "ms": 14127,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "등대",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 꼭대기 등실과 난간이 없어 산처럼 보입니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "꼭대기 등실과 난간이 없어 산처럼 보입니다.",
+          "points": 19,
+          "details": 2,
+          "ms": 12662,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 꼭대기의 등불실과 난간이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": "꼭대기의 등불실과 난간이 보이지 않습니다.",
+          "points": 26,
+          "details": 0,
+          "ms": 8888,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "풍차",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "error",
+          "reason": "호출 실패: Request timed out.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 0,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 탑 위 회전하는 날개 모양이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [
+            "middle·solid: PEN_GAP_TOO_SMALL",
+            "high·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": "탑 위 회전하는 날개 모양이 보이지 않습니다.",
+          "points": 17,
+          "details": 0,
+          "ms": 8876,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "교회",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "error",
+          "reason": "호출 실패: Request timed out.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 0,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 25,
+          "details": 0,
+          "ms": 10145,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "텐트",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 14,
+          "details": 0,
+          "ms": 7474,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "다리",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 교각과 상판 등 다리 특징이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "교각과 상판 등 다리 특징이 보이지 않습니다.",
+          "points": 12,
+          "details": 1,
+          "ms": 15303,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 1,
+          "ms": 7487,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "피라미드",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 1,
+          "ms": 8293,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "하트",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "왕관",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 12,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "트로피",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 26,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "메달",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 16,
+          "details": 2,
+          "ms": 16405,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "리본",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 23,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "눈사람",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "유령",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 3,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "선물상자",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 17,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "방패",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 18,
+          "details": 2,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "열쇠고리",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "이름표",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 17,
+          "details": 1,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "축구공",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 20,
+          "details": 5,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "음표",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 21,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "하트열쇠고리",
+      "path": "atlas",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "atlas",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 고리 머리 부분의 하트 모양이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "고리 머리 부분의 하트 모양이 보이지 않습니다.",
+          "points": 20,
+          "details": 0,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "자동차",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 22,
+          "details": 2,
+          "ms": 10097,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "버스",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴가 보이지 않습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴가 보이지 않습니다",
+          "points": 19,
+          "details": 2,
+          "ms": 8473,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴와 창문이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴와 창문이 보이지 않습니다.",
+          "points": 18,
+          "details": 0,
+          "ms": 8896,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "기차",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 둥근 바퀴와 굴뚝 등 기차 특징이 없어요.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "둥근 바퀴와 굴뚝 등 기차 특징이 없어요.",
+          "points": 24,
+          "details": 0,
+          "ms": 9387,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 23,
+          "details": 0,
+          "ms": 10640,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "비행기",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 21,
+          "details": 0,
+          "ms": 13966,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "로켓",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 24,
+          "details": 0,
+          "ms": 7873,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "보트",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 15,
+          "details": 0,
+          "ms": 14414,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "자전거",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 27,
+          "details": 2,
+          "ms": 8725,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "오토바이",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴 형태와 손잡이, 안장이 드러나지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴 형태와 손잡이, 안장이 드러나지 않습니다.",
+          "points": 29,
+          "details": 0,
+          "ms": 9232,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 29,
+          "details": 3,
+          "ms": 10964,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "트럭",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴 모양이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴 모양이 보이지 않습니다.",
+          "points": 18,
+          "details": 0,
+          "ms": 7987,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴 두 개와 짐칸, 운전석 형태가 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴 두 개와 짐칸, 운전석 형태가 없습니다.",
+          "points": 23,
+          "details": 0,
+          "ms": 7675,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "소방차",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 사다리나 소방 장비 같은 특징이 없어 일반 차로 보입니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "사다리나 소방 장비 같은 특징이 없어 일반 차로 보입니다",
+          "points": 17,
+          "details": 0,
+          "ms": 7086,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 사다리나 경광등 같은 소방차 특징이 없습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "사다리나 경광등 같은 소방차 특징이 없습니다.",
+          "points": 25,
+          "details": 0,
+          "ms": 9271,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "구급차",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴와 십자 표시가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴와 십자 표시가 보이지 않습니다.",
+          "points": 23,
+          "details": 3,
+          "ms": 11382,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 십자 표시와 창문이 없어 구급차로 보기 어렵습니다",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "십자 표시와 창문이 없어 구급차로 보기 어렵습니다",
+          "points": 17,
+          "details": 0,
+          "ms": 10513,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "헬리콥터",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 회전날개와 꼬리 날개가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "회전날개와 꼬리 날개가 보이지 않습니다.",
+          "points": 29,
+          "details": 0,
+          "ms": 9367,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "error",
+          "reason": "호출 실패: Request timed out.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 0,
+          "llm_calls": 1
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "error"
+    },
+    {
+      "word": "드론",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "error",
+          "reason": "호출 실패: Request timed out.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 0,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 본체와 프로펠러 날개가 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "본체와 프로펠러 날개가 보이지 않습니다.",
+          "points": 28,
+          "details": 1,
+          "ms": 9510,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "기중기",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "error",
+          "reason": "호출 실패: Request timed out.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": null,
+          "details": null,
+          "ms": 0,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [
+            "elementary·solid: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 24,
+          "details": 0,
+          "ms": 8662,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "트랙터",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 크고 작은 바퀴가 드러나지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "크고 작은 바퀴가 드러나지 않습니다.",
+          "points": 17,
+          "details": 3,
+          "ms": 15663,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바퀴 둘과 운전석 형태가 드러나지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바퀴 둘과 운전석 형태가 드러나지 않습니다.",
+          "points": 26,
+          "details": 0,
+          "ms": 17681,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    },
+    {
+      "word": "잠수함",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 21,
+          "details": 0,
+          "ms": 9189,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": true,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "열기구",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 바구니와 연결된 줄이 없어요.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "바구니와 연결된 줄이 없어요.",
+          "points": 23,
+          "details": 2,
+          "ms": 9845,
+          "llm_calls": 2
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "pass",
+          "reason": null,
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": null,
+          "points": 19,
+          "details": 0,
+          "ms": 9095,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": true,
+      "final_stage": "pass"
+    },
+    {
+      "word": "로봇",
+      "path": "dsl",
+      "generalized": null,
+      "attempts": [
+        {
+          "n": 1,
+          "path": "dsl",
+          "stage": "validate",
+          "reason": "검증 error: PEN_GAP_TOO_SMALL",
+          "runtime_errors": [
+            "PEN_GAP_TOO_SMALL"
+          ],
+          "atlas_failures": [
+            "middle·flat: PEN_GAP_TOO_SMALL",
+            "high·flat: PEN_GAP_TOO_SMALL"
+          ],
+          "missing": null,
+          "points": 32,
+          "details": 3,
+          "ms": 9318,
+          "llm_calls": 1
+        },
+        {
+          "n": 2,
+          "path": "dsl",
+          "stage": "review",
+          "reason": "그 단어로 보이지 않았습니다 — 머리와 팔다리 구분이 보이지 않습니다.",
+          "runtime_errors": [],
+          "atlas_failures": [],
+          "missing": "머리와 팔다리 구분이 보이지 않습니다.",
+          "points": 26,
+          "details": 0,
+          "ms": 8462,
+          "llm_calls": 2
+        }
+      ],
+      "pass_at_1": false,
+      "pass_at_2": false,
+      "final_stage": "review"
+    }
+  ]
+}

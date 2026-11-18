@@ -13,8 +13,31 @@
  */
 
 import { PEN_LABEL } from '@/lib/studio/constants'
-import { sizeOf, strokesBBox } from '@/lib/studio/geometry'
+import { bbox, sizeOf, strokesBBox } from '@/lib/studio/geometry'
+import type { Box } from '@/lib/studio/geometry'
 import type { PenPart } from '@/types/studio'
+
+/**
+ * 부품이 종이에서 차지하는 박스 — **덧그릴 선과 색 영역의 합집합이다** (ADR-039).
+ *
+ * 색 영역만 보는 함수를 따로 두지 않는 이유: 배치기와 렌더가 **다른 박스**를 쓰면 색이 칸을
+ * 넘어 옆 부품 위로 번지거나, 색과 선이 서로 어긋난 자리에 찍힌다. 둘 다 인쇄한 뒤에야 보인다.
+ *
+ * `art` 가 비어 있으면 지금까지와 똑같이 윤곽 박스다.
+ */
+export function partBox(part: PenPart): Box {
+  const box = strokesBBox(part.strokes)
+  if (part.art.length === 0) return box
+
+  const points = part.art.flatMap((region) => [...region.outline, ...region.holes.flat()])
+  if (points.length === 0) return box
+
+  const art = bbox(points)
+  return {
+    min: { x: Math.min(box.min.x, art.min.x), y: Math.min(box.min.y, art.min.y) },
+    max: { x: Math.max(box.max.x, art.max.x), y: Math.max(box.max.y, art.max.y) },
+  }
+}
 
 /** 한글·한자·전각 글자. Malgun Gothic 에서 글자 크기와 같은 폭을 쓴다 */
 const FULL_WIDTH = /[ᄀ-ᇿ⺀-〿㄰-㆏ㇰ-鿿가-힣豈-﫿＀-｠]/
@@ -151,7 +174,7 @@ export function partCell(part: PenPart): {
   shape: { w: number; h: number }
   label: LabelBlock
 } {
-  const shape = sizeOf(strokesBBox(part.strokes))
+  const shape = sizeOf(partBox(part))
   const width_mm = Math.max(shape.w, PEN_LABEL.min_width_mm)
   const label = labelBlock(part, width_mm)
   return { width_mm, height_mm: shape.h + label.height_mm, shape, label }

@@ -33,6 +33,8 @@ const part = (over: Partial<PenPart> & { id: string }): PenPart => ({
   name: over.id,
   quantity: 1,
   strokes: [outline(rectPoints(40, 30))],
+  // 검증기는 색 영역을 **보지 않는다** (ADR-039). 기본값이 빈 배열인 것이 그 뜻이다.
+  art: [],
   origin: { x: 0, y: 0 },
   optional: false,
   ...over,

@@ -10,6 +10,7 @@ import {
   parseWordList,
   toRecord,
 } from '@/lib/studio/atlas-build'
+import { ATLAS_RECORDS } from '@/data/atlas/records'
 import { parseShape } from '@/lib/studio/pen3d/shape'
 import type { AtlasRecord } from '@/types/studio'
 
@@ -141,9 +142,23 @@ describe('id 와 출력', () => {
     expect(emitRecords(parseEmitted(source))).toBe(source)
   })
 
-  it('빈 목록도 읽을 수 있는 파일을 만든다 — 지금의 records.ts 가 그것이다', () => {
+  it('빈 목록도 읽을 수 있는 파일을 만든다', () => {
     expect(parseEmitted(emitRecords([]))).toEqual([])
-    expect(parseEmitted(readFileSync('src/data/atlas/records.ts', 'utf8'))).toEqual([])
+  })
+
+  /**
+   * 실제 `records.ts` 는 **스크립트가 쓴 그대로**여야 한다.
+   *
+   * 전에는 이 자리에서 "비어 있다"를 단언했다. 목록이 비어 있던 시점의 사실이라 항목이
+   * 하나라도 들어오면 깨지는데, 그건 적재가 잘못됐다는 뜻이 아니라 테스트가 낡았다는 뜻이다.
+   * 고정할 값은 개수가 아니라 **왕복**이다 — 손으로 고친 파일은 다시 읽히지 않거나 모양이
+   * 달라지고, 그러면 다음 적재가 앞 항목을 조용히 날린다.
+   */
+  it('실제 records.ts 는 스크립트가 쓴 모양 그대로다 — 손으로 고치면 여기서 걸린다', () => {
+    const source = readFileSync('src/data/atlas/records.ts', 'utf8')
+    const parsed = parseEmitted(source)
+    expect(parsed).toEqual(ATLAS_RECORDS)
+    expect(emitRecords(parsed)).toBe(source.replace(/\r\n/g, '\n'))
   })
 
   it('같은 id 는 새 것이 이긴다', () => {

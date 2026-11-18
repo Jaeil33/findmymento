@@ -311,3 +311,65 @@ describe('결정론', () => {
     expect(recipe.keywords).toContain('아기코끼리')
   })
 })
+
+/**
+ * 저장된 아틀라스 항목을 **다시 읽는** 경로 (ADR-036).
+ *
+ * 아틀라스는 `parseShape` 가 정규화한 값 그대로 저장한다 — 그 공간은 **"가로를 1 로"** 맞춘
+ * 공간이고, 세로는 종횡비가 보존되므로 **1 을 넘는다** (`readShape` 의 `map`: 둘 다 `width` 로
+ * 나눈다). 연필의 세로는 3.5 가 정상이다.
+ *
+ * 그런데 입력 파서의 좌표 상한은 **LLM 응답 기준(0~1)** 이다. 저장된 항목을 그 자로 다시 재면
+ * 세로로 긴 실루엣이 통째로 버려진다 — 검수를 통과해 아틀라스에 들어간 모양이 조회 시점에
+ * 사라진다. 두 공간은 자가 다르다.
+ *
+ * LLM 쪽 자는 그대로 둔다. 범위 밖 좌표를 통째로 버리는 것은 ADR-036 의 경계다.
+ */
+describe('저장된 아틀라스 항목 다시 읽기 — 세로로 긴 모양', () => {
+  /** 가로 1 · 세로 `aspect` 인 둥근 직사각형. 아틀라스에 저장되는 바로 그 공간이다. */
+  const tall = (aspect: number) => ({
+    title: '연필',
+    silhouette: [
+      { x: 0.2, y: 0 },
+      { x: 0.5, y: 0 },
+      { x: 0.8, y: 0 },
+      { x: 1, y: aspect * 0.05 },
+      { x: 1, y: aspect * 0.5 },
+      { x: 1, y: aspect * 0.95 },
+      { x: 0.8, y: aspect },
+      { x: 0.5, y: aspect },
+      { x: 0.2, y: aspect },
+      { x: 0, y: aspect * 0.95 },
+      { x: 0, y: aspect * 0.5 },
+      { x: 0, y: aspect * 0.05 },
+    ],
+    details: [],
+    holes: [],
+    hanger: false,
+  })
+
+  const asAtlas = { word: '연필', source: 'atlas' as const, id: 'atlas-연필', words: ['연필'] }
+  const asDsl = { word: '연필', source: 'dsl' as const }
+
+  it('아틀라스 항목은 세로가 1 을 넘어도 다시 읽힌다', () => {
+    const shape = parseShape(tall(3.5), asAtlas)
+    expect(shape).not.toBeNull()
+    // 읽고 난 모양은 다시 "가로 1" 공간이므로 종횡비가 그대로 살아 있어야 한다.
+    const ys = shape!.silhouette.points.map((p) => p.y)
+    expect(Math.max(...ys)).toBeGreaterThan(3)
+  })
+
+  it('LLM 제안은 0~1 을 크게 벗어나면 그대로 버린다 — 이 경계는 그대로다 (ADR-036)', () => {
+    expect(parseShape(tall(3.5), asDsl)).toBeNull()
+  })
+
+  it('종횡비 상한을 넘으면 아틀라스라도 버린다 — 임계값을 늘려서 통과시키지 않는다', () => {
+    expect(parseShape(tall(6), asAtlas)).toBeNull()
+  })
+
+  it('가로가 1 을 넘는 항목은 아틀라스라도 버린다 — 가로는 언제나 0~1 이다', () => {
+    const wide = tall(1.5)
+    wide.silhouette = wide.silhouette.map((p) => ({ x: p.x * 2, y: p.y }))
+    expect(parseShape(wide, asAtlas)).toBeNull()
+  })
+})

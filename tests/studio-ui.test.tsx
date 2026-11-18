@@ -243,3 +243,119 @@ describe('생성 결과를 그 자리에서 보여주는 화면 (저장이 화�
     expect(screen.getByText(/24명 · 45분 · 메이커실/)).toBeInTheDocument()
   })
 })
+
+/**
+ * 검증 리포트의 세로 분량.
+ *
+ * ADR-030 은 **전 과정을 그대로 보여주라**고 한다 — 접거나 요약하지 말라는 뜻이다.
+ * 그런데 걸린 항목이 하나도 없는 라운드까지 카드 한 장씩 차지하면, 통과한 산출물에서
+ * 강사가 도안에 닿기까지 화면 한 장을 빈 테두리로 지나게 된다.
+ *
+ * 그래서 **버리는 정보 없이 높이만** 줄인다: 걸린 항목이 없는 라운드는 한 줄로 적고,
+ * 걸린 항목이 있는 라운드는 지금 모양 그대로 둔다. 차수·동작·판정·치수는 두 모양 다 남는다.
+ */
+describe('검증 리포트 — 걸린 항목이 없는 라운드', () => {
+  const clean: StudioRound[] = [
+    {
+      round: 1,
+      action: 'generated',
+      repair: null,
+      params: { size: 45, detail: 1, extras: false },
+      ok: true,
+      findings: [],
+    },
+  ]
+
+  it('한 줄로 적어도 차수·동작·판정·치수는 그대로 남는다', () => {
+    render(<ValidationReport rounds={clean} status="validated" gradeBand="middle" />)
+    expect(screen.getByText('1차')).toBeInTheDocument()
+    expect(screen.getByText('생성')).toBeInTheDocument()
+    expect(screen.getByText('통과')).toBeInTheDocument()
+    expect(screen.getByText(/치수 45mm/)).toBeInTheDocument()
+  })
+
+  it('걸린 항목이 없다는 사실을 적는다 — 빈 칸으로 두지 않는다', () => {
+    render(<ValidationReport rounds={clean} status="validated" gradeBand="middle" />)
+    expect(screen.getByText(/걸린 항목 없음|걸린 항목이 없습니다/)).toBeInTheDocument()
+  })
+
+  it('걸린 항목이 있는 라운드는 줄이지 않는다 — 측정값·기준·조치가 전부 남는다', () => {
+    const mixed: StudioRound[] = [
+      {
+        round: 1,
+        action: 'generated',
+        repair: null,
+        params: { size: 45, detail: 1, extras: false },
+        ok: false,
+        findings: [
+          {
+            code: 'PEN_GAP_TOO_SMALL',
+            severity: 'error',
+            message: '떨어져 있어야 하는 두 선의 간격이 2.4mm 입니다.',
+            measured: 2.4,
+            limit: 3,
+          },
+        ],
+      },
+      { ...clean[0], round: 2, action: 'repaired', repair: '도안을 51.8mm 로 키웠습니다.' },
+    ]
+    render(<ValidationReport rounds={mixed} status="validated" gradeBand="middle" />)
+    expect(screen.getByText('PEN_GAP_TOO_SMALL')).toBeInTheDocument()
+    expect(screen.getByText(/측정 2.4/)).toBeInTheDocument()
+    expect(screen.getByText(/도안을 더 크게 만들 수 있는/)).toBeInTheDocument()
+    // 줄인 라운드의 "고친 것"도 사라지면 안 된다 — 개선 근거가 그 문장이다.
+    expect(screen.getByText(/51.8mm 로 키웠습니다/)).toBeInTheDocument()
+  })
+})
+
+describe('검증 리포트 — 라운드 모양 고르기', () => {
+  const round = (over: Partial<StudioRound>): StudioRound => ({
+    round: 1,
+    action: 'generated',
+    repair: null,
+    params: { size: 45, detail: 1, extras: false },
+    ok: true,
+    findings: [],
+    ...over,
+  })
+
+  it('걸린 항목이 없으면 줄인 모양으로 그린다', () => {
+    const { container } = render(
+      <ValidationReport rounds={[round({})]} status="validated" gradeBand="middle" />,
+    )
+    expect(container.querySelectorAll('[data-round="compact"]')).toHaveLength(1)
+    expect(container.querySelectorAll('[data-round="full"]')).toHaveLength(0)
+  })
+
+  it('걸린 항목이 하나라도 있으면 줄이지 않는다 — 경고 한 건도 포함이다', () => {
+    const warned = round({
+      ok: true,
+      findings: [
+        {
+          code: 'PEN_DIFFICULTY_MISMATCH',
+          severity: 'warn',
+          message: '산정 난이도 3단계가 권장 범위를 벗어납니다.',
+        },
+      ],
+    })
+    const { container } = render(
+      <ValidationReport rounds={[warned]} status="validated" gradeBand="middle" />,
+    )
+    expect(container.querySelectorAll('[data-round="full"]')).toHaveLength(1)
+    expect(container.querySelectorAll('[data-round="compact"]')).toHaveLength(0)
+  })
+
+  it('라운드는 섞여도 각자 제 모양으로 그려지고, 하나도 빠지지 않는다', () => {
+    const rows = [
+      round({ round: 1, ok: false, findings: [{ code: 'PEN_TIME_TIGHT', severity: 'warn', message: '빠듯합니다.' }] }),
+      round({ round: 2, action: 'repaired', repair: '키웠습니다.' }),
+      round({ round: 3, action: 'repaired', repair: '또 키웠습니다.' }),
+    ]
+    const { container } = render(
+      <ValidationReport rounds={rows} status="validated" gradeBand="middle" />,
+    )
+    expect(container.querySelectorAll('[data-round]')).toHaveLength(3)
+    expect(container.querySelectorAll('[data-round="full"]')).toHaveLength(1)
+    expect(container.querySelectorAll('[data-round="compact"]')).toHaveLength(2)
+  })
+})

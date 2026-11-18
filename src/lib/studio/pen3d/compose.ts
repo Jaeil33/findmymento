@@ -178,6 +178,8 @@ export function compositionRecipe(composition: PenComposition): PenRecipe {
           quantity: 1,
           // 레시피와 같은 규칙 — 부품 좌표는 (0,0) 기준이다 (`recipes.ts` 머리말).
           strokes: normalizeStrokes(baseStrokes),
+          // 조각 조합은 검수된 조각의 기하이고 색 영역이 없다 (ADR-039).
+          art: [],
           origin: { x: 0, y: 0 },
           optional: false,
         },
@@ -196,6 +198,7 @@ export function compositionRecipe(composition: PenComposition): PenRecipe {
           name: piece.name,
           quantity: entry.quantity,
           strokes: normalizeStrokes(strokes),
+          art: [],
           origin: { x: 0, y: 0 },
           optional: entry.optional,
         })

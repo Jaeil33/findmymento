@@ -122,6 +122,21 @@ export function toRecord(input: {
       details: shape.details.map((d) => d.points),
       holes: shape.holes.map((h) => h.points),
       hanger: shape.hanger,
+      /**
+       * 색 영역 (ADR-039). **이것을 빼면 코퍼스 경로의 요점이 저장 단계에서 사라진다** —
+       * 사람이 그린 컬러 아트를 들여왔는데 아틀라스에서 꺼내면 흑백이 된다. 한 번 그렇게
+       * 적재했다가 `grep -c '"art"' records.ts` 가 0 을 돌려줘서 알았다.
+       *
+       * `readShape` 가 읽는 형태와 **같은 모양**으로 쓴다 (`points` 키) — 그래야 적재와
+       * 조회가 같은 파서를 지난다. 색이 없는 모양은 빈 배열이고, 그때는 지금까지와 같은
+       * 흑백 도안이다.
+       */
+      art: shape.art.map((region) => ({
+        color: region.color,
+        z: region.z,
+        points: region.outline.points,
+        holes: region.holes.map((hole) => hole.points),
+      })),
     },
   }
 }

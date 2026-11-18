@@ -71,6 +71,8 @@ function part(
     name,
     quantity,
     strokes: normalizeStrokes(strokes),
+    // 레시피는 사람이 만든 흑백 도안이다. 색 영역이 없다 (ADR-039).
+    art: [],
     origin: { x: 0, y: 0 },
     optional,
   }

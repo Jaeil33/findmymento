@@ -162,17 +162,32 @@ describe('체험·데모 세션 (ADR-025·033)', () => {
 })
 
 describe('캐릭터·상표 이름', () => {
-  it('알려진 캐릭터 이름은 일반 형태로 바꾼다', () => {
+  /**
+   * **치환하지 않는다** (ADR-043). 이 플랫폼은 무엇이 저작권 침해인지 판정하지 않는다.
+   * 예전에는 "피카츄" 를 "둥근 귀 동물" 로 바꾸고 화면에 문구를 띄웠다.
+   */
+  it('캐릭터 이름을 바꾸지 않는다 — 강사가 적은 그대로 쓴다', () => {
     const out = generalizeCharacter('피카츄 만들기')
-    expect(out.replaced).toBe(true)
-    expect(out.text).not.toContain('피카츄')
-    expect(out.text.length).toBeGreaterThan(0)
+    expect(out.text).toBe('피카츄 만들기')
+    expect(out.replaced).toBe(false)
+    expect(out.note).toBeNull()
+  })
+
+  it('어떤 주제에도 화면 문구를 띄우지 않는다 — 책임 고지조차 판정의 흔적이다', () => {
+    for (const topic of ['피카츄', '마리오 키링', '헬로키티', '물고기']) {
+      expect(generalizeCharacter(topic).note).toBeNull()
+      expect(generalizeCharacter(topic).replaced).toBe(false)
+    }
   })
 
   it('일반 주제는 그대로 둔다', () => {
     const out = generalizeCharacter('물고기 만들기')
     expect(out.replaced).toBe(false)
     expect(out.text).toBe('물고기 만들기')
+  })
+
+  it('공백만 정리한다 — 그것이 남은 유일한 일이다', () => {
+    expect(generalizeCharacter('  피카츄   키링  ').text).toBe('피카츄 키링')
   })
 })
 
