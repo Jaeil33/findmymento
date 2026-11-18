@@ -33,6 +33,11 @@ export type PenRecipeParams = {
   detail: number
   /** 선택 부품(뚜껑·잎)을 포함하는가. 시간이 초과되면 먼저 떨어진다 */
   extras: boolean
+  /**
+   * 적층 층 수 (ADR-037). **적층 모양만 본다** — 레시피는 무시한다.
+   * 비어 있으면 학년대 기본값이고, 개선 라운드가 2 까지 줄일 수 있다.
+   */
+  layers?: number
 }
 
 export type PenRecipe = {

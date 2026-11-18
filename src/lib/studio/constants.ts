@@ -210,6 +210,7 @@ export const PEN_FINDING_SEVERITY: Record<string, Severity> = {
   PEN_JOINT_SIZE_MISMATCH: 'error',
   PEN_ASSEMBLY_DISCONNECTED: 'error',
   PEN_FLAT_NO_SILHOUETTE: 'error',
+  PEN_SHAPE_UNAVAILABLE: 'error',
   PEN_LAYER_COUNT_INVALID: 'error',
   PEN_DIFFICULTY_MISMATCH: 'warn',
   PEN_TIME_TIGHT: 'warn',

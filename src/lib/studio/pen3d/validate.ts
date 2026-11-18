@@ -67,6 +67,9 @@ function finding(code: string, message: string, extra: Partial<Finding> = {}): F
   }
 }
 
+/** 지적 한 건을 만든다. 심각도는 `PEN_FINDING_SEVERITY` 한 곳에서만 온다 */
+export { finding as penFinding }
+
 const round1 = (n: number) => Math.round(n * 10) / 10
 const finiteOrNull = (n: number) => (Number.isFinite(n) ? round1(n) : null)
 

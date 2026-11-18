@@ -12,6 +12,7 @@
 
 import { MAX_REPAIR_ROUNDS, PEN_SAFETY_NOTES, SCALE_DOWN_STEP, SCALE_UP_STEP } from '@/lib/studio/constants'
 import { compositionRecipe, type PenComposition } from '@/lib/studio/pen3d/compose'
+import { shapeRecipe } from '@/lib/studio/pen3d/shape'
 import {
   buildPattern,
   recipeById,
@@ -19,12 +20,14 @@ import {
   type PenRecipe,
   type PenRecipeParams,
 } from '@/lib/studio/pen3d/recipes'
-import { penMetrics, validatePen } from '@/lib/studio/pen3d/validate'
+import { penFinding, penMetrics, validatePen } from '@/lib/studio/pen3d/validate'
+import { formOf } from '@/types/studio'
 import type {
   Finding,
   PenArtifact,
   PenMetrics,
   PenPattern,
+  PenShape,
   StudioCalibration,
   StudioRound,
   StudioSpec,
@@ -40,6 +43,11 @@ export type PenGenerateOptions = {
    * 강사가 레시피를 직접 고른 경우에는 그쪽이 우선이다.
    */
   composition?: PenComposition | null
+  /**
+   * 아틀라스 또는 LLM 윤곽 제안에서 온 모양 (ADR-036). 레시피·조합보다 **먼저** 쓴다 —
+   * 주제 그대로의 모양이 유사한 레시피보다 낫다. 2D(form: 'flat')는 이 경로뿐이다.
+   */
+  shape?: PenShape | null
   /** 같은 레시피·학년대의 성과 피드백 보정 (ADR-032) */
   calibration?: StudioCalibration | null
 }
@@ -65,10 +73,28 @@ const REPAIRABLE = new Set([
   'PEN_TOO_MANY_PARTS',
 ])
 
-function pickRecipe(spec: StudioSpec, options: PenGenerateOptions): PenRecipe {
-  const chosen = options.recipeId ? recipeById(options.recipeId) : null
-  if (chosen) return chosen
-  // 강사가 고른 레시피가 없을 때만 조합을 쓴다. 사람이 고른 것이 늘 우선이다.
+/**
+ * 무엇으로 만들 것인가. 순서는 ADR-036 이 고정한다.
+ *
+ * **2D 요청에는 레시피·조합을 쓰지 않는다** — 레시피 9종은 전부 입체이고, 강사가 2D 를
+ * 골랐는데 조립 도안을 내보내면 그건 요청한 물건이 아니다. 쓸 모양이 없으면 null 이고,
+ * 호출자가 실패로 끝낸다 (ADR-030 — 없는 것을 있는 것처럼 내보내지 않는다).
+ */
+function pickRecipe(spec: StudioSpec, options: PenGenerateOptions): PenRecipe | null {
+  const form = formOf(spec)
+
+  // 강사가 직접 고른 레시피가 늘 우선이다. 단 입체 요청일 때만 의미가 있다.
+  if (form !== 'flat') {
+    const chosen = options.recipeId ? recipeById(options.recipeId) : null
+    if (chosen) return chosen
+  }
+
+  // 주제 그대로의 모양이 유사한 레시피보다 낫다 (ADR-036).
+  if (options.shape) {
+    return shapeRecipe(options.shape, { form, grade_band: spec.grade_band })
+  }
+  if (form === 'flat') return null
+
   if (options.composition) return compositionRecipe(options.composition)
   // 피드백이 "어려웠다"로 모이면 난이도 상한을 한 단계 낮춰서 고른다 (ADR-032).
   const lower = options.calibration?.lower_difficulty === true
@@ -105,7 +131,7 @@ function initialParams(
   return { ...base, size }
 }
 
-type RepairKind = 'scale-up' | 'scale-down' | 'detail-down' | 'extras-off'
+type RepairKind = 'scale-up' | 'scale-down' | 'detail-down' | 'extras-off' | 'layers-down'
 type Repair = { params: PenRecipeParams; label: string; kind: RepairKind }
 
 const SCALE_CODES = ['PEN_GAP_TOO_SMALL', 'PEN_SEGMENT_TOO_SHORT', 'PEN_ANGLE_TOO_SHARP']
@@ -186,6 +212,15 @@ function chooseRepair(
         kind: 'detail-down',
       }
     }
+    // 적층은 층을 한 장 덜 겹친다. 2장 아래로 내려가지 않는다 — 1장은 적층이 아니다.
+    if ((params.layers ?? 0) > 2) {
+      const layers = (params.layers as number) - 1
+      return {
+        params: { ...params, layers },
+        label: `시간·부품 수에 맞추기 위해 겹치는 층을 ${layers}장으로 줄였습니다.`,
+        kind: 'layers-down',
+      }
+    }
     if (has('PEN_TIME_OVER') && params.size > minSize) {
       const size = Math.max(minSize, Math.round(params.size * SCALE_DOWN_STEP * 10) / 10)
       return {
@@ -200,7 +235,7 @@ function chooseRepair(
   return null
 }
 
-function assemblySteps(pattern: PenPattern): string[] {
+function assemblySteps(pattern: PenPattern, flat: boolean): string[] {
   const byId = new Map(pattern.parts.map((p) => [p.id, p]))
   const made = pattern.parts
     .map((p) => `${p.name} ${p.quantity}개`)
@@ -216,10 +251,24 @@ function assemblySteps(pattern: PenPattern): string[] {
     const where = joint.count > 1 ? ` (${joint.count}곳)` : ''
     steps.push(`${a} ↔ ${b}${where}: ${joint.how}`)
   }
+  // 2D 는 붙일 곳이 없다. 조립 단계 대신 마무리를 적는다 (ADR-037).
+  if (flat && pattern.joints.length === 0) {
+    steps.push(
+      '떼어낸 조각의 가장자리에서 끊긴 곳을 펜으로 메우고, 뒤틀렸으면 식기 전에 평평한 곳에 눌러 둡니다.',
+    )
+  }
   return steps
 }
 
-function ruleTasks(pattern: PenPattern, metrics: PenMetrics): string[] {
+function ruleTasks(pattern: PenPattern, metrics: PenMetrics, flat: boolean): string[] {
+  if (flat) {
+    return [
+      `도안의 선을 따라 ${pattern.title} 한 장을 그립니다.`,
+      '식은 뒤에 떼어내고, 가장자리가 끊긴 곳을 펜으로 메웁니다.',
+      '완성한 작품을 친구에게 보여주고, 어디를 바꾸면 더 좋아질지 한 문장으로 적습니다.',
+      '먼저 끝냈으면 안쪽에 선을 더해 자기만의 무늬를 넣습니다.',
+    ]
+  }
   return [
     `도안을 보고 ${pattern.parts.length}종 ${metrics.part_count}개의 부품을 만듭니다.`,
     `부품을 떼어내고 조립 순서를 따라 ${metrics.joint_count}곳을 붙여 ${pattern.title}을 완성합니다.`,
@@ -233,8 +282,43 @@ function ruleTasks(pattern: PenPattern, metrics: PenMetrics): string[] {
  * 화면은 실패 이유를 보여줘야 하고, 그게 ADR-030 의 요구다.
  */
 export function generatePen(spec: StudioSpec, options: PenGenerateOptions = {}): PenGenerateResult {
+  const flat = formOf(spec) === 'flat'
   const recipe = pickRecipe(spec, options)
   const speedFactor = options.calibration?.speed_factor ?? 1
+
+  // 2D 인데 쓸 모양이 없다. 입체 도안을 2D 라고 내보내지 않는다 (ADR-030·036).
+  if (!recipe) {
+    const empty: PenPattern = {
+      recipe_id: '',
+      title: spec.topic.trim() || '2D 도안',
+      scale: 1,
+      parts: [],
+      joints: [],
+    }
+    const findings: Finding[] = [
+      penFinding(
+        'PEN_SHAPE_UNAVAILABLE',
+        '이 주제로 만들 수 있는 검수된 2D 실루엣이 없습니다. 더 일반적인 단어로 적어 보거나, 3D 로 만들어 주세요.',
+      ),
+    ]
+    const metrics = penMetrics(empty, spec, { speedFactor })
+    return {
+      recipe_id: '',
+      params: { size: 0, detail: 0, extras: false },
+      artifact: {
+        kind: 'pen3d',
+        pattern: empty,
+        metrics,
+        assembly: [],
+        tasks: [],
+        safety_notes: [...PEN_SAFETY_NOTES],
+      },
+      metrics,
+      report: { ok: false, findings },
+      rounds: [{ round: 1, action: 'generated', repair: null, params: null, ok: false, findings }],
+      status: 'failed',
+    }
+  }
 
   let params = initialParams(recipe, spec, speedFactor)
   const rounds: StudioRound[] = []
@@ -278,8 +362,8 @@ export function generatePen(spec: StudioSpec, options: PenGenerateOptions = {}):
     // 배치(origin)가 채워진 패턴을 쓴다. 렌더와 검증이 같은 좌표를 본다.
     pattern: result.pattern,
     metrics: result.metrics,
-    assembly: assemblySteps(result.pattern),
-    tasks: ruleTasks(result.pattern, result.metrics),
+    assembly: assemblySteps(result.pattern, flat),
+    tasks: ruleTasks(result.pattern, result.metrics, flat),
     safety_notes: [...PEN_SAFETY_NOTES],
   }
 

@@ -481,11 +481,18 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
       ? `${shape.title} 실루엣 한 장을 그려 떼어냅니다.`
       : `${shape.title} 실루엣을 ${layers}장 그려 겹쳐 붙여 두께를 만듭니다.`,
     keywords: shape.words,
-    defaults: { size, detail: extras.length > 0 ? 1 : 0, extras: !flat && layers > 3 },
+    defaults: {
+      size,
+      detail: extras.length > 0 ? 1 : 0,
+      extras: !flat && layers > 3,
+      ...(flat ? {} : { layers }),
+    },
     size_range: [minSize, maxSize],
     nominal_difficulty: flat ? (extras.length > 0 ? 2 : 1) : 3,
 
-    build: ({ size: width, detail, extras: withExtras }: PenRecipeParams) => {
+    build: ({ size: width, detail, extras: withExtras, layers: wanted }: PenRecipeParams) => {
+      // 층 수는 2 아래로 내려가지 않는다. 1장은 적층이 아니라 2D 다 (ADR-037).
+      const count = Math.max(2, Math.min(layers, Math.round(wanted ?? layers)))
       const outline = sanitize(scaleTo(shape.silhouette.points, width), limit)
       const strokes: Stroke[] = [closedStroke(outline)]
 
@@ -524,22 +531,22 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
         Math.max(WELD_MIN_LENGTH_MM, perimeter * LAYER_WELD_RATIO),
         perimeter / 2 - 0.1,
       )
-      const parts = [mkPart('layer', `${shape.title} 층`, layers, strokes)]
+      const parts = [mkPart('layer', `${shape.title} 층`, count, strokes)]
       const joints = [
         mkWeld(
           'layer-stack',
           'layer',
           'layer',
-          layers - 1,
+          count - 1,
           stackWeld,
-          `같은 모양 ${layers}장을 포개어 맞추고, 맞닿은 테두리를 돌아가며 녹여 붙입니다.`,
+          `같은 모양 ${count}장을 포개어 맞추고, 맞닿은 테두리를 돌아가며 녹여 붙입니다.`,
         ),
       ]
 
       if (withExtras) {
         const segment = perimeter / BAND_SEGMENTS
         // 띠 높이는 적층 두께보다 작을 수 없고, 학년 최소 선분 길이도 지켜야 한다
-        const bandHeight = Math.max(limit.min_segment_mm, layers * BEAD_WIDTH_MM)
+        const bandHeight = Math.max(limit.min_segment_mm, count * BEAD_WIDTH_MM)
         parts.push(
           mkPart(
             'band',
