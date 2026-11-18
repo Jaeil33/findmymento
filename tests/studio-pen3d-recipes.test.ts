@@ -232,3 +232,63 @@ describe('모양을 알아볼 수 있을 만큼 구체적인가', () => {
     }
   })
 })
+
+/**
+ * 탑 레시피 — 강사가 "에펠탑 만들기"를 넣었을 때 **탑이 나와야 한다.**
+ *
+ * 레시피에 탑이 없던 동안에는 조각 조합으로 떨어져서 받침판 위에 막대 4개를 겹쳐 붙이는
+ * 도안이 나왔다. 조립해도 탑이 서지 않는 물건이다.
+ */
+describe('탑 주제', () => {
+  const tower = recipeById('lattice-tower')!
+
+  it.each(['에펠탑 만들기', '남산타워 모형', '우리 동네 시계탑', '송전탑'])(
+    '"%s" 의 1순위 후보가 탑 레시피다',
+    (topic) => {
+      expect(recipeCandidates(topic, 'middle')[0]!.id).toBe('lattice-tower')
+    },
+  )
+
+  it('초등에도 후보로 올라간다 — 탑은 초등 주제이기도 하다', () => {
+    expect(recipeCandidates('에펠탑 만들기', 'elementary')[0]!.id).toBe('lattice-tower')
+  })
+
+  it('탑 면이 위로 좁아진다 — 테이퍼가 없으면 탑으로 보이지 않는다', () => {
+    const pattern = buildPattern(tower, tower.defaults)
+    const leg = pattern.parts.find((p) => p.id === 'leg')!
+    expect(leg.quantity).toBe(4)
+
+    const outlineStroke = leg.strokes[0]!
+    const ys = outlineStroke.points.map((p) => p.y)
+    const top = Math.min(...ys)
+    const bottom = Math.max(...ys)
+    const widthAt = (y: number) => {
+      const xs = outlineStroke.points.filter((p) => Math.abs(p.y - y) < 0.01).map((p) => p.x)
+      return Math.max(...xs) - Math.min(...xs)
+    }
+    expect(widthAt(top)).toBeLessThan(widthAt(bottom) * 0.5)
+    // 위아래가 뒤집히면 탑이 아니라 깔때기다.
+    expect(bottom - top).toBeGreaterThan(widthAt(bottom))
+  })
+
+  it('꼭대기에 전망대와 첨탑이 올라간다', () => {
+    const pattern = buildPattern(tower, tower.defaults)
+    expect(pattern.parts.map((p) => p.id)).toEqual(
+      expect.arrayContaining(['leg', 'deck', 'spire']),
+    )
+  })
+
+  it('장식을 끄면 탑 면이 윤곽만 남는다 — 개선 라운드가 아치를 떼어낼 수 있어야 한다', () => {
+    const plain = buildPattern(tower, { ...tower.defaults, detail: 0 })
+    expect(plain.parts.find((p) => p.id === 'leg')!.strokes).toHaveLength(1)
+    const arched = buildPattern(tower, { ...tower.defaults, detail: 1 })
+    expect(arched.parts.find((p) => p.id === 'leg')!.strokes).toHaveLength(2)
+  })
+
+  it('선택 부품은 바닥판이다 — 부품 수가 넘치면 이것부터 빠진다', () => {
+    const withBase = buildPattern(tower, { ...tower.defaults, extras: true })
+    const without = buildPattern(tower, { ...tower.defaults, extras: false })
+    expect(withBase.parts.find((p) => p.id === 'base')?.optional).toBe(true)
+    expect(without.parts.find((p) => p.id === 'base')).toBeUndefined()
+  })
+})

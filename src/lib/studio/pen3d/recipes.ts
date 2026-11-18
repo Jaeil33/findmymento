@@ -494,11 +494,142 @@ const crossSphere: PenRecipe = {
   },
 }
 
+/**
+ * 탑 면의 아치 구멍. 위는 반원, 아래는 열린 사각이다 — 철탑 1층의 아치가 이 모양이다.
+ *
+ * 반원으로 올리는 이유는 `slittedDisc` 와 같다: 네모로 막으면 모서리마다 짧은 선이 생겨
+ * 최소 선분 길이에 걸린다. 폭·위치는 전부 치수에 비례하므로 도안을 줄여도 비스듬한 변과의
+ * 간격이 함께 줄지 않고 유지된다.
+ */
+function archPoints(width: number, height: number): Point[] {
+  const w = width * 0.36
+  const r = w / 2
+  const cx = width / 2
+  const bottom = height - width * 0.14
+  const top = height * 0.46
+
+  const pts: Point[] = [
+    { x: cx - r, y: bottom },
+    { x: cx - r, y: top + r },
+  ]
+  // 반원 — 왼쪽 끝에서 위를 돌아 오른쪽 끝으로. 24분할이면 꼭짓점 내각이 172.5도라 곡선으로 읽힌다.
+  const divisions = 24
+  for (let i = 1; i <= divisions; i += 1) {
+    const t = Math.PI + (i * Math.PI) / divisions
+    pts.push({ x: cx + r * Math.cos(t), y: top + r + r * Math.sin(t) })
+  }
+  pts.push({ x: cx + r, y: bottom })
+  return pts
+}
+
+/**
+ * 사각 철탑 — 에펠탑·남산타워·송전탑 같은 **탑** 주제.
+ *
+ * 탑이라는 모양의 핵심은 **아래가 벌어진 테이퍼**다. 막대를 세워 붙이면 탑으로 보이지 않는다
+ * — 레시피에 탑이 없던 동안 "에펠탑"이 받침판 위에 막대 4개를 겹쳐 붙이는 조합으로 나왔다.
+ *
+ * 치수 규칙 (가장 작은 치수 40mm 에서도 초등 임계값 — 간격 4mm · 선분 8mm · 내각 40도):
+ * - 윗변은 밑변의 35%. 40mm 에서 14mm 라 최소 선분을 넘고, 두 비스듬한 변의 간격도 14mm 다
+ * - 아치 폭은 밑변의 36%. 비스듬한 변과 가장 가까워지는 곳에서도 7mm 가 남는다
+ * - 첨탑 높이는 윗변과 같다. 꼭짓점 각이 53도로 **고정**이라 치수를 줄여도 뾰족해지지 않는다
+ * - 전망대 창은 테두리가 6mm 를 못 넘기면 넣지 않는다. 좁은 테두리는 녹아 붙는다
+ */
+const latticeTower: PenRecipe = {
+  id: 'lattice-tower',
+  title: '사각 철탑',
+  summary:
+    '아래가 넓고 위로 좁아지는 면 4장을 모서리끼리 붙여 탑을 세운다. 꼭대기에 전망대 판과 첨탑을 올리면 철탑 모형이 된다.',
+  keywords: ['탑', '타워', '에펠', '남산', '송전탑', '시계탑', '전망대', '랜드마크', '빌딩'],
+  defaults: { size: 70, detail: 1, extras: true },
+  size_range: [40, 100],
+  nominal_difficulty: 2,
+  build: ({ size, detail, extras }) => {
+    const height = size * 1.5
+    const topWidth = size * 0.35
+    const slant = Math.hypot((size - topWidth) / 2, height)
+
+    // 탑 한 면 — 위가 좁은 사다리꼴. 네 장을 세워 붙이면 아래가 벌어진 탑이 된다.
+    const face: Point[] = [
+      { x: (size - topWidth) / 2, y: 0 },
+      { x: (size + topWidth) / 2, y: 0 },
+      { x: size, y: height },
+      { x: 0, y: height },
+    ]
+    const legStrokes = [outline(face)]
+    if (detail >= 1) legStrokes.push(outline(archPoints(size, height)))
+
+    const deckStrokes = [outline(rectPoints(topWidth, topWidth))]
+    const inset = Math.max(6, topWidth * 0.25)
+    if (detail >= 1 && topWidth - inset * 2 >= 8) {
+      deckStrokes.push(
+        outline(
+          rectPoints(topWidth - inset * 2, topWidth - inset * 2).map((p) => ({
+            x: p.x + inset,
+            y: p.y + inset,
+          })),
+        ),
+      )
+    }
+
+    const parts = [
+      part('leg', '탑 면', 4, legStrokes),
+      part('deck', '전망대 판', 1, deckStrokes),
+      part('spire', '첨탑', 1, [outline(trianglePoints(topWidth, topWidth))]),
+    ]
+    const joints: PenJoint[] = [
+      weld(
+        'leg-leg',
+        'leg',
+        'leg',
+        4,
+        slant,
+        true,
+        '탑 면 두 장을 세워 비스듬한 변끼리 맞대고 위에서 아래로 녹여 붙입니다. 네 곳을 이으면 아래가 벌어진 탑이 섭니다.',
+      ),
+      weld(
+        'deck-leg',
+        'deck',
+        'leg',
+        4,
+        topWidth,
+        true,
+        '탑 꼭대기의 네 변에 전망대 판의 네 변을 각각 맞대어 붙입니다.',
+      ),
+      weld(
+        'spire-deck',
+        'spire',
+        'deck',
+        1,
+        topWidth,
+        false,
+        '첨탑의 밑변을 전망대 판 가운데에 세워 올리고, 맞닿은 자리를 펜으로 녹여 붙입니다.',
+      ),
+    ]
+    if (extras) {
+      parts.push(part('base', '바닥판', 1, [outline(rectPoints(size, size))], true))
+      joints.push(
+        weld(
+          'base-leg',
+          'base',
+          'leg',
+          4,
+          size,
+          true,
+          '바닥판의 네 변에 탑 면의 밑변을 각각 맞대어 붙입니다. 탑이 넘어지지 않습니다.',
+        ),
+      )
+    }
+
+    return { parts, joints }
+  },
+}
+
 export const PEN_RECIPES: readonly PenRecipe[] = [
   nameKeyring,
   cubeLantern,
   pyramidLamp,
   houseLamp,
+  latticeTower,
   flowerPot,
   hexBox,
   droneFrame,
