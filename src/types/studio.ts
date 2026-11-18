@@ -138,6 +138,21 @@ export type Stroke = {
   closed: boolean
 }
 
+/**
+ * 부품에 실린 색 영역 (ADR-039). 좌표는 **mm 이고 `strokes` 와 같은 부품 로컬 프레임**이다 —
+ * 두 레이어가 같은 자리에 찍히려면 같은 평행이동·배율을 받아야 하므로 `mkPart` 가 둘을 함께
+ * 옮긴다.
+ *
+ * 정규화 좌표를 쓰는 `ArtRegion` 과 **다른 타입이다.** 섞이면 mm 공간에 0~1 짜리 영역이
+ * 찍혀 1mm 짜리 점이 된다.
+ */
+export type PartArt = {
+  outline: Point[]
+  holes: Point[][]
+  color: PaletteName
+  z: number
+}
+
 export type PenPart = {
   id: string
   name: string
@@ -145,6 +160,11 @@ export type PenPart = {
   quantity: number
   /** 부품 로컬 좌표. 배치는 `origin` 으로 평행이동한다 */
   strokes: Stroke[]
+  /**
+   * 색 영역 (ADR-039). **검증기는 이 배열을 보지 않는다** — 인쇄만 되고 펜이 지나가지 않는다.
+   * 비어 있으면 흑백 도안이다.
+   */
+  art: PartArt[]
   /**
    * 배치된 자리. **저장된 값을 믿지 말 것** — 배치 규칙이 바뀌면 이미 저장된 산출물의 좌표는
    * 옛 규칙 그대로다. 그리는 쪽은 `renderPenSvg` 처럼 `layoutPattern` 으로 다시 배치한다.

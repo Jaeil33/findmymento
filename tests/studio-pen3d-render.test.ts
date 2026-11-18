@@ -92,6 +92,7 @@ describe('선 종류', () => {
               id: 'p',
               name: '테스트',
               quantity: 1,
+              art: [],
               origin: { x: 0, y: 0 },
               optional: false,
               strokes: [

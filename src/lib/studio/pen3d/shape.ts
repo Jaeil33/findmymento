@@ -48,6 +48,7 @@ import {
   segIntersects,
   segments,
   strokeLength,
+  strokesBBox,
   STRAIGHT_ANGLE_DEG,
 } from '@/lib/studio/geometry'
 import { penGapOptions } from '@/lib/studio/pen3d/validate'
@@ -55,6 +56,7 @@ import type { PenRecipe, PenRecipeParams } from '@/lib/studio/pen3d/recipes'
 import type { GradeBand } from '@/types/domain'
 import type {
   NormPoint,
+  PartArt,
   PenJoint,
   PenPart,
   PenShape,
@@ -519,12 +521,25 @@ function mkPart(
   quantity: number,
   strokes: Stroke[],
   optional = false,
+  /** mm 공간의 색 영역. **`strokes` 와 같은 프레임이어야 한다** (ADR-039) */
+  art: PartArt[] = [],
 ): PenPart {
+  // `normalizeStrokes` 는 윤곽 bbox 의 좌상단을 원점으로 옮긴다. 색 영역을 **같은 양만큼**
+  // 옮기지 않으면 두 레이어가 어긋나 찍히고, 그 어긋남은 인쇄한 뒤에야 보인다.
+  const box = strokesBBox(strokes)
+  const shift = (points: Point[]): Point[] =>
+    points.map((p) => ({ x: p.x - box.min.x, y: p.y - box.min.y }))
+
   return {
     id,
     name,
     quantity,
     strokes: normalizeStrokes(strokes),
+    art: art.map((region) => ({
+      ...region,
+      outline: shift(region.outline),
+      holes: region.holes.map(shift),
+    })),
     origin: { x: 0, y: 0 },
     optional,
   }
@@ -620,6 +635,18 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
       const outline = sanitize(scaleTo(shape.silhouette.points, width), limit)
       const strokes: Stroke[] = [closedStroke(outline)]
 
+      /**
+       * 색 영역을 **윤곽과 같은 배율로** 키운다 (ADR-039). `sanitize` 를 지나지 않는 이유:
+       * 그 함수는 학년 임계값에 맞춰 선분을 합치고 꼭짓점을 자르는 **덧그릴 선용 보정**이고,
+       * 색 영역은 펜이 지나가지 않으므로 그 보정을 받을 이유가 없다. 받으면 그림만 뭉개진다.
+       */
+      const art: PartArt[] = shape.art.map((region) => ({
+        color: region.color,
+        z: region.z,
+        outline: scaleTo(region.outline.points, width),
+        holes: region.holes.map((hole) => scaleTo(hole.points, width)),
+      }))
+
       if (detail >= 1) {
         for (const extra of extras) {
           const candidate = closedStroke(sanitize(scaleTo(extra.points, width), limit))
@@ -632,7 +659,7 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
 
       // ── 2D — 조립하지 않는다 (ADR-037) ───────────────────────────────────
       if (flat) {
-        const parts = [mkPart('body', shape.title, 1, strokes)]
+        const parts = [mkPart('body', shape.title, 1, strokes, false, art)]
         const joints: PenJoint[] = []
         if (shape.hanger) {
           parts.push(mkPart('hoop', '고리', 1, hangerStrokes()))
@@ -655,7 +682,7 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
         Math.max(WELD_MIN_LENGTH_MM, perimeter * LAYER_WELD_RATIO),
         perimeter / 2 - 0.1,
       )
-      const parts = [mkPart('layer', `${shape.title} 층`, count, strokes)]
+      const parts = [mkPart('layer', `${shape.title} 층`, count, strokes, false, art)]
       const joints = [
         mkWeld(
           'layer-stack',

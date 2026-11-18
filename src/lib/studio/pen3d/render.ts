@@ -5,15 +5,21 @@
  * 1 단위가 정확히 1mm 다. 프린터가 "용지에 맞추기"로 축척을 바꾸는 사고는 소프트웨어로 막을
  * 수 없으므로, 종이 아래쪽에 **50mm 기준선**을 함께 그린다. 강사가 자로 한 번 재면 끝난다.
  *
- * 선은 `stroke` 만 쓰고 `fill` 은 없다 — 덧그릴 선이기 때문이다.
- * 윤곽은 실선, 접는 선은 파선이다.
+ * **두 레이어를 그린다** (ADR-039). `art` 는 색으로 채운 영역이고 먼저 깔린다. `trace`
+ * (= `part.strokes`)는 학생이 덧그릴 선이고 그 **위에** 올라간다 — 순서를 뒤집으면 진한 색이
+ * 윤곽선을 덮어 따라갈 선이 보이지 않는다.
+ *
+ * 덧그릴 선은 `stroke` 만 쓰고 `fill` 은 없다. 윤곽은 실선, 접는 선은 파선이다.
+ * 색 영역이 없으면(`art: []`) 지금까지와 같은 흑백 도안이다 — 레시피·조각 조합이 그 경우다.
+ *
+ * 인쇄는 컬러 전제다 (ADR-039). 흑백 프린터에서는 색 영역이 회색으로 깔린다.
  */
 
 import { PAGE, PAGE_USABLE, PEN_LABEL, PEN_SAFETY_NOTES } from '@/lib/studio/constants'
-import { strokesBBox } from '@/lib/studio/geometry'
-import { clampToWidth, partCell, wrapToWidth } from '@/lib/studio/pen3d/label'
+import { hexFor, needsEdge, PALETTE } from '@/lib/studio/palette'
+import { clampToWidth, partBox, partCell, wrapToWidth } from '@/lib/studio/pen3d/label'
 import { layoutPattern } from '@/lib/studio/pen3d/layout'
-import type { PenArtifact, Stroke, StudioStatus } from '@/types/studio'
+import type { PenArtifact, Point, Stroke, StudioStatus } from '@/types/studio'
 import { isUsable } from '@/types/studio'
 
 export type RenderOptions = {
@@ -39,6 +45,13 @@ function esc(text: string): string {
  */
 function wrap(text: string, fontMm: number, widthMm: number): string[] {
   return wrapToWidth(text, fontMm, () => widthMm)
+}
+
+/** 점 목록을 그대로 path 로. 색 영역은 `Stroke` 가 아니라 점 목록이다 */
+function polyData(points: Point[]): string {
+  if (points.length === 0) return ''
+  const [first, ...rest] = points
+  return `M${n(first!.x)},${n(first!.y)}${rest.map((p) => `L${n(p.x)},${n(p.y)}`).join('')}`
 }
 
 function pathData(stroke: Stroke, dx: number, dy: number): string {
@@ -103,7 +116,8 @@ export function renderPenSvg(artifact: PenArtifact, options: RenderOptions): str
 
     const dx = margin + part.origin.x
     const dy = margin + part.origin.y
-    const box = strokesBBox(part.strokes)
+    // 배치기와 **같은 박스**다 (`label.ts` 의 `partBox`) — 색 영역까지 포함한 합집합이다
+    const box = partBox(part)
 
     /**
      * 칸은 배치기(`layout.ts`)가 예약한 것과 **같은 함수**에서 나온다. 라벨은 윤곽 아래의
@@ -114,6 +128,32 @@ export function renderPenSvg(artifact: PenArtifact, options: RenderOptions): str
     lowest = Math.max(lowest, labelTop + cell.label.height_mm)
 
     lines.push(`<g id="part-${esc(part.id)}">`)
+
+    /**
+     * 색 영역을 **먼저** 깐다 (ADR-039). 덧그릴 선이 그 위에 올라가야 학생이 따라갈 선을
+     * 색에 묻히지 않고 본다 — 순서를 뒤집으면 진한 색 영역이 윤곽선을 덮는다.
+     *
+     * `z` 오름차순이다. 같은 `z` 는 배열 순서를 유지한다(안정 정렬).
+     */
+    const regions = [...part.art].sort((a, b) => a.z - b.z)
+    for (const region of regions) {
+      if (region.outline.length < 3) continue
+      const shift = (points: Point[]) =>
+        points.map((p) => ({ x: p.x + dx - box.min.x, y: p.y + dy - box.min.y }))
+      // 구멍은 같은 path 의 서브패스로 넣고 `fill-rule="evenodd"` 로 뺀다 — 겹쳐 그린
+      // 흰 도형으로 가리면 그 아래의 다른 색 영역까지 지워진다.
+      const subpaths = [shift(region.outline), ...region.holes.map(shift)]
+        .filter((points) => points.length >= 3)
+        .map((points) => `${polyData(points)}Z`)
+        .join('')
+      const edge = needsEdge(region.color)
+        ? ` stroke="${PALETTE.연회색}" stroke-width="0.2"`
+        : ' stroke="none"'
+      lines.push(
+        `<path class="art" d="${subpaths}" fill="${hexFor(region.color)}" fill-rule="evenodd"${edge}/>`,
+      )
+    }
+
     for (const stroke of part.strokes) {
       // 윤곽 좌표가 (0,0) 기준이 아니어도 칸 왼쪽 위에 맞춘다. 배치는 bbox 로 자리를 잡는다.
       const dash = stroke.kind === 'fold' ? ' stroke-dasharray="3 2"' : ''
