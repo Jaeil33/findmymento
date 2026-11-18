@@ -17,7 +17,7 @@ import {
   COMPOSE_MIN_PIECE_MM,
   WELD_MIN_LENGTH_MM,
 } from '@/lib/studio/constants'
-import { scaleStrokes, sizeOf, strokesBBox } from '@/lib/studio/geometry'
+import { normalizeStrokes, scaleStrokes, sizeOf, strokesBBox } from '@/lib/studio/geometry'
 import { pieceById, type PenPiece } from '@/lib/studio/pen3d/pieces'
 import type { PenRecipe, PenRecipeParams } from '@/lib/studio/pen3d/recipes'
 import type { PenJoint, PenPart, Stroke } from '@/types/studio'
@@ -176,7 +176,8 @@ export function compositionRecipe(composition: PenComposition): PenRecipe {
           id: 'base',
           name: basePiece.name,
           quantity: 1,
-          strokes: baseStrokes,
+          // 레시피와 같은 규칙 — 부품 좌표는 (0,0) 기준이다 (`recipes.ts` 머리말).
+          strokes: normalizeStrokes(baseStrokes),
           origin: { x: 0, y: 0 },
           optional: false,
         },
@@ -194,7 +195,7 @@ export function compositionRecipe(composition: PenComposition): PenRecipe {
           id: partId,
           name: piece.name,
           quantity: entry.quantity,
-          strokes,
+          strokes: normalizeStrokes(strokes),
           origin: { x: 0, y: 0 },
           optional: entry.optional,
         })

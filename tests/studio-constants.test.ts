@@ -20,6 +20,7 @@ import {
   DRONE_WALL_CLEARANCE_CM,
   PAGE,
   PEEL_SECONDS_PER_PART,
+  PEN_LABEL,
   PEN_SAFETY_NOTES,
   PEN_FINDING_SEVERITY,
   PEN_LIMITS,
@@ -140,6 +141,21 @@ describe('3D펜 물리 상수가 docs/STUDIO.md 와 일치한다', () => {
 
   it('부품 간 배치 간격', () => {
     expect(nums(row('부품 간 배치 간격')[1])).toEqual([PAGE.gutter_mm])
+  })
+
+  it('라벨 블록 — 배치가 예약하는 자리와 렌더가 그리는 글자가 같은 값에서 온다', () => {
+    expect(nums(row('라벨 글자 크기 (이름/치수)')[1])).toEqual([
+      PEN_LABEL.name_font_mm,
+      PEN_LABEL.dim_font_mm,
+    ])
+    expect(nums(row('라벨 줄 간격')[1])).toEqual([PEN_LABEL.line_mm])
+    expect(nums(row('라벨 칸 최소 폭')[1])).toEqual([PEN_LABEL.min_width_mm])
+    // 줄 간격이 글자 크기보다 좁으면 윗줄과 아랫줄이 겹친다.
+    expect(PEN_LABEL.line_mm).toBeGreaterThan(PEN_LABEL.name_font_mm)
+    // 번호 배지가 부품 선 위로 올라가지 않으려면 첫 줄 기준선이 반지름보다 아래여야 한다.
+    expect(PEN_LABEL.lead_mm).toBeGreaterThan(PEN_LABEL.badge_radius_mm)
+    // 배지를 비켜 글자가 시작해야 번호와 이름이 겹치지 않는다.
+    expect(PEN_LABEL.badge_text_x_mm).toBeGreaterThan(PEN_LABEL.badge_radius_mm * 2)
   })
 
   it('3D펜 안전 고정 문구 4개가 문서에 그대로 있다', () => {

@@ -86,17 +86,51 @@ export const TIME_SAFETY = 0.85
 /** 가용 시간의 이 비율을 넘으면 warn. */
 export const TIME_TIGHT_RATIO = 0.9
 
-/** A4. `margin` 을 뺀 영역이 사용 영역이고, `gutter` 는 부품 간 배치 간격이다. */
+/**
+ * A4. `margin` 을 뺀 영역이 사용 영역이고, `gutter` 는 부품 간 배치 간격이다.
+ *
+ * 간격이 14mm 인 이유: 떼어내기 여유만 보면 6mm 로 충분하지만, 그 간격에서는 종이 위의
+ * 부품 번호와 이름이 옆 부품에 바싹 붙어서 "몇 번이 어느 모양인지"가 한눈에 읽히지 않는다.
+ * 도안은 A4 의 20~30% 만 쓰므로 간격을 넓혀도 도안이 작아지지 않는다 — 24mm 까지 올려도
+ * 축소·개선 라운드가 늘지 않는 것을 확인했다.
+ */
 export const PAGE = {
   width_mm: 210,
   height_mm: 297,
   margin_mm: 10,
-  gutter_mm: 6,
+  gutter_mm: 14,
 } as const
 
 export const PAGE_USABLE = {
   width_mm: PAGE.width_mm - PAGE.margin_mm * 2,
   height_mm: PAGE.height_mm - PAGE.margin_mm * 2,
+} as const
+
+/**
+ * 부품 라벨 블록(번호 배지·이름·수량·치수)이 차지하는 자리. **배치가 이 값을 예약한다.**
+ *
+ * 렌더가 그리는 것과 배치가 예약하는 것이 어긋나면 라벨이 옆·아래 부품의 선 위로 올라간다.
+ * 그래서 글자 크기·줄 간격까지 여기 한 곳에 두고 `layout.ts` 와 `render.ts` 가 같이 읽는다.
+ * SVG 는 `viewBox` 가 1 단위 = 1mm 이므로 글자 크기의 px 값이 곧 mm 다.
+ */
+export const PEN_LABEL = {
+  /** 이름·수량 줄 */
+  name_font_mm: 3.4,
+  /** 치수 줄 */
+  dim_font_mm: 2.9,
+  /** 번호 배지 안의 숫자 */
+  num_font_mm: 3.2,
+  /** 줄 간격 */
+  line_mm: 4.2,
+  /** 부품 아래 끝에서 첫 줄 기준선까지. 배지 반지름보다 커야 배지가 부품 위로 올라가지 않는다 */
+  lead_mm: 3.8,
+  /** 마지막 줄 기준선 아래 여유 (글자 꼬리) */
+  descent_mm: 1.2,
+  badge_radius_mm: 2.3,
+  /** 배지를 비켜 첫 줄 글자가 시작하는 위치 */
+  badge_text_x_mm: 5.6,
+  /** 라벨이 들어갈 칸의 최소 폭. 부품이 이보다 좁아도 칸은 이만큼 잡는다 */
+  min_width_mm: 32,
 } as const
 
 /** 보유 장비 문자열에서 3D펜 보유를 판별하는 키워드. 하나라도 걸리면 보유로 본다. */

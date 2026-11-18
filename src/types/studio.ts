@@ -120,6 +120,10 @@ export type PenPart = {
   quantity: number
   /** 부품 로컬 좌표. 배치는 `origin` 으로 평행이동한다 */
   strokes: Stroke[]
+  /**
+   * 배치된 자리. **저장된 값을 믿지 말 것** — 배치 규칙이 바뀌면 이미 저장된 산출물의 좌표는
+   * 옛 규칙 그대로다. 그리는 쪽은 `renderPenSvg` 처럼 `layoutPattern` 으로 다시 배치한다.
+   */
   origin: Point
   /** 시간이 초과되면 제거 후보가 되는 장식 부품인가 */
   optional: boolean
