@@ -207,6 +207,19 @@ export function renderPenSvg(artifact: PenArtifact, options: RenderOptions): str
     ...artifact.assembly.flatMap((step, i) => legendWrap(`${i + 1}. ${step}`)),
     // 안전 문구는 한 곳에서만 만든다 (`lib/studio/constants.ts`). 종이에는 첫 줄을 싣는다.
     ...legendWrap(PEN_SAFETY_NOTES[0]),
+    /**
+     * 코퍼스 아트의 **저작자 표시** (ADR-041). CC-BY 4.0 은 표시가 **사용 조건**이므로
+     * 빼면 라이선스 밖에서 쓰는 것이 된다 — 인쇄물에 들어가야 한다.
+     *
+     * 이것은 플랫폼의 저작권 **판정**이 아니다 (ADR-043 과 성격이 다르다). 강사의 입력을
+     * 막거나 치환하거나 경고하지 않는다 — 우리가 남의 아트를 쓰는 조건을 지키는 것뿐이다.
+     *
+     * 코퍼스에서 온 모양에만 붙인다. `atlas-` 로 시작하는 id 가 그 표식이고, 레시피·조각
+     * 조합·명패·LLM 제안은 우리 기하이므로 붙이지 않는다.
+     */
+    ...(pattern.recipe_id.startsWith('atlas-')
+      ? legendWrap('그림 출처: Twemoji (CC-BY 4.0)')
+      : []),
   ]
   if (legendRoom >= legendLines.length * 4) {
     lines.push(`<path d="M${n(margin)},${n(legendTop - 4)}L${n(PAGE.width_mm - margin)},${n(legendTop - 4)}" stroke="#777" stroke-width="0.2" stroke-dasharray="2 2"/>`)
