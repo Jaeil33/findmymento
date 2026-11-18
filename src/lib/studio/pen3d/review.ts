@@ -15,8 +15,8 @@
  * 서버 전용이다. 클라이언트 컴포넌트에서 import 하지 않는다.
  */
 
-import { createAnthropic } from '@/lib/ai/client'
-import { sanitizeText } from '@/lib/ai/guard'
+import { createAnthropic } from '@/lib/ai/anthropic'
+import { sanitizeText } from '@/lib/ai/text-guard'
 import { SHAPE_REVIEW_TIMEOUT_MS } from '@/lib/studio/constants'
 import { rasterPngBase64 } from '@/lib/studio/pen3d/raster'
 import type { Stroke } from '@/types/studio'

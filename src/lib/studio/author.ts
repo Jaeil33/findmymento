@@ -16,7 +16,8 @@
 import { createAnthropic, llmKeyForRequest, tourStudioKey } from '@/lib/ai/client'
 import { parseComposition, type PenComposition } from '@/lib/studio/pen3d/compose'
 import { parseShape } from '@/lib/studio/pen3d/shape'
-import { SHAPE_AUTHOR_TIMEOUT_MS, SHAPE_POINTS } from '@/lib/studio/constants'
+import { SHAPE_AUTHOR_TIMEOUT_MS } from '@/lib/studio/constants'
+import { OUTLINE_SYSTEM } from '@/lib/studio/pen3d/outline-prompt'
 import { demoAiEnabled, demoStudioAuthoring } from '@/lib/ai/demo-writer'
 import { numbersWithin, sanitizeList, sanitizeText } from '@/lib/ai/guard'
 import { GRADE_BAND_LABEL } from '@/types/domain'
@@ -109,31 +110,6 @@ const COMPOSE_SYSTEM = `
 - 조각으로 그 모양을 만들 수 없으면 조합하지 말고 레시피를 고른다.
 
 {"mode":"compose","composition":{"title":"...","base":"...","parts":[{"piece":"...","ratio":0.5,"quantity":1,"attach":"back"}]},"recipe_id":"...","title":"...","reason":"...","tasks":["...","..."]}`
-
-/**
- * 윤곽 제안이 가능할 때만 덧붙이는 지시 (ADR-036).
- *
- * 받는 것은 **단위 없는 비율**뿐이다. mm·접합·배치·판정은 코드가 한다. 그래서 모델이 아무리
- * 이상한 윤곽을 보내도 도안의 치수는 우리가 만든 값이고, 범위를 벗어나면 통째로 버린다.
- */
-const OUTLINE_SYSTEM = `
-
-**목록에 그 주제의 모양이 없으면 윤곽을 직접 제안한다.**
-
-- mode 를 "outline" 으로 하고 outline 을 채운다. 목록에 같은 모양이 있으면 그것을 고른다.
-- silhouette: 바깥 윤곽 한 줄. 점 ${SHAPE_POINTS[0]}~${SHAPE_POINTS[1]}개.
-  - 좌표는 **0~1 사이 소수**다. x 는 오른쪽, y 는 **아래쪽**이 커진다.
-  - 닫힌 윤곽이다 — 마지막 점에서 첫 점으로 이어진다. 첫 점을 끝에 다시 쓰지 않아도 된다.
-  - 점은 한 방향으로 돈다. **선이 스스로 교차하면 제안을 버린다.**
-  - 그 단어를 **알아볼 수 있는 특징**을 윤곽에 넣는다 (코끼리의 코, 자전거의 바퀴, 집의 지붕).
-  - 뾰족한 끝은 프로그램이 잘라낸다. 바늘처럼 가느다란 돌기를 만들지 않는다.
-- details: 내부 선 (눈·귀 경계 등). 각각 닫힌 윤곽이고 **실루엣 안**에 있어야 한다. 없으면 빈 배열.
-- holes: 뚫는 구멍. 없으면 빈 배열.
-- hanger: 고리를 달 모양이면 true (키링·명패).
-- **mm·cm·치수·개수·시간을 쓰지 않는다.** 비율만 쓴다 — 치수는 프로그램이 정한다.
-- 특정 캐릭터·상표의 모양을 그리지 않는다. 일반적인 형태로 그린다.
-
-{"mode":"outline","outline":{"title":"...","silhouette":[{"x":0.5,"y":0.02}],"details":[],"holes":[],"hanger":false},"title":"...","reason":"...","tasks":["...","..."]}`
 
 type LlmAuthoring = {
   mode?: unknown

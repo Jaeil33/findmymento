@@ -75,3 +75,4 @@ npm run dev      # 개발 서버
 npm run build    # 프로덕션 빌드
 npm run lint     # ESLint
 npm run test     # 테스트
+npm run studio:atlas -- --words scripts/studio/words/animals.txt   # 검수된 실루엣 적재 (실제 LLM·오프라인)

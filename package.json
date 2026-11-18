@@ -18,7 +18,8 @@
     "pilot:sql": "node scripts/pilot/sql-bundle.mjs",
     "pilot:setup": "node scripts/pilot/setup.mjs",
     "pilot:export": "node scripts/pilot/export.mjs",
-    "pilot:rehearse": "node scripts/pilot/rehearse.mjs"
+    "pilot:rehearse": "node scripts/pilot/rehearse.mjs",
+    "studio:atlas": "node --experimental-strip-types --env-file-if-exists=.env.local --env-file-if-exists=.env --import ./scripts/studio/register.mjs scripts/studio/atlas.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

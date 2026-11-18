@@ -82,7 +82,12 @@ describe('createAnthropic', () => {
 })
 
 describe('구조 — 클라이언트는 한 곳에서만 만든다', () => {
-  it('src 안에서 `new Anthropic(` 은 lib/ai/client.ts 에만 있다', () => {
+  /**
+   * 클라이언트를 만드는 곳은 여전히 **한 곳**이다. 위치만 `lib/ai/anthropic.ts` 로 옮겼다 —
+   * `lib/ai/client.ts` 는 체험 쿠키를 읽어서 `next/headers` 를 끌고 오고, 그러면 오프라인
+   * 아틀라스 생산 스크립트가 Node 로 돌아가지 않는다 (ADR-036).
+   */
+  it('src 안에서 `new Anthropic(` 은 lib/ai/anthropic.ts 에만 있다', () => {
     const root = join(process.cwd(), 'src')
     const files: string[] = []
     const walk = (dir: string) => {
@@ -97,6 +102,6 @@ describe('구조 — 클라이언트는 한 곳에서만 만든다', () => {
     const offenders = files
       .filter((f) => /new\s+Anthropic\s*\(/.test(readFileSync(f, 'utf8')))
       .map((f) => relative(root, f).split(sep).join('/'))
-    expect(offenders).toEqual(['lib/ai/client.ts'])
+    expect(offenders).toEqual(['lib/ai/anthropic.ts'])
   })
 })
