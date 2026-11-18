@@ -261,7 +261,7 @@ A4 1:1 SVG. 부품(part)의 윤곽선을 종이 위에 인쇄하고, 학생이 �
 | `PEN_DIFFICULTY_MISMATCH` | warn | 산정 난이도가 학년대 권장 범위 밖 |
 | `PEN_TIME_TIGHT` | warn | 예상 제작 시간이 가용 시간의 90% 초과 |
 | `PEN_FLAT_NO_SILHOUETTE` | error | 2D인데 닫힌 윤곽이 없다 |
-| `PEN_LAYER_COUNT_INVALID` | error | 적층 층 수가 범위 밖 |
+| `PEN_LAYER_COUNT_INVALID` | error | 같은 부품 복제끼리의 접합이 복제를 잇지 못한다 (적층 층 수 − 1 미달) |
 | `PEN_SHAPE_UNRECOGNIZED` | warn | 이미지 검토가 "그 단어로 보이지 않는다"고 판정 (ADR-038) |
 | `PEN_SHAPE_UNREVIEWED` | warn | 사람이 검수하지 않은 자동 생성 모양이다 (ADR-036) |
 

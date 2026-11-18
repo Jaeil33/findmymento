@@ -34,6 +34,31 @@ export type StudioSpec = {
   topic: string
   /** 회차에 붙은 생성이면 회차 id. 라이브러리 단독 생성이면 null */
   session_id: string | null
+  /**
+   * 2D 실루엣인가 입체인가 (ADR-037). 수업 조건이 아니라 **강사의 선택**이라,
+   * 회차에서 생성할 때도 강사가 고른다.
+   *
+   * 비어 있을 수 있다 — 이 필드가 생기기 전에 저장된 행(`studio_contents.spec`)에는 없다.
+   * 읽을 때는 {@link formOf} 를 쓴다. 화면 기본값(`flat`)과 옛 행의 기본값(`solid`)이 다르다.
+   */
+  form?: ShapeForm
+}
+
+export const SHAPE_FORMS = ['flat', 'solid'] as const
+export type ShapeForm = (typeof SHAPE_FORMS)[number]
+
+export const SHAPE_FORM_LABEL: Record<ShapeForm, string> = {
+  flat: '2D 납작한 한 장',
+  solid: '3D 입체',
+}
+
+/**
+ * 저장된 spec 의 모드. **옛 행의 기본값은 `solid`다** — 이 필드가 없던 시절의 산출물은
+ * 전부 레시피·조합(입체)으로 만들어졌기 때문이다. 새 생성의 화면 기본값(`flat`)과 다르고,
+ * 그 기본값은 폼(`components/studio/GenerateForm.tsx`)과 입력 검증이 정한다.
+ */
+export function formOf(spec: { form?: ShapeForm }): ShapeForm {
+  return spec.form ?? 'solid'
 }
 
 // ============================================================================
@@ -127,6 +152,45 @@ export type PenPart = {
   origin: Point
   /** 시간이 초과되면 제거 후보가 되는 장식 부품인가 */
   optional: boolean
+}
+
+// ============================================================================
+// 모양 IR — 아틀라스와 윤곽 제안이 같은 형태로 들어온다 (ADR-036)
+// ============================================================================
+
+/**
+ * 정규화 좌표. **mm 가 아니다** — x 는 0~1, y 는 0~`aspect` 다.
+ * mm 는 `shapeRecipe` 가 `params.size` 를 곱해 만든다. LLM 이 돌려줄 수 있는 유일한 숫자다.
+ */
+export type NormPoint = { x: number; y: number }
+
+/** 닫힌 윤곽 하나. 열린 제안은 닫아서 받고, 스스로 교차하면 버린다 */
+export type ShapeOutline = { points: NormPoint[]; closed: true }
+
+/**
+ * 모양 하나. 아틀라스 파일(`src/data/atlas/**`)과 LLM 윤곽 제안이 **같은 타입**으로 들어와,
+ * `shapeRecipe` 를 지나면 레시피와 구별되지 않는다 — 생성·검증·개선 라운드가 그대로 돈다.
+ */
+export type PenShape = {
+  /** `atlas-<단어>` 또는 `dsl-<해시>`. 성과 피드백 보정의 집계 키다 (ADR-032) */
+  id: string
+  /** 입력 단어 (일반화를 통과한 값) */
+  word: string
+  title: string
+  /** 아틀라스 조회용 동의어. 제안에는 없다 */
+  words: string[]
+  silhouette: ShapeOutline
+  /** 내부 디테일선. 간격이 모자라면 **모양보다 먼저 깎인다** */
+  details: ShapeOutline[]
+  /** 구멍 */
+  holes: ShapeOutline[]
+  /** 고리 자리가 필요한가 (2D 에서만 쓴다) */
+  hanger: boolean
+  /** 세로/가로 비 */
+  aspect: number
+  source: 'atlas' | 'dsl'
+  /** 사람이 검수한 모양인가. 아틀라스만 true — 화면 표기와 이미지 검토 여부를 정한다 */
+  reviewed: boolean
 }
 
 export type PenJointKind = 'weld' | 'slot'

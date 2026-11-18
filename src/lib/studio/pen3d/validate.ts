@@ -8,6 +8,7 @@
  */
 
 import {
+  type PenLimit,
   CLOSED_TOLERANCE_MM,
   CLASS_OVERHEAD_MINUTES,
   PEEL_SECONDS_PER_PART,
@@ -25,6 +26,7 @@ import {
   interiorAngles,
   isClosedPath,
   minGap,
+  type MinGapOptions,
   rectsOverlap,
   segIntersects,
   segments,
@@ -32,6 +34,7 @@ import {
 } from '@/lib/studio/geometry'
 import { layoutPattern } from '@/lib/studio/pen3d/layout'
 import {
+  formOf,
   reportOf,
   type Finding,
   type PenMetrics,
@@ -41,6 +44,14 @@ import {
   type StudioSpec,
   type ValidationReport,
 } from '@/types/studio'
+
+/**
+ * 간격 판정 옵션. **생성기와 검증기가 같은 값을 봐야 한다** — 보정(`pen3d/shape.ts`)이
+ * 다른 옵션으로 재면 "보정이 통과시킨 모양이 검증에서 떨어지는" 일이 생긴다.
+ */
+export function penGapOptions(limit: PenLimit): MinGapOptions {
+  return { pathSkip: Math.max(10, limit.min_gap_mm * 3) }
+}
 
 export type PenValidateOptions = {
   /** 성과 피드백에서 온 시간 보정 계수. 1 보다 크면 예상 시간이 늘어난다 (ADR-032) */
@@ -138,9 +149,7 @@ export function penMetrics(
     }
   }
 
-  const gaps = pattern.parts.map((part) =>
-    minGap(part.strokes, { pathSkip: Math.max(10, limit.min_gap_mm * 3) }),
-  )
+  const gaps = pattern.parts.map((part) => minGap(part.strokes, penGapOptions(limit)))
   const features = pattern.parts.flatMap(partFeatures)
   const angles = pattern.parts.flatMap((p) =>
     p.strokes.filter((s) => s.kind === 'outline').flatMap((s) => interiorAngles(s)),
@@ -336,8 +345,33 @@ export function validatePen(
   }
 
   // ── 접합 구조 ─────────────────────────────────────────────────────────────
+  /**
+   * **2D 는 조립하지 않으므로 접합 검사를 받지 않는다** (ADR-037).
+   *
+   * 면제되는 것은 "모든 부품에 접합이 있어야 한다"와 "접합 그래프가 하나로 이어져야 한다"
+   * 둘뿐이다. 물리 임계값(간격·선분·내각·닫힘·자기교차·A4·시간·부품 수)과 접합 규격 검사는
+   * 모드와 무관하게 그대로 받는다 — 임계값 면제가 아니라 산출물 종류가 다른 것이다.
+   *
+   * 옛 행(form 이 없는 spec)은 formOf 가 solid 로 읽는다. 전부 입체였기 때문이다.
+   */
+  const flat = formOf(spec) === 'flat'
+
+  if (flat) {
+    const hasSilhouette = pattern.parts.some((part) =>
+      part.strokes.some((s) => s.kind === 'outline' && isClosedPath(s, CLOSED_TOLERANCE_MM)),
+    )
+    if (!hasSilhouette) {
+      findings.push(
+        finding(
+          'PEN_FLAT_NO_SILHOUETTE',
+          '2D 도안인데 떼어낼 수 있는 닫힌 윤곽이 없습니다. 선 한 줄은 떼어내면 늘어집니다.',
+        ),
+      )
+    }
+  }
+
   const joined = new Set(pattern.joints.flatMap((j) => [j.a, j.b]))
-  for (const part of pattern.parts) {
+  for (const part of flat ? [] : pattern.parts) {
     if (!joined.has(part.id)) {
       findings.push(
         finding(
@@ -360,6 +394,24 @@ export function validatePen(
         }),
       )
       continue
+    }
+
+    /**
+     * 같은 부품의 복제끼리 붙는 접합(적층·정다면체)은 **복제를 전부 이을 만큼** 있어야 한다.
+     * 층 3장을 1곳만 붙이면 한 장이 떨어져 나온다 (ADR-037).
+     */
+    if (joint.a === joint.b) {
+      const copies = a.quantity
+      const need = Math.max(1, copies - 1)
+      if (copies < 2 || joint.count < need) {
+        findings.push(
+          finding(
+            'PEN_LAYER_COUNT_INVALID',
+            `${a.name} ${copies}개를 ${joint.count}곳으로 붙입니다. 복제를 전부 이으려면 ${need}곳 이상이어야 합니다.`,
+            { where: joint.id, measured: joint.count, limit: need },
+          ),
+        )
+      }
     }
 
     if (joint.kind === 'weld') {
@@ -414,7 +466,7 @@ export function validatePen(
     }
   }
 
-  if (!assemblyConnected(pattern)) {
+  if (!flat && !assemblyConnected(pattern)) {
     findings.push(
       finding(
         'PEN_ASSEMBLY_DISCONNECTED',

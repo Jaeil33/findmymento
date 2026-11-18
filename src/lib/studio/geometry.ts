@@ -448,7 +448,13 @@ export function packShelf(
  * 생성기 쪽 규칙: 매끄러운 곡선은 꼭짓점 내각이 165도를 넘도록 충분히 쪼갠다.
  * (원은 48분할이면 172.5도, 종횡비가 큰 타원은 80분할이 필요하다.)
  */
-export function featureEdges(stroke: Stroke, straightAngleDeg = 165): number[] {
+/**
+ * 이 각도를 넘는 꼭짓점은 **코너가 아니다.** 생성기(`pen3d/shape.ts`)와 검증기가 같은 값으로
+ * 선을 세어야 한다 — 다르면 "보정이 통과시킨 선 길이가 검증에서 달라진다".
+ */
+export const STRAIGHT_ANGLE_DEG = 165
+
+export function featureEdges(stroke: Stroke, straightAngleDeg = STRAIGHT_ANGLE_DEG): number[] {
   const pts = stroke.points
   const n = pts.length
   if (n < 2) return []

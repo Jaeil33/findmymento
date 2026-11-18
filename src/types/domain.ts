@@ -50,6 +50,9 @@ export function isVenue(v: string): v is Venue {
 
 export type GradeBand = 'elementary' | 'middle' | 'high'
 
+/** 학년대 전부. 폼·테스트·검증이 같은 목록을 쓴다 */
+export const GRADE_BANDS: readonly GradeBand[] = ['elementary', 'middle', 'high']
+
 export const GRADE_BAND_LABEL: Record<GradeBand, string> = {
   elementary: '초등',
   middle: '중등',

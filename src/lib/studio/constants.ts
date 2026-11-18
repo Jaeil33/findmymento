@@ -74,6 +74,61 @@ export const COMPOSE_MIN_PIECE_MM = 14
 /** 조합 한 건이 쓸 수 있는 조각 종류 수 상한. 몸통 1 + 붙이는 조각 4 */
 export const COMPOSE_MAX_PIECES = 5
 
+// ============================================================================
+// 모양 제안 — 아틀라스·윤곽 제안이 지켜야 하는 범위 (ADR-036)
+// ============================================================================
+
+/**
+ * 윤곽 점 개수 [하한, 상한].
+ *
+ * 8개 미만은 모양이 되지 않고, 64개를 넘겨 받아도 보정 단계의 리샘플이 다시 정하므로
+ * 의미가 없다. 범위를 벗어난 제안은 **통째로 버린다** (`pen3d/shape.ts`).
+ */
+export const SHAPE_POINTS: [number, number] = [8, 64]
+
+/** 내부 디테일선 상한. 간격 임계값을 지키면서 A4 에 들어가는 한계다 */
+export const SHAPE_MAX_DETAILS = 6
+
+/** 구멍 상한 */
+export const SHAPE_MAX_HOLES = 2
+
+/**
+ * 스무딩 라운드 상한. 뾰족한 꼭짓점·짧은 선분을 임계값 안으로 넣기 위해 Chaikin 을
+ * 몇 번까지 돌릴 수 있는가. 여기서 못 넣으면 그 모양은 검증에서 실패한다 —
+ * **임계값을 낮추는 선택지는 없다** (ADR-030).
+ */
+export const SHAPE_SMOOTH_MAX = 6
+
+/** 보정이 목표로 삼는 여유. 임계값에 딱 걸치면 반올림에서 뒤집힌다 */
+export const SHAPE_MARGIN = { gap_mm: 0.4, segment_mm: 0.6, angle_deg: 3 }
+
+/** 종횡비 허용 범위. 1:5 를 넘는 조각은 모양이 아니라 막대다 */
+export const SHAPE_ASPECT: [number, number] = [0.2, 5]
+
+// ============================================================================
+// 2D·적층 (ADR-037)
+// ============================================================================
+
+/**
+ * 적층 층 수. 두께가 보이는 최소 장수에서 시작하고, 시간이 모자라면 개선 라운드가 줄인다.
+ * 같은 실루엣이므로 **인쇄는 한 번**이고 수량 표기(`×N`)로 나간다.
+ */
+export const LAYER_COUNT: Record<GradeBand, number> = {
+  elementary: 3,
+  middle: 4,
+  high: 5,
+}
+
+/** 측면 띠 분절 수. 둘레를 한 줄로 그리면 A4 사용 폭(190mm)을 넘는다 */
+export const BAND_SEGMENTS = 3
+
+/** 2D 고리 — 바깥 반지름·두께. 두께가 곧 선 간격이다 (`name-keyring` 과 같은 값) */
+export const HANGER_OUTER_R_MM = 9
+export const HANGER_THICKNESS_MM = 5
+
+/** 적층 층간 용접 길이 = 실루엣 둘레 × 이 비율. 둘레의 절반을 넘을 수 없다 */
+export const LAYER_WELD_RATIO = 0.3
+
 export const PEEL_SECONDS_PER_PART = 30
 export const WELD_SECONDS_PER_JOINT = 45
 
@@ -154,8 +209,13 @@ export const PEN_FINDING_SEVERITY: Record<string, Severity> = {
   PEN_JOINT_UNPAIRED: 'error',
   PEN_JOINT_SIZE_MISMATCH: 'error',
   PEN_ASSEMBLY_DISCONNECTED: 'error',
+  PEN_FLAT_NO_SILHOUETTE: 'error',
+  PEN_LAYER_COUNT_INVALID: 'error',
   PEN_DIFFICULTY_MISMATCH: 'warn',
   PEN_TIME_TIGHT: 'warn',
+  // 모양이 그 단어로 보이는가 — 물리 검증이 아니므로 **막지 않는다** (ADR-036·038)
+  PEN_SHAPE_UNRECOGNIZED: 'warn',
+  PEN_SHAPE_UNREVIEWED: 'warn',
 }
 
 /** 개선 라운드 상한. 넘으면 `failed` 로 끝낸다 — 임계값을 낮추지 않는다 (ADR-030). */
