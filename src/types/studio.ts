@@ -193,6 +193,25 @@ export type PenShape = {
   reviewed: boolean
 }
 
+/**
+ * 아틀라스 항목 한 건 (ADR-036). `src/data/atlas/records.ts` 가 이 모양으로 쌓인다.
+ *
+ * `outline` 은 LLM 윤곽 제안과 **같은 형태**다 — 그래서 아틀라스 적재와 런타임 제안이
+ * 같은 `parseShape` 를 지난다. 검수되지 않은 모양이 아틀라스에 들어갈 수 없는 이유이기도 하다.
+ */
+export type AtlasRecord = {
+  /** `atlas-<단어>`. 성과 피드백 보정의 집계 키다 (ADR-032) */
+  id: string
+  /** 조회에 쓰는 단어들. 첫 번째가 대표 단어다 */
+  words: readonly string[]
+  /** 강사 화면과 후보 목록에 보여주는 한 줄 */
+  summary: string
+  /** 사람이 매긴 난이도 1~5. 후보 필터에만 쓴다 */
+  nominal_difficulty: number
+  /** 정규화 윤곽 (0~1). `parseShape` 가 읽는다 */
+  outline: unknown
+}
+
 export type PenJointKind = 'weld' | 'slot'
 
 export type PenJoint = {

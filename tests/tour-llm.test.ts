@@ -317,8 +317,18 @@ describe('생성 라우트 — 체험에서 문장이 도안이 된다', () => {
 
     const json = await (await generate(post(body()))).json()
     expect(json.ok).toBe(true)
-    // 조합을 버리고 검수된 레시피로 떨어진다.
-    expect(json.recipe_id).toBe('hex-box')
+    /**
+     * 범위 밖 비율이 섞인 응답은 **통째로** 버린다. 그러면 체험에서는 시연용 응답이 남고
+     * (ADR-035), 화면도 "시연용"이라고 적는다.
+     *
+     * 레시피로 떨어지지 않는 이유는 ADR-036 이다 — 저작 레이어가 받는 후보는 **주제와 같은
+     * 모양**뿐이고, "물고기"에 맞는 레시피는 목록에 없다. 맞지도 않은 레시피를 고를 기회를
+     * 주면 그게 바로 "유사한 것 찾기"다.
+     */
+    expect(json.demo_ai).toBe(true)
+    expect(json.status).toBe('validated')
+    // 버린 비율(9.5배)이 도안에 들어가지 않았다 — 부품이 A4 안에 있다.
+    expect(json.metrics.page_fit).toBe(true)
   })
 
   it('LLM 이 죽어 있으면 시연용 응답으로 떨어진다 — 규칙 1순위보다 낫다', async () => {
@@ -383,7 +393,8 @@ describe('생성 라우트 — 체험에서 문장이 도안이 된다', () => {
       tasks: ['옆면을 한 장씩 만듭니다.', '옆면을 세워 모서리를 붙입니다.'],
     })
 
-    const json = await (await generate(post(body()))).json()
+    // 주제가 레시피와 같은 모양이어야 레시피가 후보로 올라온다 (ADR-036).
+    const json = await (await generate(post(body({ topic: '연필 넣을 상자 만들기' })))).json()
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(json.source).toBe('llm')
     expect(json.demo_ai).toBe(false)

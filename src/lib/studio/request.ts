@@ -8,8 +8,8 @@
  */
 
 import { maskForStorage } from '@/lib/moderation'
-import { CONTENT_KINDS, DIFFICULTY_VOTES } from '@/types/studio'
-import type { ContentKind, DifficultyVote, StudioSpec } from '@/types/studio'
+import { CONTENT_KINDS, DIFFICULTY_VOTES, SHAPE_FORMS } from '@/types/studio'
+import type { ContentKind, DifficultyVote, ShapeForm, StudioSpec } from '@/types/studio'
 import { VENUES, type GradeBand, type LectureSession, type Venue } from '@/types/domain'
 import type { Invalid, Validated } from '@/lib/validation'
 
@@ -56,6 +56,19 @@ export function validateGenerate(
   const topic = maskForStorage(rawTopic) ?? ''
   if (topic.length < 2) return fail('topic', '교육 주제를 다시 적어 주세요.')
 
+  /**
+   * 2D 인가 입체인가 (ADR-037). **수업 조건이 아니라 강사의 선택**이라, 회차에서 생성할 때도
+   * 본문 값을 쓴다 — 회차 행이 정하는 학년대·인원·시수·장소·장비와 다르다.
+   *
+   * 비어 있으면 `solid` 다. 이 칸이 생기기 전의 클라이언트·저장 행과 같은 결과를 내야 한다
+   * (`formOf` 와 같은 기본값). 화면의 기본값은 `flat` 이고 그건 폼이 정한다.
+   */
+  const rawForm = typeof b.form === 'string' ? b.form.trim() : ''
+  if (rawForm !== '' && !(SHAPE_FORMS as readonly string[]).includes(rawForm)) {
+    return fail('form', '2D·3D 중 하나를 고르세요.')
+  }
+  const form: ShapeForm = rawForm === '' ? 'solid' : (rawForm as ShapeForm)
+
   const sessionId = typeof b.sessionId === 'string' && b.sessionId.trim() !== '' ? b.sessionId.trim() : null
   const lineageId =
     typeof b.lineageId === 'string' && b.lineageId.trim() !== '' ? b.lineageId.trim() : null
@@ -80,6 +93,7 @@ export function validateGenerate(
           equipment: session.equipment,
           topic,
           session_id: session.id,
+          form,
         },
       },
     }
@@ -127,6 +141,7 @@ export function validateGenerate(
         equipment,
         topic,
         session_id: null,
+        form,
       },
     },
   }

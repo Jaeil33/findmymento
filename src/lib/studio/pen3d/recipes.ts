@@ -673,12 +673,42 @@ export function recipeCandidates(
   gradeBand: GradeBand,
   difficultyCap = DIFFICULTY_CAP[gradeBand],
 ): PenRecipe[] {
+  return scored(topic, gradeBand, difficultyCap).map((x) => x.r)
+}
+
+/**
+ * **키워드가 실제로 맞은 레시피만.** 비어 있으면 "레시피에 그 모양이 없다"는 뜻이고,
+ * 그때는 아틀라스·윤곽 제안으로 간다 (ADR-036).
+ *
+ * `recipeCandidates` 와 다른 점은 하나다: 저 함수는 **빈 목록을 돌려주지 않는다**(규칙
+ * 폴백이 늘 하나를 집어야 하므로). 저작 레이어에 줄 후보는 이쪽이다 — 맞지도 않은 레시피를
+ * LLM 이 고를 기회를 주면 "물고기"에 이름 키링이 나온다.
+ */
+export function recipeMatches(
+  topic: string,
+  gradeBand: GradeBand,
+  difficultyCap = DIFFICULTY_CAP[gradeBand],
+): PenRecipe[] {
+  return scored(topic, gradeBand, difficultyCap)
+    .filter((x) => x.score > 0)
+    .map((x) => x.r)
+}
+
+function scored(
+  topic: string,
+  gradeBand: GradeBand,
+  difficultyCap: number,
+): { r: PenRecipe; score: number }[] {
   const text = topic.trim().toLowerCase()
   return PEN_RECIPES.filter((r) => r.nominal_difficulty <= difficultyCap)
     .map((r) => ({
       r,
       score: text === '' ? 0 : r.keywords.filter((k) => text.includes(k.toLowerCase())).length,
     }))
-    .sort((a, b) => b.score - a.score || a.r.nominal_difficulty - b.r.nominal_difficulty || a.r.id.localeCompare(b.r.id))
-    .map((x) => x.r)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.r.nominal_difficulty - b.r.nominal_difficulty ||
+        a.r.id.localeCompare(b.r.id),
+    )
 }

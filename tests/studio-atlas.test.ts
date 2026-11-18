@@ -1,0 +1,135 @@
+import { describe, expect, it } from 'vitest'
+import {
+  atlasById,
+  atlasMatches,
+  atlasNearest,
+  atlasShape,
+  normalizeWord,
+  scoreRecord,
+} from '@/lib/studio/atlas'
+import { ATLAS_RECORDS } from '@/data/atlas/records'
+import { buildPattern } from '@/lib/studio/pen3d/recipes'
+import { shapeRecipe } from '@/lib/studio/pen3d/shape'
+import { validatePen } from '@/lib/studio/pen3d/validate'
+import { GRADE_BANDS } from '@/types/domain'
+import type { AtlasRecord, ShapeForm, StudioSpec } from '@/types/studio'
+
+/**
+ * 아틀라스 — **검수된 실루엣 목록** (ADR-036).
+ *
+ * 이 파일의 마지막 블록이 실질적인 품질 게이트다: 목록에 있는 모양은 **세 학년대 · 2D·3D
+ * 전부에서 검증을 통과해야 한다.** 통과하지 못하는 항목이 목록에 있으면 강사는 "검수됨"
+ * 표시를 믿고 교실에 들고 갔다가 실패한다.
+ */
+
+const ring = (divisions: number, radius: number) =>
+  Array.from({ length: divisions }, (_, i) => {
+    const t = (2 * Math.PI * i) / divisions
+    return {
+      x: Number((0.5 + radius * Math.cos(t)).toFixed(3)),
+      y: Number((0.5 + radius * Math.sin(t)).toFixed(3)),
+    }
+  })
+
+const sample: AtlasRecord = {
+  id: 'atlas-fish',
+  words: ['물고기', '생선', '열대어'],
+  summary: '둥근 몸통에 꼬리가 달린 물고기 실루엣.',
+  nominal_difficulty: 2,
+  outline: { title: '물고기', silhouette: ring(26, 0.45), details: [], holes: [], hanger: false },
+}
+
+function spec(grade_band: StudioSpec['grade_band'], form: ShapeForm): StudioSpec {
+  return {
+    kind: 'pen3d',
+    grade_band,
+    student_count: 20,
+    duration_minutes: 90,
+    venue: '교실',
+    equipment: ['3D펜 20자루', 'PLA 필라멘트'],
+    topic: '검증',
+    session_id: null,
+    form,
+  }
+}
+
+describe('조회 규칙 — 결정론이다', () => {
+  it('공백·문장부호를 떼고 맞춘다', () => {
+    expect(normalizeWord(' 코끼리! ')).toBe('코끼리')
+    expect(normalizeWord('T-rex')).toBe('trex')
+  })
+
+  it('주제 안에 단어가 있으면 맞은 것이다', () => {
+    expect(scoreRecord(sample, '바다에 사는 물고기')).toBeGreaterThan(0)
+    expect(scoreRecord(sample, '열대어 만들기')).toBeGreaterThan(0)
+  })
+
+  it('맞지 않으면 0 이다 — 엉뚱한 모양을 고를 기회를 주지 않는다', () => {
+    expect(scoreRecord(sample, '에펠탑')).toBe(0)
+    expect(scoreRecord(sample, '')).toBe(0)
+  })
+
+  it('한 글자 단어는 세지 않는다 — 아무 주제에나 걸린다', () => {
+    expect(scoreRecord({ ...sample, words: ['어'] }, '어린이 공원')).toBe(0)
+  })
+
+  it('항목을 모양으로 바꾼다 — 검수됨으로 들어온다', () => {
+    const shape = atlasShape(sample)
+    expect(shape).not.toBeNull()
+    expect(shape!.reviewed).toBe(true)
+    expect(shape!.id).toBe('atlas-fish')
+    expect(shape!.words).toContain('열대어')
+  })
+
+  it('깨진 항목은 조용히 빠진다 — 목록 전체가 죽지 않는다', () => {
+    expect(atlasShape({ ...sample, outline: { title: '물고기' } })).toBeNull()
+  })
+})
+
+describe('목록 조회', () => {
+  it('목록에 없는 id 는 null 이다', () => {
+    expect(atlasById('atlas-pikachu')).toBeNull()
+  })
+
+  it('맞는 항목이 없으면 빈 목록이다', () => {
+    expect(atlasMatches('존재하지않는주제어')).toEqual([])
+  })
+
+  it('목록이 비어 있으면 가장 가까운 것도 없다', () => {
+    const nearest = atlasNearest('코끼리')
+    if (ATLAS_RECORDS.length === 0) expect(nearest).toBeNull()
+    else expect(nearest).not.toBeNull()
+  })
+})
+
+describe('목록의 모든 모양이 교실에서 쓸 수 있는가', () => {
+  it('id 가 유일하고 atlas- 로 시작한다', () => {
+    const ids = ATLAS_RECORDS.map((r) => r.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const record of ATLAS_RECORDS) {
+      expect(record.id.startsWith('atlas-')).toBe(true)
+      expect(record.words.length).toBeGreaterThan(0)
+      expect(record.summary.length).toBeGreaterThan(0)
+    }
+  })
+
+  /**
+   * 목록이 빈 동안에는 통과하지만, 항목이 생기는 순간 이 검사가 품질 게이트가 된다.
+   * 떨어지는 항목은 목록에서 빼고 스크립트를 다시 돌린다 — **임계값을 낮추지 않는다.**
+   */
+  it('세 학년대 · 2D·3D 전부에서 검증을 통과한다', () => {
+    for (const record of ATLAS_RECORDS) {
+      const shape = atlasShape(record)
+      expect(shape, `${record.id} 의 윤곽을 읽을 수 없습니다`).not.toBeNull()
+
+      for (const band of GRADE_BANDS) {
+        for (const form of ['flat', 'solid'] as ShapeForm[]) {
+          const recipe = shapeRecipe(shape!, { form, grade_band: band })
+          const { report } = validatePen(buildPattern(recipe, recipe.defaults), spec(band, form))
+          const errors = report.findings.filter((f) => f.severity === 'error')
+          expect(errors, `${record.id} · ${band} · ${form}`).toEqual([])
+        }
+      }
+    }
+  })
+})

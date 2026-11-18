@@ -15,10 +15,12 @@
 
 import { createAnthropic, llmKeyForRequest, tourStudioKey } from '@/lib/ai/client'
 import { parseComposition, type PenComposition } from '@/lib/studio/pen3d/compose'
+import { parseShape } from '@/lib/studio/pen3d/shape'
+import { SHAPE_AUTHOR_TIMEOUT_MS, SHAPE_POINTS } from '@/lib/studio/constants'
 import { demoAiEnabled, demoStudioAuthoring } from '@/lib/ai/demo-writer'
 import { numbersWithin, sanitizeList, sanitizeText } from '@/lib/ai/guard'
 import { GRADE_BAND_LABEL } from '@/types/domain'
-import type { StudioCalibration, StudioSpec } from '@/types/studio'
+import type { PenShape, StudioCalibration, StudioSpec } from '@/types/studio'
 
 /**
  * 후보의 최소 형태. 3D펜 레시피와 드론 코스 레시피가 **같은 저작 레이어**를 쓴다 —
@@ -46,6 +48,11 @@ export type StudioAuthoring = {
    * 목록·범위를 하나라도 벗어나면 `null` 이다 — 그때는 레시피 선택이 그대로 남는다.
    */
   composition?: PenComposition | null
+  /**
+   * 윤곽 제안 (ADR-036). 0~1 정규화 좌표로 받은 모양이고, **검수되지 않았다.**
+   * 범위·개수를 벗어나거나 스스로 교차하면 `null` 이다 — 그때는 목록 선택이 남는다.
+   */
+  shape?: PenShape | null
   title: string
   /** 왜 이 레시피인지 한 줄. 화면에 그대로 보여준다 */
   reason: string
@@ -103,9 +110,35 @@ const COMPOSE_SYSTEM = `
 
 {"mode":"compose","composition":{"title":"...","base":"...","parts":[{"piece":"...","ratio":0.5,"quantity":1,"attach":"back"}]},"recipe_id":"...","title":"...","reason":"...","tasks":["...","..."]}`
 
+/**
+ * 윤곽 제안이 가능할 때만 덧붙이는 지시 (ADR-036).
+ *
+ * 받는 것은 **단위 없는 비율**뿐이다. mm·접합·배치·판정은 코드가 한다. 그래서 모델이 아무리
+ * 이상한 윤곽을 보내도 도안의 치수는 우리가 만든 값이고, 범위를 벗어나면 통째로 버린다.
+ */
+const OUTLINE_SYSTEM = `
+
+**목록에 그 주제의 모양이 없으면 윤곽을 직접 제안한다.**
+
+- mode 를 "outline" 으로 하고 outline 을 채운다. 목록에 같은 모양이 있으면 그것을 고른다.
+- silhouette: 바깥 윤곽 한 줄. 점 ${SHAPE_POINTS[0]}~${SHAPE_POINTS[1]}개.
+  - 좌표는 **0~1 사이 소수**다. x 는 오른쪽, y 는 **아래쪽**이 커진다.
+  - 닫힌 윤곽이다 — 마지막 점에서 첫 점으로 이어진다. 첫 점을 끝에 다시 쓰지 않아도 된다.
+  - 점은 한 방향으로 돈다. **선이 스스로 교차하면 제안을 버린다.**
+  - 그 단어를 **알아볼 수 있는 특징**을 윤곽에 넣는다 (코끼리의 코, 자전거의 바퀴, 집의 지붕).
+  - 뾰족한 끝은 프로그램이 잘라낸다. 바늘처럼 가느다란 돌기를 만들지 않는다.
+- details: 내부 선 (눈·귀 경계 등). 각각 닫힌 윤곽이고 **실루엣 안**에 있어야 한다. 없으면 빈 배열.
+- holes: 뚫는 구멍. 없으면 빈 배열.
+- hanger: 고리를 달 모양이면 true (키링·명패).
+- **mm·cm·치수·개수·시간을 쓰지 않는다.** 비율만 쓴다 — 치수는 프로그램이 정한다.
+- 특정 캐릭터·상표의 모양을 그리지 않는다. 일반적인 형태로 그린다.
+
+{"mode":"outline","outline":{"title":"...","silhouette":[{"x":0.5,"y":0.02}],"details":[],"holes":[],"hanger":false},"title":"...","reason":"...","tasks":["...","..."]}`
+
 type LlmAuthoring = {
   mode?: unknown
   composition?: unknown
+  outline?: unknown
   recipe_id?: unknown
   title?: unknown
   reason?: unknown
@@ -165,19 +198,29 @@ export async function authorContent(
      * 예산 상한에 걸리면 조용히 시연용 응답으로 떨어진다.
      */
     tourStudio?: boolean
+    /**
+     * 윤곽 제안 (ADR-036). `allow` 가 true 이고 **일반 키가 있을 때만** 켜진다 —
+     * 체험 키로는 제안하지 않는다. 익명 공개 경로이기 때문이다.
+     */
+    outline?: { allow: boolean; word: string }
   },
 ): Promise<StudioAuthoring> {
   const fallback = ruleAuthoring(spec, candidates)
-  if (candidates.length === 0) return fallback
+  // 2D 는 윤곽 제안이 유일한 경로다. 후보가 비어 있어도 제안은 시도한다 (ADR-036·037).
+  if (candidates.length === 0 && options?.outline?.allow !== true) return fallback
 
   // 체험 키는 예산을 깎으므로 **일반 키가 없을 때만** 본다. 순서를 바꾸면 실 계정이 체험 예산을 쓴다.
-  const apiKey =
-    (await llmKeyForRequest()) ?? (options?.tourStudio ? await tourStudioKey() : null)
+  const regularKey = await llmKeyForRequest()
+  const apiKey = regularKey ?? (options?.tourStudio ? await tourStudioKey() : null)
   const hasKey = apiKey !== null
   const demoAllowed = await demoAiEnabled()
   if (!hasKey && !demoAllowed) return fallback
 
   const composable = (options?.pieces?.length ?? 0) > 0
+  const outlineWord = options?.outline?.word?.trim() ?? ''
+  // 체험 키(regularKey 가 없는 경우)로는 윤곽을 제안하지 않는다 (ADR-036).
+  const outlineAllowed =
+    options?.outline?.allow === true && outlineWord !== '' && regularKey !== null
 
   const payload = {
     주제: spec.topic,
@@ -219,9 +262,15 @@ export async function authorContent(
     const composition =
       composable && parsed.mode === 'compose' ? parseComposition(parsed.composition) : null
 
+    // 윤곽 제안 (ADR-036). 같은 정책이다 — 어긋나면 통째로 버린다.
+    const shape =
+      outlineAllowed && parsed.mode === 'outline'
+        ? parseShape(parsed.outline, { word: outlineWord, source: 'dsl' })
+        : null
+
     // 목록 밖의 id 를 돌려줬다면 문장도 믿지 않는다 — 지시를 무시한 응답이다.
     const recipeId = typeof parsed.recipe_id === 'string' ? parsed.recipe_id.trim() : ''
-    if (!composition && !candidates.some((r) => r.id === recipeId)) return null
+    if (!shape && !composition && !candidates.some((r) => r.id === recipeId)) return null
 
     const title = sanitizeText(parsed.title, 40)
     const reason = sanitizeText(parsed.reason, 120)
@@ -230,9 +279,10 @@ export async function authorContent(
     )
 
     return {
-      recipe_id: composition ? '' : recipeId,
+      recipe_id: shape || composition ? '' : recipeId,
       composition,
-      title: title ?? composition?.title ?? fallback.title,
+      shape,
+      title: title ?? shape?.title ?? composition?.title ?? fallback.title,
       reason: reason ?? fallback.reason,
       tasks,
       source: 'llm',
@@ -246,15 +296,16 @@ export async function authorContent(
       const response = await client.beta.messages.create(
         {
           model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
-          max_tokens: 1200,
+          max_tokens: outlineAllowed ? 4000 : 1200,
           // 레시피 선택은 긴 추론이 필요한 일이 아니다. 강사는 생성 버튼 앞에서 기다린다.
           output_config: { effort: 'low' },
-          system: composable ? `${SYSTEM}${COMPOSE_SYSTEM}` : SYSTEM,
+          system: [SYSTEM, composable ? COMPOSE_SYSTEM : '', outlineAllowed ? OUTLINE_SYSTEM : '']
+            .join(''),
           messages: [{ role: 'user', content: JSON.stringify(payload) }],
           betas: ['server-side-fallback-2026-07-01'],
           fallbacks: 'default',
         },
-        { timeout: 15_000, maxRetries: 1 },
+        { timeout: SHAPE_AUTHOR_TIMEOUT_MS, maxRetries: 1 },
       )
       if (response.stop_reason !== 'refusal') {
         const authored = accept(
