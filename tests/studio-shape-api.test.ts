@@ -173,13 +173,21 @@ describe('2D 요청', () => {
     expect(last.findings.map((f: { code: string }) => f.code)).toContain('PEN_SHAPE_UNRECOGNIZED')
   })
 
-  it('제안이 깨지고 아틀라스가 비어 있으면 실패로 끝낸다', async () => {
+  /**
+   * **2D 는 빈손으로 끝나지 않는다** (ADR-042). 예전에는 여기서 `failed` +
+   * `PEN_SHAPE_UNAVAILABLE` 이 나갔고, 화면에 "더 일반적인 단어로 적어 보세요" 가 적혔다.
+   */
+  it('제안이 깨지고 코퍼스도 미적중이면 **명패로 떨어지고 실패하지 않는다**', async () => {
     replies({ mode: 'outline', outline: { title: '코끼리' }, recipe_id: '', title: '', reason: '', tasks: [] })
-    const json = await (await generate(post(body()))).json()
+    const json = await (await generate(post(body({ topic: '읽을수없는주제엑스와이지' })))).json()
 
     expect(json.ok).toBe(true)
-    expect(json.status).toBe('failed')
-    expect(json.findings.map((f: { code: string }) => f.code)).toContain('PEN_SHAPE_UNAVAILABLE')
+    expect(json.status).not.toBe('failed')
+
+    const codes = json.findings.map((f: { code: string }) => f.code)
+    // 바닥으로 내려갔다는 사실은 **적힌다** — 차단이 아니라 고지다
+    expect(codes).toContain('PEN_SHAPE_FALLBACK')
+    expect(codes).not.toContain('PEN_SHAPE_UNAVAILABLE')
   })
 
   it('잘못된 모드 값은 400 이다', async () => {

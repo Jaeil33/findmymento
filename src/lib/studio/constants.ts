@@ -252,6 +252,14 @@ export const PEN_FINDING_SEVERITY: Record<string, Severity> = {
   // 모양이 그 단어로 보이는가 — 물리 검증이 아니므로 **막지 않는다** (ADR-036·038)
   PEN_SHAPE_UNRECOGNIZED: 'warn',
   PEN_SHAPE_UNREVIEWED: 'warn',
+  /**
+   * 요청한 모양을 찾지 못해 **명패로 만들었다** (ADR-042). warn 인 이유: 산출물은 인쇄해서
+   * 수업에 쓸 수 있는 물건이고 물리 검증을 전부 통과했다. 막을 근거가 없다.
+   *
+   * **차단이 아니라 고지다.** 강사는 명패를 받고, 그것이 요청한 모양이 아니라는 사실을
+   * 화면에서 읽는다 — 요청한 모양이 나온 것처럼 보이는 것이 유일하게 해서는 안 되는 일이다.
+   */
+  PEN_SHAPE_FALLBACK: 'warn',
 }
 
 /** 개선 라운드 상한. 넘으면 `failed` 로 끝낸다 — 임계값을 낮추지 않는다 (ADR-030). */

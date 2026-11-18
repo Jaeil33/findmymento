@@ -32,7 +32,6 @@ export const OUTLINE_SYSTEM = `
 - holes: 뚫는 구멍. 없으면 빈 배열.
 - hanger: 고리를 달 모양이면 true (키링·명패).
 - **mm·cm·치수·개수·시간을 쓰지 않는다.** 비율만 쓴다 — 치수는 프로그램이 정한다.
-- 특정 캐릭터·상표의 모양을 그리지 않는다. 일반적인 형태로 그린다.
 
 {"mode":"outline","outline":{"title":"...","silhouette":[{"x":0.5,"y":0.02}],"details":[],"holes":[],"hanger":false},"title":"...","reason":"...","tasks":["...","..."]}`
 

@@ -120,7 +120,6 @@ const COMPOSE_SYSTEM = `
   - attach: top · bottom · front · back · side 중 하나.
   - optional: 없어도 모양이 되는 조각이면 true. 시간이 모자라면 이것부터 빠진다.
 - composition.title: 무엇을 만드는지 한 줄. 24자 이내.
-- **특정 캐릭터·상표 이름을 쓰지 않는다.** "노란 생쥐 캐릭터" 같은 일반 명사로 쓴다.
 - 조각으로 그 모양을 만들 수 없으면 조합하지 말고 레시피를 고른다.
 
 {"mode":"compose","composition":{"title":"...","base":"...","parts":[{"piece":"...","ratio":0.5,"quantity":1,"attach":"back"}]},"recipe_id":"...","title":"...","reason":"...","tasks":["...","..."]}`;

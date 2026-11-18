@@ -12,6 +12,7 @@
 
 import { MAX_REPAIR_ROUNDS, PEN_SAFETY_NOTES, SCALE_DOWN_STEP, SCALE_UP_STEP } from '@/lib/studio/constants'
 import { compositionRecipe, type PenComposition } from '@/lib/studio/pen3d/compose'
+import { fallbackShape } from '@/lib/studio/pen3d/fallback'
 import { shapeRecipe } from '@/lib/studio/pen3d/shape'
 import {
   buildPattern,
@@ -283,41 +284,65 @@ function ruleTasks(pattern: PenPattern, metrics: PenMetrics, flat: boolean): str
  */
 export function generatePen(spec: StudioSpec, options: PenGenerateOptions = {}): PenGenerateResult {
   const flat = formOf(spec) === 'flat'
-  const recipe = pickRecipe(spec, options)
+  let recipe = pickRecipe(spec, options)
   const speedFactor = options.calibration?.speed_factor ?? 1
 
-  // 2D 인데 쓸 모양이 없다. 입체 도안을 2D 라고 내보내지 않는다 (ADR-030·036).
+  /**
+   * **2D 는 빈손으로 끝나지 않는다** (ADR-042).
+   *
+   * 여기가 예전에 `PEN_SHAPE_UNAVAILABLE`(error) + `failed` 를 내보내던 자리다. 화면에는
+   * "더 일반적인 단어로 적어 보세요" 가 적혔다 — 제품이 할 일을 강사에게 떠넘기는 문구다.
+   * 베이스라인 측정에서 떨어진 단어의 원인은 거의 전부 품질이었고, 그마저 못 만드는 경우에도
+   * **인쇄해서 수업은 되는 물건**을 주는 쪽이 빈 화면보다 낫다.
+   *
+   * 그래서 바닥을 깐다: 단어를 적은 명패. 임계값은 하나도 면제하지 않는다 — 명패도 아래의
+   * 검증·개선 라운드를 그대로 지난다. 바닥으로 내려갔다는 사실은 `PEN_SHAPE_FALLBACK`(warn)
+   * 으로 남아 화면에 적힌다. **차단이 아니라 고지다.**
+   *
+   * 3D 는 이 바닥을 쓰지 않는다 — 레시피 후보가 비는 일이 없고(`recipeCandidates` 가 빈 목록을
+   * 돌려주지 않는다), 조립되지 않는 명패를 입체 요청의 답으로 내보낼 수도 없다.
+   */
+  let fellBack = false
   if (!recipe) {
-    const empty: PenPattern = {
-      recipe_id: '',
-      title: spec.topic.trim() || '2D 도안',
-      scale: 1,
-      parts: [],
-      joints: [],
-    }
-    const findings: Finding[] = [
-      penFinding(
-        'PEN_SHAPE_UNAVAILABLE',
-        '이 주제로 만들 수 있는 검수된 2D 실루엣이 없습니다. 더 일반적인 단어로 적어 보거나, 3D 로 만들어 주세요.',
-      ),
-    ]
-    const metrics = penMetrics(empty, spec, { speedFactor })
-    return {
-      recipe_id: '',
-      params: { size: 0, detail: 0, extras: false },
-      artifact: {
-        kind: 'pen3d',
-        pattern: empty,
+    if (!flat) {
+      // 입체 요청에서 여기 오는 경로는 없다. 와도 조용히 실패시키지 않고 이유를 남긴다.
+      const empty: PenPattern = {
+        recipe_id: '',
+        title: spec.topic.trim() || '도안',
+        scale: 1,
+        parts: [],
+        joints: [],
+      }
+      const findings: Finding[] = [
+        penFinding(
+          'PEN_SHAPE_UNAVAILABLE',
+          '이 주제로 만들 수 있는 입체 도안이 없습니다. 2D 로 만들어 주세요.',
+        ),
+      ]
+      const metrics = penMetrics(empty, spec, { speedFactor })
+      return {
+        recipe_id: '',
+        params: { size: 0, detail: 0, extras: false },
+        artifact: {
+          kind: 'pen3d',
+          pattern: empty,
+          metrics,
+          assembly: [],
+          tasks: [],
+          safety_notes: [...PEN_SAFETY_NOTES],
+        },
         metrics,
-        assembly: [],
-        tasks: [],
-        safety_notes: [...PEN_SAFETY_NOTES],
-      },
-      metrics,
-      report: { ok: false, findings },
-      rounds: [{ round: 1, action: 'generated', repair: null, params: null, ok: false, findings }],
-      status: 'failed',
+        report: { ok: false, findings },
+        rounds: [{ round: 1, action: 'generated', repair: null, params: null, ok: false, findings }],
+        status: 'failed',
+      }
     }
+
+    fellBack = true
+    recipe = shapeRecipe(fallbackShape(spec.topic), {
+      form: 'flat',
+      grade_band: spec.grade_band,
+    })
   }
 
   let params = initialParams(recipe, spec, speedFactor)
@@ -355,6 +380,23 @@ export function generatePen(spec: StudioSpec, options: PenGenerateOptions = {}):
       ok: result.report.ok,
       findings: result.report.findings,
     })
+  }
+
+  /**
+   * 바닥으로 내려갔다는 사실을 **산출물에 남긴다** (ADR-042). 이것이 없으면 강사는 명패를
+   * 받고 그것이 요청한 모양인 줄 안다 — 그게 유일하게 해서는 안 되는 일이다.
+   *
+   * 마지막 라운드의 findings 에 넣는다. `report` 와 `rounds` 가 같은 목록을 가리키므로
+   * 화면의 어느 쪽을 보든 이 줄이 보인다.
+   */
+  if (fellBack) {
+    const notice = penFinding(
+      'PEN_SHAPE_FALLBACK',
+      `"${spec.topic.trim()}" 모양을 찾지 못해 이름을 적은 명패로 만들었습니다. 요청한 모양이 아닙니다 — 다른 단어로 다시 만들거나, 이 명패에 학생이 직접 무늬를 넣게 해도 됩니다.`,
+    )
+    result.report.findings.push(notice)
+    const last = rounds[rounds.length - 1]
+    if (last) last.findings = [...last.findings, notice]
   }
 
   const artifact: PenArtifact = {

@@ -82,11 +82,11 @@ export async function POST(request: Request) {
   const { spec: rawSpec, lineageId: requestedLineage, recipeId } = validated.value
 
   /**
-   * 캐릭터·상표 이름은 일반 형태로 바꿔 만든다 (ADR-034). 산출물이 인쇄되어 교실로 가므로
-   * 캐릭터 도안을 배포하면 책임이 플랫폼으로 온다. 바꿨다는 사실은 응답에 담아 화면에 적는다.
+   * 주제는 **강사가 적은 그대로** 쓴다 (ADR-043). 캐릭터·상표 이름을 일반 형태로 치환하던
+   * 규칙을 걷어냈다 — 이 플랫폼은 무엇이 저작권 침해인지 판정하지 않는다. 공백만 정리한다.
    */
   const general = generalizeCharacter(rawSpec.topic)
-  const spec = general.replaced ? { ...rawSpec, topic: general.text } : rawSpec
+  const spec = general.text === rawSpec.topic ? rawSpec : { ...rawSpec, topic: general.text }
 
   // ── 버전 ──────────────────────────────────────────────────────────────────
   let lineageId = requestedLineage

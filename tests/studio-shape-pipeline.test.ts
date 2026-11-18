@@ -63,13 +63,41 @@ describe('2D 생성', () => {
     expect(result.artifact.pattern.parts.length).toBe(1)
   })
 
-  it('모양이 없으면 실패로 끝낸다 — 입체 도안을 2D 라고 내보내지 않는다', () => {
+  /**
+   * **2D 는 빈손으로 끝나지 않는다** (ADR-042). 임계값을 면제해서 통과시키는 것이 아니라,
+   * 인쇄해서 수업이 되는 **다른 물건**(이름 명패)을 주는 것이다.
+   */
+  it('모양이 없으면 명패로 떨어진다 — 실패 화면을 주지 않는다', () => {
     const result = generatePen(spec('middle'), {})
-    expect(result.status).toBe('failed')
-    expect(isUsable(result.status)).toBe(false)
-    expect(result.report.findings.map((f) => f.code)).toContain('PEN_SHAPE_UNAVAILABLE')
-    // 실패 화면이 무엇을 바꾸면 되는지 말해야 한다 (ADR-030)
-    expect(result.report.findings[0]!.message.length).toBeGreaterThan(10)
+
+    expect(result.status).not.toBe('failed')
+    expect(isUsable(result.status)).toBe(true)
+
+    const codes = result.report.findings.map((f) => f.code)
+    expect(codes).toContain('PEN_SHAPE_FALLBACK')
+    expect(codes).not.toContain('PEN_SHAPE_UNAVAILABLE')
+
+    // 물리 검증을 면제하지 않는다 — 명패도 error 가 하나도 없어야 쓸 수 있다
+    expect(result.report.findings.filter((f) => f.severity === 'error')).toEqual([])
+
+    // 인쇄할 것이 실제로 있다
+    expect(result.artifact.pattern.parts.length).toBeGreaterThan(0)
+  })
+
+  it('명패는 결정론이다 — 같은 주제면 같은 색이다', () => {
+    const a = generatePen(spec('middle'), {})
+    const b = generatePen(spec('middle'), {})
+    const colorsOf = (r: ReturnType<typeof generatePen>) =>
+      r.artifact.pattern.parts.flatMap((p) => p.art.map((region) => region.color))
+    expect(colorsOf(a)).toEqual(colorsOf(b))
+    expect(colorsOf(a).length).toBeGreaterThan(0)
+  })
+
+  it('고지 문구가 요청한 모양이 아니라는 사실을 말한다', () => {
+    const result = generatePen(spec('middle'), {})
+    const notice = result.report.findings.find((f) => f.code === 'PEN_SHAPE_FALLBACK')!
+    expect(notice.severity).toBe('warn')
+    expect(notice.message).toContain('찾지 못해')
   })
 })
 
