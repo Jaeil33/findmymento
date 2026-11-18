@@ -168,6 +168,60 @@ export type NormPoint = { x: number; y: number }
 export type ShapeOutline = { points: NormPoint[]; closed: true }
 
 /**
+ * 팔레트 색 이름 (ADR-039). **LLM 이 돌려줄 수 있는 것은 이 이름뿐이고 hex 는 코드가 정한다** —
+ * 목록 밖의 이름은 기본색으로 떨어진다. hex 는 `lib/studio/palette.ts` 한 곳에만 있다.
+ *
+ * 24색인 이유: 3D펜 필라멘트로 실제로 구할 수 있는 색의 범위이고, 사람이 한 번 골라 두면
+ * 채도·명도가 섞이지 않아 "세련됨" 의 하한이 보장된다.
+ */
+export const PALETTE_NAMES = [
+  '검정',
+  '진회색',
+  '회색',
+  '연회색',
+  '흰색',
+  '빨강',
+  '주황',
+  '노랑',
+  '연두',
+  '초록',
+  '청록',
+  '하늘',
+  '파랑',
+  '남색',
+  '보라',
+  '분홍',
+  '자주',
+  '갈색',
+  '황토',
+  '베이지',
+  '살색',
+  '크림',
+  '민트',
+  '금색',
+] as const
+
+export type PaletteName = (typeof PALETTE_NAMES)[number]
+
+/**
+ * 색 하나로 채우는 영역 (ADR-039). **장식 전용이고 물리 검증을 받지 않는다** —
+ * 인쇄만 되고 펜이 지나가지 않는 선이다.
+ *
+ * 덧그릴 선(`PenShape.silhouette`·`details`)은 이 영역들에서 **코드가 유도한다** (ADR-040).
+ * 그래서 이 영역은 아무리 촘촘해도 간격·선분·내각 임계값을 깨지 않는다.
+ */
+export type ArtRegion = {
+  /** 닫힌 외곽. 정규화 좌표 (x 는 0~1, y 는 0~`aspect`) */
+  outline: ShapeOutline
+  /** 이 영역에서 빼는 구멍 (도넛·바퀴살). 없으면 빈 배열 */
+  holes: ShapeOutline[]
+  /** 팔레트 이름. 목록 밖이면 기본색으로 떨어진다 */
+  color: PaletteName
+  /** 겹칠 때의 순서. **작은 값이 먼저 깔린다** (뒤에 오는 것이 위를 덮는다) */
+  z: number
+}
+
+/**
  * 모양 하나. 아틀라스 파일(`src/data/atlas/**`)과 LLM 윤곽 제안이 **같은 타입**으로 들어와,
  * `shapeRecipe` 를 지나면 레시피와 구별되지 않는다 — 생성·검증·개선 라운드가 그대로 돈다.
  */
@@ -179,11 +233,21 @@ export type PenShape = {
   title: string
   /** 아틀라스 조회용 동의어. 제안에는 없다 */
   words: string[]
+  /**
+   * 덧그릴 바깥 선 (= `trace` 레이어의 외곽). **물리 검증을 전수로 받는다.**
+   * `art` 가 있으면 이 값은 라스터 등고선으로 **유도된 것**이다 (ADR-040).
+   */
   silhouette: ShapeOutline
   /** 내부 디테일선. 간격이 모자라면 **모양보다 먼저 깎인다** */
   details: ShapeOutline[]
   /** 구멍 */
   holes: ShapeOutline[]
+  /**
+   * 색 영역 (ADR-039). **비어 있으면 지금까지의 흑백 실루엣 도안이다** — 레시피와
+   * 기존 아틀라스 항목이 그 경우이고, 그쪽은 유도할 `art` 가 없으므로 ADR-040 경로를
+   * 타지 않는다. 물리 검증은 이 배열을 **보지 않는다.**
+   */
+  art: ArtRegion[]
   /** 고리 자리가 필요한가 (2D 에서만 쓴다) */
   hanger: boolean
   /** 세로/가로 비 */

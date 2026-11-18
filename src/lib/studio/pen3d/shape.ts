@@ -332,6 +332,10 @@ export function readShape(
     holes: keep(holes),
     hanger: body.hanger === true,
     aspect,
+    // 색 영역은 `readArt` 가 **같은 `map` 으로** 변환해 넣는다 (ADR-039). 여기서 비워 두는
+    // 이유: 이 함수는 `trace` 레이어만 읽는다. 두 레이어를 한 함수에서 읽으면 좌표계가
+    // 갈라졌을 때 어느 쪽이 기준인지 알 수 없게 된다.
+    art: [],
     source: meta.source,
     reviewed: meta.source === 'atlas',
   }
