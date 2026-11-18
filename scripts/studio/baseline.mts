@@ -156,11 +156,33 @@ async function propose(
   return { shape: read.shape, reason: read.reason, ms, refused: false }
 }
 
+/**
+ * API 가 아예 받아주지 않은 경우인가 — 크레딧·한도·인증·서버 장애.
+ * 이것은 측정 대상이 아니라 **측정 불가**다.
+ */
+function apiBlocked(message: string): boolean {
+  const text = message.toLowerCase()
+  return (
+    text.includes('credit balance') ||
+    text.includes('rate limit') ||
+    text.includes('quota') ||
+    text.includes('authentication') ||
+    text.includes('permission') ||
+    / 4(01|03|29) /.test(` ${text} `) ||
+    /5\d\d/.test(text)
+  )
+}
+
 // ============================================================================
 // 한 단어
 // ============================================================================
 
-type Stage = 'pass' | 'proposal' | 'validate' | 'review' | 'unreviewed' | 'error'
+/**
+ * `blocked` 은 **품질이 아니다** — API 가 응답을 거부한 것이다(크레딧 소진·한도·장애).
+ * 품질 비율 계산에서 통째로 빼야 한다. 섞으면 결제가 끊긴 실행이 "엔진이 나빠졌다" 로 읽힌다.
+ * 실제로 한 번 그렇게 읽었다: art 엔진 첫 측정의 pass@2 29.8% 는 크레딧 소진이었다.
+ */
+type Stage = 'pass' | 'proposal' | 'validate' | 'review' | 'unreviewed' | 'blocked' | 'error'
 
 /** 그 단어를 무엇이 서비스했는가. 런타임과 같은 순서다 — 아틀라스 적중이면 LLM 호출 0회 */
 type Path = 'atlas' | 'dsl'
@@ -234,7 +256,15 @@ async function runAttempt(
     try {
       proposal = await propose(entry, apiKey, note, engine)
     } catch (error) {
-      return { ...base, stage: 'error', reason: `호출 실패: ${(error as Error).message.slice(0, 80)}`, llm_calls: 1 }
+      const message = (error as Error).message
+      // **메시지를 자르지 않는다.** 80자로 자른 탓에 "Your credit balance is too low" 가
+      // "Your cred" 로 보였고, 원인을 찾는 데 한참 걸렸다.
+      return {
+        ...base,
+        stage: apiBlocked(message) ? 'blocked' : 'error',
+        reason: `호출 실패: ${message.slice(0, 300)}`,
+        llm_calls: 1,
+      }
     }
 
     base.ms = proposal.ms
@@ -382,7 +412,44 @@ const STAGE_LABEL: Record<Stage, string> = {
   validate: '검증 error',
   review: '알아보지 못함',
   unreviewed: '검토 못 함',
+  blocked: 'API 거부 (측정 불가)',
   error: '호출 실패',
+}
+
+/**
+ * 측정이 유효한가. **품질 수치를 읽기 전에 이것을 먼저 읽어야 한다.**
+ *
+ * `reviewShape` 는 설계상 호출 실패를 조용히 `skipped` 로 돌린다 (ADR-038 — 검토 실패를
+ * 부정으로 적지 않는다). 운영에서는 맞는 동작이지만 측정에서는 **죽은 API 가 지표를 조용히
+ * 깎는다.** 그래서 여기서 큰 소리로 적는다.
+ */
+function validityWarning(results: WordResult[]): string[] {
+  const total = results.length
+  if (total === 0) return []
+
+  const blocked = results.filter((r) =>
+    r.attempts.some((a) => a.stage === 'blocked'),
+  ).length
+  const unreviewed = results.filter((r) => r.final_stage === 'unreviewed').length
+
+  if (blocked === 0 && unreviewed <= total * 0.05) return []
+
+  return [
+    '> ## ⚠ 이 측정은 신뢰할 수 없다',
+    '>',
+    ...(blocked > 0
+      ? [`> - **API 가 거부한 단어 ${blocked}개 (${pct(blocked, total)})** — 크레딧·한도·인증 문제다. 품질이 아니다.`]
+      : []),
+    ...(unreviewed > total * 0.05
+      ? [
+          `> - **검토를 못 한 단어 ${unreviewed}개 (${pct(unreviewed, total)})** — 이미지 검토 호출이 실패했다.`,
+          '>   아틀라스 적중 단어까지 떨어진다면 모양이 아니라 **호출**이 원인이다 (그 경로는 모양이 고정이다).',
+        ]
+      : []),
+    '>',
+    '> 아래 통과율을 엔진 비교에 쓰지 말 것. 원인을 고치고 다시 측정한다.',
+    '',
+  ]
 }
 
 function buildReport(results: WordResult[], args: Args, elapsedMs: number): string {
@@ -419,6 +486,7 @@ function buildReport(results: WordResult[], args: Args, elapsedMs: number): stri
     '',
     '**이 숫자는 코드를 고치기 전의 것이다.** 고친 뒤에는 다시 뜰 수 없다.',
     '',
+    ...validityWarning(results),
     '## 알아봄 통과율 (헤드라인)',
     '',
     '| 지표 | 값 |',
