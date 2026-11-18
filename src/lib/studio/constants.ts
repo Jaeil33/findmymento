@@ -99,6 +99,13 @@ export const SHAPE_MAX_HOLES = 2
  */
 export const SHAPE_SMOOTH_MAX = 6
 
+/**
+ * 생성 한 번의 LLM 예산 (ms). 강사는 생성 버튼 앞에서 기다린다 — 합이 30초를 넘지 않는다
+ * (ADR-038). 넘기면 그 단계를 포기하고 다음 수단으로 간다.
+ */
+export const SHAPE_AUTHOR_TIMEOUT_MS = 12_000
+export const SHAPE_REVIEW_TIMEOUT_MS = 8_000
+
 /** 보정이 목표로 삼는 여유. 임계값에 딱 걸치면 반올림에서 뒤집힌다 */
 export const SHAPE_MARGIN = { gap_mm: 0.4, segment_mm: 0.6, angle_deg: 3 }
 
