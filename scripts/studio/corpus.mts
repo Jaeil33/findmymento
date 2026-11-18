@@ -28,6 +28,7 @@ import {
   mergeRecords,
   toRecord,
 } from '@/lib/studio/atlas-build'
+import { scoreRecord } from '@/lib/studio/atlas'
 import { readArtShape } from '@/lib/studio/pen3d/shape'
 import { importSvgArt } from '@/lib/studio/svg-art'
 import type { AtlasRecord, PenShape } from '@/types/studio'
@@ -216,6 +217,40 @@ function main(): void {
   const targets = entries.slice(0, args.limit)
   if (targets.length === 0) {
     console.error('매핑 파일에서 단어를 읽지 못했습니다.')
+    process.exit(1)
+  }
+
+  /**
+   * **held-out 누출 검사** (ADR-041).
+   *
+   * 조회는 부분 문자열로 맞는다(`scoreRecord`) — 그래서 코퍼스에 `거미줄` 을 넣으면 held-out
+   * 단어 `거미` 가 그 기록에 적중한다. 대조군이 **조용히** 무너지고, 그 뒤의 측정은
+   * `held-out` 통과율이라는 이름으로 `in-corpus` 통과율을 보고하게 된다.
+   *
+   * 사람이 매핑을 손으로 적는 이상 이 실수는 반복된다. 그래서 코드가 막는다.
+   *
+   * **판정은 `scoreRecord` 를 그대로 쓴다.** 조회 규칙을 여기서 다시 구현하면 둘이 갈라진다 —
+   * 실제로 한 번 갈라졌다: 손으로 쓴 판정이 `자`·`소`·`달` 같은 한 글자 동의어까지 세서
+   * `자석 ↔ 자`, `색소폰 ↔ 소` 를 누출로 신고했다. 조회는 두 글자 미만을 세지 않으므로
+   * 그건 누출이 아니다. **조회가 맞는다고 하는 것만 누출이다.**
+   */
+  const leaks: string[] = []
+  for (const held of heldOut) {
+    for (const entry of targets) {
+      const probe: AtlasRecord = {
+        id: atlasId(entry.word),
+        words: entry.words,
+        summary: '',
+        nominal_difficulty: 1,
+        outline: {},
+      }
+      if (scoreRecord(probe, held) > 0) leaks.push(`${held} ↔ ${entry.word}`)
+    }
+  }
+  if (leaks.length > 0) {
+    console.error('held-out 단어가 코퍼스 단어와 겹칩니다 — 대조군이 무너집니다:')
+    for (const leak of [...new Set(leaks)]) console.error(`  ${leak}`)
+    console.error('매핑 파일에서 한쪽을 지우거나 이름을 바꾸세요.')
     process.exit(1)
   }
 

@@ -25,8 +25,17 @@ import { nearestPaletteName } from '@/lib/studio/palette'
 import { flattenPath, pointInPolygon, type Pt, type SubPath } from '@/lib/studio/svg-path'
 import type { ArtRegion, NormPoint } from '@/types/studio'
 
-/** 한 영역의 점 개수 상한. 아트는 촘촘해도 되지만 무한하면 안 된다 */
-const MAX_POINTS_PER_RING = 160
+/**
+ * 한 영역의 점 개수 상한.
+ *
+ * 160 으로 시작했다가 48 로 내렸다. 적재 결과가 `records.ts` **3.6MB**(항목당 505점)가 됐고,
+ * 그 파일은 번들에 들어가는 TS 배열이다. 85mm 도안에서 한 고리에 160점은 점 간격 0.5mm —
+ * 인쇄되는 색 면에 그만한 해상도가 필요하지 않다.
+ *
+ * 덧그릴 선의 품질은 이 값과 무관하다. 그 선은 라스터 등고선에서 다시 뽑고(ADR-040)
+ * `CONTOUR_POINTS` 로 리샘플된다.
+ */
+const MAX_POINTS_PER_RING = 48
 
 /** 영역 개수 상한 — `shape.ts` 의 `ART_MAX_REGIONS` 와 같은 값이어야 한다 */
 const MAX_REGIONS = 14
