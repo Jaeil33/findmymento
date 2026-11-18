@@ -115,3 +115,55 @@ export function hexFor(name: PaletteName): string {
 export function needsEdge(name: PaletteName): boolean {
   return NEAR_WHITE.includes(name)
 }
+
+/**
+ * hex → 가장 가까운 팔레트 이름 (ADR-041).
+ *
+ * 벡터 아트 코퍼스를 들여올 때 쓴다. 코퍼스의 색은 수천 가지이고 우리 팔레트는 24색이므로
+ * **반드시 스냅해야 한다** — 원본 hex 를 그대로 쓰면 팔레트가 존재할 이유가 없어지고,
+ * "필라멘트로 구할 수 있는 색" 이라는 보장도 사라진다.
+ *
+ * 거리는 단순 RGB 유클리드가 아니라 **명도에 가중을 준다.** 사람 눈은 녹색의 명도 변화에
+ * 가장 민감하고 파랑에 가장 둔하다. 가중 없이 재면 진한 남색이 검정으로, 살색이 베이지로
+ * 뭉쳐서 그림이 납작해진다.
+ */
+export function nearestPaletteName(hex: string): PaletteName {
+  const rgb = parseHex(hex)
+  if (!rgb) return DEFAULT_COLOR
+
+  let best: PaletteName = DEFAULT_COLOR
+  let bestDistance = Infinity
+  for (const name of PALETTE_NAMES) {
+    const candidate = parseHex(PALETTE[name])
+    if (!candidate) continue
+    // 가중치는 흔히 쓰는 근사값이다 (빨강 3 · 녹색 4 · 파랑 2)
+    const dr = rgb[0] - candidate[0]
+    const dg = rgb[1] - candidate[1]
+    const db = rgb[2] - candidate[2]
+    const distance = 3 * dr * dr + 4 * dg * dg + 2 * db * db
+    if (distance < bestDistance) {
+      bestDistance = distance
+      best = name
+    }
+  }
+  return best
+}
+
+/** `#rgb` · `#rrggbb` 를 읽는다. 그 외 표기는 `null` — 색 이름·rgb() 는 코퍼스에 거의 없다 */
+function parseHex(text: string): [number, number, number] | null {
+  const value = text.trim().replace(/^#/, '')
+  if (/^[0-9a-fA-F]{3}$/.test(value)) {
+    const r = parseInt(value[0]! + value[0]!, 16)
+    const g = parseInt(value[1]! + value[1]!, 16)
+    const b = parseInt(value[2]! + value[2]!, 16)
+    return [r, g, b]
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(value)) {
+    return [
+      parseInt(value.slice(0, 2), 16),
+      parseInt(value.slice(2, 4), 16),
+      parseInt(value.slice(4, 6), 16),
+    ]
+  }
+  return null
+}
