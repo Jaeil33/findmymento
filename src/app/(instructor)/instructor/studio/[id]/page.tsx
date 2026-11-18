@@ -177,29 +177,41 @@ export default async function StudioContentPage({
         ) : null}
       </section>
 
-      {/* 3. 도안 */}
-      {artifact.kind === 'pen3d' ? (
-        <Panel title="도안" description="A4 1:1. 같은 모양은 한 번만 인쇄하고 수량을 표기합니다.">
-          <StencilPreview artifact={artifact} status={content.status} />
-        </Panel>
-      ) : null}
+      {/*
+        3. 도안 · 조립 · 과제 — 한 묶음이다.
 
-      {/* 4. 조립과 과제 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="조립 순서">
-          <ol className="space-y-3">
-            {(artifact as PenArtifact).assembly.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm leading-relaxed text-body">
-                <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 text-xs font-semibold tabular-nums text-sub">
-                  {i + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </Panel>
+        A4 는 세로로 길고 부품은 윗부분에만 찬다. 도안을 가로 폭 전체로 깔면 그 옆과 아래가
+        통째로 빈 종이가 되어, 조립 순서에 닿기까지 화면 한 장을 그냥 지나게 된다.
+        옆에 조립·과제를 세워 그 여백을 쓴다. 도안이 DOM 에서 먼저이므로 읽는 순서는 그대로다.
+        드론 산출물에는 도안이 없으므로 그때는 한 칸으로 돌아간다.
+      */}
+      <div
+        className={
+          artifact.kind === 'pen3d'
+            ? 'grid items-start gap-6 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]'
+            : 'grid items-start gap-6'
+        }
+      >
+        {artifact.kind === 'pen3d' ? (
+          <Panel title="도안" description="A4 1:1. 같은 모양은 한 번만 인쇄하고 수량을 표기합니다.">
+            <StencilPreview artifact={artifact} status={content.status} />
+          </Panel>
+        ) : null}
 
         <div className="space-y-6">
+          <Panel title="조립 순서">
+            <ol className="space-y-3">
+              {(artifact as PenArtifact).assembly.map((step, i) => (
+                <li key={i} className="flex gap-3 text-sm leading-relaxed text-body">
+                  <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 text-xs font-semibold tabular-nums text-sub">
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </Panel>
+
           <Panel title="학생 실습 과제">
             <ul className="space-y-2">
               {artifact.tasks.map((task, i) => (
@@ -209,6 +221,7 @@ export default async function StudioContentPage({
               ))}
             </ul>
           </Panel>
+
           <Panel title="안전 안내" description="수업 시작 전에 그대로 읽어 주세요.">
             <ul className="space-y-2">
               {artifact.safety_notes.map((note, i) => (

@@ -144,10 +144,25 @@ export type ShapeMeta = {
  * 당겨도 되는 이유: 모양은 바로 뒤에서 bbox 로 다시 정규화되므로 치수의 결정권은 그대로
  * 코드에 있다. 반대로 통째로 버리면, 0.02 만큼 넘긴 응답 하나 때문에 강사는 실패 화면을 본다.
  */
-function coord(value: unknown): number | null {
+function coord(value: unknown, ceiling = 1): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
-  if (value < -SHAPE_COORD_TOLERANCE || value > 1 + SHAPE_COORD_TOLERANCE) return null
-  return Math.min(1, Math.max(0, value))
+  if (value < -SHAPE_COORD_TOLERANCE || value > ceiling + SHAPE_COORD_TOLERANCE) return null
+  return Math.min(ceiling, Math.max(0, value))
+}
+
+/**
+ * 세로 좌표의 상한. **두 공간의 자가 다르다.**
+ *
+ * LLM 에게 요구하는 것은 0~1 이고, 거기서 벗어난 응답은 통째로 버린다 (ADR-036) — `1`.
+ * 반대로 아틀라스는 `readShape` 가 **가로를 1 로** 맞춘 값을 그대로 저장하고, 세로는 종횡비가
+ * 보존되므로 1 을 넘는다 (연필은 3.5 가 정상이다). 저장된 항목을 LLM 용 자로 다시 재면
+ * 검수를 통과해 들어간 세로로 긴 실루엣이 **조회 시점에 사라진다.**
+ *
+ * 늘리는 것은 세로뿐이고 상한은 이미 있는 종횡비 임계값이다 — 새 임계값을 만들지 않는다.
+ * 가로는 어느 쪽이든 0~1 이다.
+ */
+function yCeiling(source: ShapeMeta['source']): number {
+  return source === 'atlas' ? SHAPE_ASPECT[1] : 1
 }
 
 /**
@@ -157,16 +172,16 @@ function coord(value: unknown): number | null {
  * 실패 화면을 본다. 어느 표기든 숫자 두 개이고, 그 숫자의 뜻(비율)과 쓰임(코드가 mm 로 환산)은
  * 달라지지 않는다 — 경계는 그대로다 (ADR-036).
  */
-function point(entry: unknown): NormPoint | null {
+function point(entry: unknown, maxY = 1): NormPoint | null {
   if (Array.isArray(entry)) {
     const px = coord(entry[0])
-    const py = coord(entry[1])
+    const py = coord(entry[1], maxY)
     return px === null || py === null ? null : { x: px, y: py }
   }
   if (typeof entry !== 'object' || entry === null) return null
   const body = entry as Record<string, unknown>
   const px = coord(body.x ?? body.X)
-  const py = coord(body.y ?? body.Y)
+  const py = coord(body.y ?? body.Y, maxY)
   return px === null || py === null ? null : { x: px, y: py }
 }
 
@@ -174,13 +189,13 @@ function point(entry: unknown): NormPoint | null {
  * 점 목록. 요청 범위보다 **많이** 오면 등간격으로 솎아서 쓴다 — 촘촘한 것은 지시를 무시한
  * 것이 아니라 더 그린 것이다. `SHAPE_POINTS_TOLERATED` 를 넘으면 버린다.
  */
-function pointsIn(raw: unknown, min: number, max: number): NormPoint[] | null {
+function pointsIn(raw: unknown, min: number, max: number, maxY = 1): NormPoint[] | null {
   if (!Array.isArray(raw)) return null
   if (raw.length < min || raw.length > SHAPE_POINTS_TOLERATED) return null
 
   const all: NormPoint[] = []
   for (const entry of raw) {
-    const parsed = point(entry)
+    const parsed = point(entry, maxY)
     if (!parsed) return null
     all.push(parsed)
   }
@@ -199,7 +214,7 @@ function pointsIn(raw: unknown, min: number, max: number): NormPoint[] | null {
  * 목록 형식이 어긋났다고 **실루엣까지** 버렸다. 눈·귀 선 하나의 표기 때문에 도안을 못 만드는
  * 것은 말이 안 된다. 실루엣만 읽히면 도안은 나오고, 내부선은 있으면 더 좋은 것이다.
  */
-function outlineList(raw: unknown, max: number): NormPoint[][] {
+function outlineList(raw: unknown, max: number, maxY = 1): NormPoint[][] {
   if (!Array.isArray(raw)) return []
   const out: NormPoint[][] = []
   for (const entry of raw.slice(0, max)) {
@@ -209,7 +224,7 @@ function outlineList(raw: unknown, max: number): NormPoint[][] {
       : typeof entry === 'object' && entry !== null
         ? firstArray(entry as Record<string, unknown>, SILHOUETTE_KEYS)
         : undefined
-    const points = pointsIn(list, 3, SHAPE_POINTS[1])
+    const points = pointsIn(list, 3, SHAPE_POINTS[1], maxY)
     if (points) out.push(points)
   }
   return out
@@ -260,10 +275,13 @@ export function readShape(
   const title = rawTitle.length >= 1 && rawTitle.length <= 40 ? rawTitle : meta.word.trim()
   if (title.length < 1 || title.length > 40) return no('제목과 단어가 모두 비어 있습니다')
 
+  // 저장된 아틀라스 항목은 "가로 1" 공간이라 세로가 1 을 넘는다. LLM 응답은 0~1 그대로다.
+  const maxY = yCeiling(meta.source)
   const silhouette = pointsIn(
     firstArray(body, SILHOUETTE_KEYS),
     SHAPE_POINTS[0],
     SHAPE_POINTS[1],
+    maxY,
   )
   if (!silhouette) {
     return no(
@@ -271,8 +289,8 @@ export function readShape(
     )
   }
 
-  const details = outlineList(firstArray(body, DETAIL_KEYS), SHAPE_MAX_DETAILS)
-  const holes = outlineList(body.holes, SHAPE_MAX_HOLES)
+  const details = outlineList(firstArray(body, DETAIL_KEYS), SHAPE_MAX_DETAILS, maxY)
+  const holes = outlineList(body.holes, SHAPE_MAX_HOLES, maxY)
 
   // 정규화 공간에서의 붙은 점 정리 — 0.2% 보다 가까운 점은 같은 점이다
   const outer = dedupe(silhouette, 0.002)

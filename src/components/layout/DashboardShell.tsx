@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { DashboardNav } from './DashboardNav'
 import { Wordmark } from './Wordmark'
 import { leaveDemo } from '@/app/(public)/login/actions'
 
-export type NavItem = { href: string; label: string; hint?: string }
+/**
+ * `group` 은 탭 줄에서 묶음이 바뀌는 자리를 표시한다. 값이 바뀌는 첫 항목 앞에 선이 선다.
+ * 강사 화면에서 스튜디오(ADR-028 의 1순위)와 매칭 화면을 가르는 데 쓴다.
+ */
+export type NavItem = { href: string; label: string; hint?: string; group?: 'matching' }
 
 /**
  * 기관·강사·운영자 공용 껍데기.
@@ -68,20 +73,7 @@ export function DashboardShell({
       </header>
 
       {/* 메뉴는 머리줄과 분리한다 — 매일 쓰는 화면에서 탭은 손이 기억하는 자리에 있어야 한다. */}
-      <nav aria-label="대시보드 메뉴" className="border-b border-line bg-card">
-        <ul className="mx-auto flex max-w-6xl gap-x-1 overflow-x-auto px-4 sm:px-6">
-          {nav.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="inline-block border-b-2 border-transparent px-3 py-2 text-sm font-medium whitespace-nowrap text-body transition-colors hover:border-line-strong hover:text-ink"
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <DashboardNav items={nav} />
 
       {demo || tour ? (
         <p className="border-b border-caution/40 bg-caution-bg px-4 py-2 text-center text-xs leading-relaxed text-caution sm:px-6">

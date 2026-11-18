@@ -11,7 +11,8 @@ const NAV: NavItem[] = [
   { href: '/org/demand', label: '수요' },
   { href: '/org/interests', label: '관심 표현' },
   { href: '/org/recruitment', label: '섭외' },
-  { href: '/programs', label: '강사 찾기' },
+  // 대시보드 밖(공개 디렉토리)으로 나가는 유일한 탭이라 선으로 갈라 둔다.
+  { href: '/programs', label: '강사 찾기', group: 'matching' },
 ]
 
 export default async function OrgLayout({ children }: { children: React.ReactNode }) {

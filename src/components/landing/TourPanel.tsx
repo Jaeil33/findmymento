@@ -24,29 +24,48 @@ export function TourPanel({ live }: { live: boolean }) {
 
   return (
     <div>
+      {/*
+        위계는 **버튼 등급과 위쪽 선**으로만 만든다. 파란 Primary 버튼 세 개가 나란히 서 있으면
+        그건 셋 다 중요한 것이 아니라 위계가 없는 것이다. 1순위는 강사의 콘텐츠 스튜디오다
+        (ADR-028) — 그래서 Primary 는 첫 카드 하나뿐이고, 나머지 둘은 Secondary 로 내린다.
+        감추거나 지우지 않는다: 학생·운영자 화면도 심사에서 여는 입구다.
+        강조는 색 면이 아니라 위쪽 2px 선이다 — 색은 판정(통과·실패)에만 쓴다 (UI_GUIDE).
+      */}
       <ul className="grid gap-4 lg:grid-cols-3">
-        {primary.map((entry) => (
-          <li key={entry.key} className="flex h-full flex-col border border-line bg-card p-5">
-            <p className="text-base font-semibold text-ink">{entry.label}</p>
-            <p className="mt-0.5 text-xs text-sub">{entry.who}</p>
-            <p className="mt-3 text-sm leading-relaxed text-body">{entry.summary}</p>
-            <ul className="mt-4 flex-1 divide-y divide-line border-t border-line">
-              {entry.highlights.map((h) => (
-                <li key={h} className="py-2 text-xs leading-relaxed text-body">
-                  {h}
-                </li>
-              ))}
-            </ul>
-            {/* 링크는 카드 전체가 아니라 이 한 줄이다 — 읽어 주는 이름이 카드 본문 전체가 되지 않게 한다. */}
-            <a
-              href={tourHref(entry.key)}
-              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-sm border border-point bg-point px-4 text-sm font-semibold text-white transition-colors hover:bg-point-hover"
+        {primary.map((entry, i) => {
+          const lead = i === 0
+          return (
+            <li
+              key={entry.key}
+              className={`flex h-full flex-col border border-line bg-card p-5 ${
+                lead ? 'border-t-2 border-t-point' : ''
+              }`}
             >
-              {entry.label} 열기
-            </a>
-            <p className="mt-2 text-center text-xs text-sub">{entry.destinationLabel} 화면</p>
-          </li>
-        ))}
+              <p className="text-base font-semibold text-ink">{entry.label}</p>
+              <p className="mt-0.5 text-xs text-sub">{entry.who}</p>
+              <p className="mt-3 text-sm leading-relaxed text-body">{entry.summary}</p>
+              <ul className="mt-4 flex-1 divide-y divide-line border-t border-line">
+                {entry.highlights.map((h) => (
+                  <li key={h} className="py-2 text-xs leading-relaxed text-body">
+                    {h}
+                  </li>
+                ))}
+              </ul>
+              {/* 링크는 카드 전체가 아니라 이 한 줄이다 — 읽어 주는 이름이 카드 본문 전체가 되지 않게 한다. */}
+              <a
+                href={tourHref(entry.key)}
+                className={`mt-4 inline-flex min-h-11 items-center justify-center rounded-sm px-4 text-sm font-semibold transition-colors ${
+                  lead
+                    ? 'border border-point bg-point text-white hover:bg-point-hover'
+                    : 'border border-line-strong bg-card text-ink hover:bg-muted'
+                }`}
+              >
+                {entry.label} 열기
+              </a>
+              <p className="mt-2 text-center text-xs text-sub">{entry.destinationLabel} 화면</p>
+            </li>
+          )
+        })}
       </ul>
 
       <div className="mt-4 flex flex-col gap-3 border-l-2 border-line-strong bg-muted/60 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">

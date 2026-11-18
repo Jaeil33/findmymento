@@ -101,10 +101,10 @@ export function ValidationReport({
         </dl>
       </div>
 
-      <ol className="space-y-4">
-        {rounds.map((round) => (
-          <li key={round.round} className="border border-line bg-card">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-4 py-2.5">
+      <ol className="space-y-2.5">
+        {rounds.map((round) => {
+          const head = (
+            <>
               <span className="font-display text-sm font-bold text-ink tabular-nums">
                 {round.round}차
               </span>
@@ -116,31 +116,55 @@ export function ValidationReport({
               </Badge>
               {round.params ? (
                 <span className="text-xs text-sub tabular-nums">
-                  치수 {String(round.params.size)}mm · 장식 {String(round.params.detail)} · 선택 부품{' '}
-                  {round.params.extras ? '포함' : '제외'}
+                  치수 {String(round.params.size)}mm · 장식 {String(round.params.detail)} · 선택
+                  부품 {round.params.extras ? '포함' : '제외'}
                 </span>
               ) : null}
-            </div>
+            </>
+          )
 
-            <div className="px-4 py-3">
-              {round.repair ? (
-                <p className="mb-2 text-sm leading-relaxed font-medium text-point">
-                  고친 것 — {round.repair}
-                </p>
-              ) : null}
+          // 걸린 항목이 없는 라운드는 **한 줄**이다. 접는 것이 아니라 줄이는 것이다 —
+          // 차수·동작·판정·치수·고친 것이 전부 이 줄에 남으므로 전 과정은 그대로 보인다 (ADR-030).
+          if (round.findings.length === 0) {
+            return (
+              <li
+                key={round.round}
+                data-round="compact"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-l-2 border-positive py-1.5 pl-3"
+              >
+                {head}
+                <span className="text-xs text-positive">걸린 항목 없음</span>
+                {round.repair ? (
+                  <span className="text-xs leading-relaxed font-medium text-point">
+                    고친 것 — {round.repair}
+                  </span>
+                ) : null}
+              </li>
+            )
+          }
 
-              {round.findings.length > 0 ? (
+          return (
+            <li key={round.round} data-round="full" className="border border-line bg-card">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-4 py-2.5">
+                {head}
+              </div>
+
+              <div className="px-4 py-3">
+                {round.repair ? (
+                  <p className="mb-2 text-sm leading-relaxed font-medium text-point">
+                    고친 것 — {round.repair}
+                  </p>
+                ) : null}
+
                 <ul className="space-y-2.5">
                   {round.findings.map((finding, i) => (
                     <FindingRow key={`${finding.code}-${i}`} finding={finding} />
                   ))}
                 </ul>
-              ) : (
-                <p className="text-sm text-positive">걸린 항목이 없습니다.</p>
-              )}
-            </div>
-          </li>
-        ))}
+              </div>
+            </li>
+          )
+        })}
       </ol>
 
       {status === 'failed' ? (

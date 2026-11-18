@@ -23,6 +23,18 @@ vi.mock('@anthropic-ai/sdk', () => ({
 }))
 vi.mock('@/lib/auth/actor', () => ({ getActor: async () => state.actor }))
 
+/**
+ * 아틀라스는 이 파일에서 **비워 둔다.**
+ *
+ * 여기서 보는 것은 윤곽 제안(DSL)·레시피·이미지 검토 경로다. 모양 경로의 순서가
+ * 레시피 → 아틀라스 → 윤곽 제안이므로(ADR-036), 아틀라스에 주제와 겹치는 단어가 하나라도
+ * 들어오면 이 파일의 시험이 조용히 다른 가지로 새어 나간다 — 단어를 적재했을 뿐인데
+ * 라우트 시험이 깨지고, 깨지지 않더라도 보려던 가지를 안 보게 된다.
+ * 적재 내용과 무관하게 같은 가지를 보도록 목록을 고정한다.
+ * 아틀라스 자체의 품질은 `tests/studio-atlas.test.ts` 가 본다.
+ */
+vi.mock('@/data/atlas/records', () => ({ ATLAS_RECORDS: [] }))
+
 const { POST: generate } = await import('@/app/api/studio/generate/route')
 
 const INSTRUCTOR: Actor = {

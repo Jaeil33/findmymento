@@ -157,3 +157,51 @@ describe('공개 헤더·푸터', () => {
     expect(container.querySelectorAll('a[href^="tel:"], a[href^="mailto:"]')).toHaveLength(0)
   })
 })
+
+/**
+ * 체험 입구의 위계.
+ *
+ * 입구 카드 세 장이 **완전히 같은 무게**로 서 있으면, 처음 여는 사람에게 "이 중 무엇이
+ * 이 제품인가"라는 질문이 남는다. 1순위는 강사의 AI 콘텐츠 스튜디오다 (ADR-028).
+ *
+ * 위계는 장식이 아니라 **버튼 등급과 선 하나**로 만든다 — 파란 Primary 버튼 세 개가
+ * 나란히 있으면 그건 위계가 없는 것이지 셋 다 중요한 게 아니다.
+ * 학생·운영자 입구를 없애거나 감추지는 않는다. 둘 다 심사에서 여는 화면이다.
+ */
+describe('랜딩 — 체험 입구의 위계', () => {
+  async function tourSection() {
+    const { container } = render(await LandingPage())
+    return container.querySelector('#tour')!
+  }
+
+  it('강사 입구가 첫 번째다 (ADR-028)', async () => {
+    const tour = await tourSection()
+    const cards = [...tour.querySelectorAll('li')].filter((li) => li.querySelector('a[href^="/tour/"]'))
+    expect(cards[0]?.querySelector('a[href^="/tour/"]')?.getAttribute('href')).toBe('/tour/instructor')
+  })
+
+  it('Primary 버튼은 강사 입구 하나뿐이다', async () => {
+    const tour = await tourSection()
+    const primary = [...tour.querySelectorAll('a[href^="/tour/"]')].filter((a) =>
+      a.className.includes('bg-point'),
+    )
+    expect(primary).toHaveLength(1)
+    expect(primary[0].getAttribute('href')).toBe('/tour/instructor')
+  })
+
+  it('학생·운영자 입구는 사라지지 않는다 — 등급만 내려간다', async () => {
+    const tour = await tourSection()
+    const hrefs = [...tour.querySelectorAll('a')].map((a) => a.getAttribute('href'))
+    expect(hrefs).toContain('/tour/student')
+    expect(hrefs).toContain('/tour/admin')
+  })
+
+  it('강조는 색 면이 아니라 위쪽 선이다 — 색은 판정에만 쓴다 (UI_GUIDE)', async () => {
+    const tour = await tourSection()
+    const lead = [...tour.querySelectorAll('li')].find(
+      (li) => li.querySelector('a[href="/tour/instructor"]'),
+    )!
+    expect(lead.className).toMatch(/border-t-2/)
+    expect(lead.className).not.toMatch(/bg-(point|positive|caution|negative)-bg/)
+  })
+})
