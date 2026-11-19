@@ -33,17 +33,17 @@ export type RecipeOption = { id: string; title: string; difficulty: number }
  */
 const STAGES: Record<ShapeForm, string[]> = {
   flat: [
-    '수업 조건 확인',
-    '검수된 실루엣 찾기',
+    '수업 조건과 장비 읽기',
+    '미리 만들어 둔 도안에서 찾기',
     '없으면 윤곽 제안받기',
     '좌표·치수 만들기',
-    '검증하고 모양 확인하기',
+    '검증하고 수업 패키지 만들기',
   ],
   solid: [
-    '수업 조건 확인',
+    '수업 조건과 장비 읽기',
     '검수된 도안 후보 고르기',
     '좌표·치수 만들기',
-    '검증하고 필요하면 고치기',
+    '검증하고 수업 패키지 만들기',
   ],
 }
 
@@ -144,6 +144,7 @@ export function GenerateForm({
         topic_note?: string | null
         demo_ai?: boolean
         nearest_note?: string | null
+        authored_by?: 'pack' | 'llm' | 'demo' | 'rule'
       } & Partial<GenerateResultData>
 
       if (!response.ok || !json.ok) {
@@ -167,6 +168,7 @@ export function GenerateForm({
           shape_review: json.shape_review,
           shape_missing: json.shape_missing ?? null,
           nearest_note: json.nearest_note ?? null,
+          authored_by: json.authored_by,
         })
         return
       }

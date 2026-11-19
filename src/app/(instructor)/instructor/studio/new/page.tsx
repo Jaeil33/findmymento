@@ -5,6 +5,7 @@ import { PageHeader, Panel } from '@/components/ui/Section'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
 import { llmKeyForRequest, tourStudioLlmAvailable } from '@/lib/ai/client'
 import { atlasCount } from '@/lib/studio/atlas'
+import { packCount } from '@/lib/studio/pack'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { instructorSessions } from '@/lib/db/queries'
@@ -70,7 +71,7 @@ export default async function StudioNewPage({
         description={
           head
             ? '앞 버전은 그대로 남습니다. 수업에서 무엇이 더 나았는지 비교할 수 있어야 하기 때문입니다.'
-            : '주제와 수업 조건을 넣으면 검수된 도안 중에서 고르고, A4 1:1 도안·조립 순서·실습 과제를 만듭니다.'
+            : `주제와 수업 조건을 넣으면 미리 만들어 둔 검수된 도안 ${packCount()}개에서 찾고, A4 1:1 도안·학생용 사용법·강사용 지도안·검증 리포트를 함께 만듭니다.`
         }
         actions={
           <Link href="/instructor/studio" className="text-sm text-sub underline-offset-4 hover:underline">
@@ -82,7 +83,8 @@ export default async function StudioNewPage({
       {tourLlm ? (
         <p className="border-l-2 border-point bg-point-bg px-4 py-3 text-sm leading-relaxed text-body">
           체험 중이지만 <strong>도안 저작은 실제 AI</strong>가 합니다. 적으신 문장을 읽고 검수된
-          조각으로 모양을 짭니다 — 하루 사용량을 넘으면 시연용 문장으로 바뀝니다.
+          조각으로 모양을 짭니다 — 하루 사용량을 넘으면 미리 만들어 둔 도안과 시연용 문장으로
+          바뀝니다.
         </p>
       ) : null}
 
@@ -100,8 +102,8 @@ export default async function StudioNewPage({
       </Panel>
 
       <Panel
-        title="만들 수 있는 도안"
-        description="사람이 검수한 목록입니다. 이 목록 밖의 모양은 만들지 않습니다 — 검증할 수 없는 도안을 교실에 보내지 않기 위해서입니다."
+        title="조립해서 만드는 입체 도안"
+        description={`사람이 검수한 목록입니다. 2D 한 장으로 만드는 모양은 미리 만들어 둔 도안 ${packCount()}개에서 주제로 찾습니다 — 목록 밖의 모양은 AI 가 윤곽을 그려 보고, 검증을 통과하지 못하면 내보내지 않습니다.`}
       >
         <ul className="grid gap-3 sm:grid-cols-2">
           {PEN_RECIPES.map((recipe) => (

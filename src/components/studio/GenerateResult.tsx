@@ -2,6 +2,11 @@
 
 import { useState } from 'react'
 import { DEMO_SOURCE_LABEL, SOURCE_LABEL } from '@/components/ai/AssistProgress'
+import {
+  LessonPlanPanel,
+  StudentGuidePanel,
+  VerificationPanel,
+} from '@/components/studio/LessonPackage'
 import { StatusBadge } from '@/components/studio/StatusBadge'
 import { StencilPreview } from '@/components/studio/StencilPreview'
 import { ValidationReport } from '@/components/studio/ValidationReport'
@@ -34,12 +39,17 @@ export type GenerateResultData = {
    * 모양이 어디서 왔는가 (ADR-036). **"검수된 실루엣"과 "자동 생성"을 구분해 적는다** —
    * 이 구분을 지우면 강사는 검수되지 않은 모양을 검수된 것으로 믿는다.
    */
-  shape_source?: 'recipe' | 'atlas' | 'dsl' | 'compose'
+  shape_source?: 'recipe' | 'atlas' | 'pack' | 'dsl' | 'compose' | 'fallback' | 'drone'
   /** 이미지 2차 검토 결과 (ADR-038). `skipped` 는 "못 했다"이고 "안 닮았다"가 아니다 */
   shape_review?: 'looks_like' | 'unrecognized' | 'skipped'
   shape_missing?: string | null
   /** 꼭 맞는 실루엣이 없어 가장 가까운 것으로 대체한 경우의 안내 */
   nearest_note?: string | null
+  /**
+   * 수업 패키지의 문장을 누가 썼는가 (ADR-044). 산출물 안의 값과 같고, 패키지가 없는
+   * 옛 행에서도 배지를 띄울 수 있도록 응답에서 따로 받는다.
+   */
+  authored_by?: 'pack' | 'llm' | 'demo' | 'rule'
 }
 
 const SHAPE_SOURCE_BADGE: Record<
@@ -48,8 +58,13 @@ const SHAPE_SOURCE_BADGE: Record<
 > = {
   recipe: { tone: 'positive', label: '검수된 도안' },
   atlas: { tone: 'positive', label: '검수된 실루엣' },
+  // 미리 만들어 둔 도안 (ADR-044). 모양은 검수됐고 문장은 미리 써 둔 것이다
+  pack: { tone: 'positive', label: '미리 만들어 둔 검수된 도안' },
   dsl: { tone: 'caution', label: '자동 생성 모양 · 검수 전' },
   compose: { tone: 'neutral', label: '검수된 조각 조합' },
+  // 요청한 모양을 못 찾아 이름 명패로 떨어진 경우 (ADR-042). 숨기지 않는다
+  fallback: { tone: 'caution', label: '이름 명패 · 요청한 모양이 아님' },
+  drone: null,
 }
 
 /**
@@ -179,6 +194,9 @@ export function GenerateResult({
         ) : null}
       </Panel>
 
+      {/* 1-b. 무엇이 검증됐는가 — 기하 통과를 수업 검증으로 읽지 않게 (ADR-044) */}
+      {artifact.package ? <VerificationPanel pkg={artifact.package} /> : null}
+
       {/* 2. 지표 */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -222,18 +240,23 @@ export function GenerateResult({
         </Panel>
 
         <div className="space-y-6">
-          <Panel title="조립 순서">
-            <ol className="space-y-3">
-              {artifact.assembly.map((step, i) => (
-                <li key={i} className="flex gap-3 text-sm leading-relaxed text-body">
-                  <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 text-xs font-semibold tabular-nums text-sub">
-                    {i + 1}
-                  </span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-          </Panel>
+          {/* 수업 패키지가 있으면 단계별 사용법이 조립 순서를 포함한다 (ADR-044) */}
+          {artifact.package ? (
+            <StudentGuidePanel pkg={artifact.package} />
+          ) : (
+            <Panel title="조립 순서">
+              <ol className="space-y-3">
+                {artifact.assembly.map((step, i) => (
+                  <li key={i} className="flex gap-3 text-sm leading-relaxed text-body">
+                    <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 text-xs font-semibold tabular-nums text-sub">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </Panel>
+          )}
 
           <Panel title="학생 실습 과제">
             <ul className="space-y-2">
@@ -256,6 +279,11 @@ export function GenerateResult({
           </Panel>
         </div>
       </div>
+
+      {/* 4. 강사용 지도안 — 도안·사용법을 본 뒤에 읽는 순서다 */}
+      {artifact.package ? (
+        <LessonPlanPanel pkg={artifact.package} durationMinutes={spec.duration_minutes} />
+      ) : null}
     </div>
   )
 }

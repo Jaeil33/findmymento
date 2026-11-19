@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest'
 import {
   BEAD_WIDTH_MM,
   CLASS_OVERHEAD_MINUTES,
+  CLASS_OVERHEAD_SPLIT,
+  HARNESS_FINDING_SEVERITY,
+  PEN_SHARE_LIMIT,
+  RETRIEVAL_MIN_SCORE,
   CLOSED_TOLERANCE_MM,
   DRONE_FINDING_SEVERITY,
   DRONE_GATE_MARGIN_CM,
@@ -253,5 +257,49 @@ describe('드론 상수가 docs/STUDIO.md 와 일치한다', () => {
   it('안전 고정 문구 4개가 문서에 그대로 있다', () => {
     expect(DRONE_SAFETY_NOTES).toHaveLength(4)
     for (const note of DRONE_SAFETY_NOTES) expect(DOC).toContain(note)
+  })
+})
+
+/**
+ * 하네스 상수·검사 코드도 **문서와 1:1이다** (ADR-044).
+ *
+ * 물리 상수와 같은 규칙을 적용하는 이유: 지도안의 시간 칸과 제작 가용 시간이 서로 다른
+ * 숫자에서 나오면 강사가 받는 지도안의 합이 수업 시간과 어긋난다.
+ */
+describe('하네스 상수가 docs/STUDIO.md 와 일치한다 (ADR-044)', () => {
+  it('지도안 칸의 합이 수업 오버헤드와 같다', () => {
+    expect(nums(row('지도안 칸 (도입/안전·시범/정리)')[1])).toEqual([
+      CLASS_OVERHEAD_SPLIT.intro_minutes,
+      CLASS_OVERHEAD_SPLIT.demo_minutes,
+      CLASS_OVERHEAD_SPLIT.wrap_minutes,
+    ])
+    expect(
+      CLASS_OVERHEAD_SPLIT.intro_minutes +
+        CLASS_OVERHEAD_SPLIT.demo_minutes +
+        CLASS_OVERHEAD_SPLIT.wrap_minutes,
+    ).toBe(CLASS_OVERHEAD_MINUTES)
+  })
+
+  it('펜 공유 상한과 검색 최소 점수', () => {
+    expect(nums(row('펜 공유 상한')[1])).toEqual([PEN_SHARE_LIMIT])
+    expect(nums(row('검색 최소 점수')[1])).toEqual([RETRIEVAL_MIN_SCORE])
+  })
+
+  it('하네스 검사 코드와 심각도가 문서와 같다', () => {
+    const docCodes: Record<string, string> = {}
+    for (const cells of rows) {
+      const codes = cells[1]?.match(/`((?:PLAN|TIME|EQUIP|TOPIC|RETRIEVAL)_[A-Z_]+)`/g)
+      if (!codes) continue
+      const severity = cells[2]
+      if (severity !== 'error' && severity !== 'warn') continue
+      for (const raw of codes) docCodes[raw.replaceAll('`', '')] = severity
+    }
+    expect(docCodes).toEqual(HARNESS_FINDING_SEVERITY)
+  })
+
+  it('지도안 검사만 막는다 — 나머지는 "확인 필요" 다', () => {
+    for (const [code, severity] of Object.entries(HARNESS_FINDING_SEVERITY)) {
+      expect(severity, code).toBe(code.startsWith('PLAN_') ? 'error' : 'warn')
+    }
   })
 })

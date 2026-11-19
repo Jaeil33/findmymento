@@ -427,3 +427,91 @@ export const DRONE_LAND_SECONDS = 4
 export const DRONE_GATE_MARGIN_CM = 15
 /** 콘(기둥)의 반지름. 교육용 라바콘 기준. */
 export const DRONE_CONE_RADIUS_CM = 15
+
+// ============================================================================
+// 하네스 — 수업 조건 해석과 수업 패키지 (ADR-044)
+// ============================================================================
+
+/**
+ * `CLASS_OVERHEAD_MINUTES` 20분을 **지도안의 칸으로 쪼갠 값**이다. 합이 20이 아니면
+ * 지도안의 시간 합과 제작 가용 시간이 어긋난다 (`tests/studio-harness.test.ts` 가 고정한다).
+ *
+ * 쪼개는 이유: 강사가 받는 지도안에 "도입 5분 · 안전·시범 7분 · 정리 8분" 이 적혀야 하고,
+ * 그 숫자가 제작 시간 계산에 쓰인 20분과 **같은 상수에서** 나와야 한다.
+ */
+export const CLASS_OVERHEAD_SPLIT = {
+  intro_minutes: 5,
+  demo_minutes: 7,
+  wrap_minutes: 8,
+} as const
+
+/**
+ * 3D펜 한 자루를 몇 명까지 나눠 쓰는 것을 평범한 운영으로 볼 것인가.
+ *
+ * 이 값을 넘으면 `EQUIP_PEN_SHARED`(warn) 로 적고 **교대 조 수를 지도안에 넣는다.**
+ * 막지 않는다 — 두 명이 한 자루를 번갈아 쓰는 수업은 실제로 돌아간다. 다만 그 조건에서는
+ * 제작 시간이 사람 수만큼 늘어나므로 강사가 그 사실을 미리 알아야 한다.
+ */
+export const PEN_SHARE_LIMIT = 2
+
+/** 보유 장비 문자열에서 펜 수량을 읽는 패턴. `3D펜 20자루` · `펜 12개` · `3d pen x 8` */
+export const PEN_COUNT_PATTERNS: readonly RegExp[] = [
+  /(?:3d\s*펜|3디펜|펜|pen)\D{0,4}(\d{1,3})\s*(?:자루|개|대|ea|x)?/i,
+  /(\d{1,3})\s*(?:자루|개|대)\s*(?:의\s*)?(?:3d\s*펜|3디펜|펜|pen)/i,
+]
+
+/** 필라멘트 보유를 읽는 키워드. 없으면 "확인 필요" 로 남긴다 — 없다고 단정하지 않는다 */
+export const FILAMENT_KEYWORDS = ['필라멘트', 'pla', 'abs', 'petg', 'filament'] as const
+
+/**
+ * 검색(RAG) 점수. **벡터가 아니라 결정론적 문자열 일치다** (ADR-044).
+ *
+ * 왜 이 순서인가: 주제와 **같은 단어**가 있는 모양이 늘 먼저다. 분류(태그)로 고른 모양은
+ * 요청한 사물이 아닐 수 있으므로 점수를 낮게 두고, 화면에 "가장 가까운 것" 이라고 적는다.
+ */
+export const RETRIEVAL_SCORE = {
+  /** 주제 전체가 단어와 같다 ("자전거") */
+  exact: 100,
+  /** 주제 전체가 동의어와 같다 ("바이크") */
+  alias: 80,
+  /**
+   * 단어가 문장에서 **낱말로** 떨어져 있다 ("곰 모양 열쇠고리" ← "곰").
+   *
+   * 부분 문자열 일치보다 높은 이유: 한 글자 단어(곰·별·집·게)는 부분 일치로는 찾을 수 없다.
+   * "소" 를 부분 일치로 찾으면 "소방차"·"소파" 가 걸리므로, 한 글자는 낱말로만 찾는다.
+   */
+  token: 70,
+  /** 문장 안에 단어가 들어 있다 ("바다에 사는 물고기 모양") */
+  phrase: 60,
+  /** 단어 안에 주제가 들어 있다 ("곰인형" ← "곰인") */
+  partial: 30,
+  /** 분류만 맞다 ("바다" → 바다 생물) */
+  tag: 25,
+} as const
+
+/** 이 점수 아래는 **미적중이다.** 엉뚱한 모양을 "검색 결과" 로 내보내지 않는다 */
+export const RETRIEVAL_MIN_SCORE = 25
+
+/** 후보 목록에 올리는 최대 개수. 저작 레이어 프롬프트와 화면이 같은 값을 쓴다 */
+export const RETRIEVAL_MAX_CANDIDATES = 6
+
+/**
+ * 하네스 검사 코드. **물리 검증(`PEN_*`)과 섞지 않는다** — 이쪽은 수업 운영·지도안·출처의
+ * 검사이고, 통과 여부의 의미가 다르다 (ADR-044).
+ *
+ * `PLAN_*` 만 error 다: 지도안이 **없는 부품을 가리키거나** 시간 합이 어긋나면 그 지도안은
+ * 교실에서 쓸 수 없다. 나머지는 warn — "확인이 필요하다" 는 사실이고 차단할 근거가 아니다.
+ */
+export const HARNESS_FINDING_SEVERITY: Record<string, Severity> = {
+  PLAN_PART_UNKNOWN: 'error',
+  PLAN_TIME_MISMATCH: 'error',
+  PLAN_MODE_MISMATCH: 'error',
+  PLAN_STEP_EMPTY: 'error',
+  TIME_ESTIMATE_UNVERIFIED: 'warn',
+  EQUIP_PEN_COUNT_UNKNOWN: 'warn',
+  EQUIP_PEN_SHARED: 'warn',
+  EQUIP_FILAMENT_UNCONFIRMED: 'warn',
+  TOPIC_SUBSTITUTED: 'warn',
+  TOPIC_MATCH_UNVERIFIED: 'warn',
+  RETRIEVAL_MISS: 'warn',
+}

@@ -2,6 +2,11 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ApproveButton } from '@/components/studio/ApproveButton'
 import { FeedbackForm } from '@/components/studio/FeedbackForm'
+import {
+  LessonPlanPanel,
+  StudentGuidePanel,
+  VerificationPanel,
+} from '@/components/studio/LessonPackage'
 import { StatusBadge } from '@/components/studio/StatusBadge'
 import { StencilPreview } from '@/components/studio/StencilPreview'
 import { ValidationReport } from '@/components/studio/ValidationReport'
@@ -60,6 +65,11 @@ export default async function StudioContentPage({
   const usable = isUsable(content.status)
   const artifact = content.artifact
   const metrics = artifact.metrics
+  /**
+   * 수업 패키지 (ADR-044). **옛 행에는 없다** — 이 필드가 생기기 전에 저장된 산출물은
+   * 조립 순서만 들고 있으므로, 없으면 그 화면으로 돌아간다.
+   */
+  const pkg = artifact.kind === 'pen3d' ? artifact.package : undefined
 
   return (
     <div className="space-y-8">
@@ -84,6 +94,10 @@ export default async function StudioContentPage({
               <Badge tone="positive">검수된 실루엣</Badge>
             ) : content.recipe_id.startsWith('dsl-') ? (
               <Badge tone="caution">자동 생성 모양 · 검수 전</Badge>
+            ) : null}
+            {/* 이름 명패로 떨어진 산출물은 그 사실을 계속 적는다 (ADR-042) */}
+            {content.rounds.some((r) => r.findings.some((f) => f.code === 'PEN_SHAPE_FALLBACK')) ? (
+              <Badge tone="caution">이름 명패 · 요청한 모양이 아님</Badge>
             ) : null}
             {calibration ? (
               <Badge tone="caution">
@@ -143,6 +157,9 @@ export default async function StudioContentPage({
         ) : null}
       </Panel>
 
+      {/* 1-b. 무엇이 검증됐는가 (ADR-044) */}
+      {pkg ? <VerificationPanel pkg={pkg} /> : null}
+
       {/* 2. 지표 */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -199,18 +216,22 @@ export default async function StudioContentPage({
         ) : null}
 
         <div className="space-y-6">
-          <Panel title="조립 순서">
-            <ol className="space-y-3">
-              {(artifact as PenArtifact).assembly.map((step, i) => (
-                <li key={i} className="flex gap-3 text-sm leading-relaxed text-body">
-                  <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 text-xs font-semibold tabular-nums text-sub">
-                    {i + 1}
-                  </span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-          </Panel>
+          {pkg ? (
+            <StudentGuidePanel pkg={pkg} />
+          ) : (
+            <Panel title="조립 순서">
+              <ol className="space-y-3">
+                {(artifact as PenArtifact).assembly.map((step, i) => (
+                  <li key={i} className="flex gap-3 text-sm leading-relaxed text-body">
+                    <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 text-xs font-semibold tabular-nums text-sub">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </Panel>
+          )}
 
           <Panel title="학생 실습 과제">
             <ul className="space-y-2">
@@ -233,6 +254,9 @@ export default async function StudioContentPage({
           </Panel>
         </div>
       </div>
+
+      {/* 4. 강사용 지도안 (ADR-044) */}
+      {pkg ? <LessonPlanPanel pkg={pkg} durationMinutes={content.spec.duration_minutes} /> : null}
 
       {/* 5. 성과 */}
       <Panel

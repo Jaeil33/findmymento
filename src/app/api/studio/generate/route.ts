@@ -5,12 +5,19 @@ import { loadDataset } from '@/lib/db/dataset'
 import { demoDataMode, tourActive } from '@/lib/demo/mode'
 import { TOUR_LLM_PER_VISITOR } from '@/lib/ai/tour-budget'
 import { insertStudioContent } from '@/lib/db/writes'
-import { atlasById, atlasMatches, atlasNearest, atlasShape } from '@/lib/studio/atlas'
-import { authorContent, type AuthorCandidate } from '@/lib/studio/author'
+import { atlasById } from '@/lib/studio/atlas'
+import { authorContent, type AuthorCandidate, type StudioAuthoring } from '@/lib/studio/author'
 import { droneCandidates } from '@/lib/studio/drone/course'
 import { generateDrone } from '@/lib/studio/drone/pipeline'
+import {
+  isStrongHit,
+  penHarness,
+  type PenHarnessOptions,
+  type PenHarnessResult,
+} from '@/lib/studio/harness/pipeline'
+import { retrieveCandidates, retrieveDesign } from '@/lib/studio/harness/retrieve'
+import { packByShapeId } from '@/lib/studio/pack'
 import { calibrationFor, nextVersion, studioLineage } from '@/lib/studio/library'
-import { generatePen } from '@/lib/studio/pen3d/pipeline'
 import { PEN_PIECES } from '@/lib/studio/pen3d/pieces'
 import { recipeMatches } from '@/lib/studio/pen3d/recipes'
 import { reviewShape } from '@/lib/studio/pen3d/review'
@@ -19,24 +26,26 @@ import { generalizeCharacter } from '@/lib/studio/topic'
 import { validateGenerate } from '@/lib/studio/request'
 import { clientKey, rateLimit } from '@/lib/validation'
 import type { LectureSession } from '@/types/domain'
-import type { PenComposition } from '@/lib/studio/pen3d/compose'
 import { formOf } from '@/types/studio'
 import type { Finding, PenShape, StudioArtifact, StudioSpec } from '@/types/studio'
 
 /**
  * 콘텐츠 생성. **LLM 키가 서버 전용이므로 라우트에서만 호출한다** (CLAUDE.md 아키텍처 규칙).
  *
- * 흐름: 규칙이 후보를 좁힘 → LLM 이 그중 하나를 고르고 문장을 씀 → **생성기가 좌표·명령을
- * 만들고 검증기가 판정** → 개선 → 저장. LLM 이 실패하면 규칙 선택으로 조용히 떨어진다 (ADR-029).
+ * 흐름: **검수된 목록 검색 → (필요하면) LLM 이 고르고 문장을 씀 → 생성기가 좌표·치수를 만들고
+ * 검증기가 판정 → 수업 운영·지도안 검사 → 수업 패키지 → 저장** (ADR-044).
+ *
+ * 순서가 이렇게 된 이유: 주제와 **같은 단어**의 검수된 모양이 이미 있으면 LLM 을 부를 이유가
+ * 없다 (개발명세서 §8-1). 그 경우 문장은 사전 제작 팩이 들고 있던 것을 쓰고, 화면에는
+ * "미리 만들어 둔 도안" 이라고 적는다 — 실시간 AI 가 쓴 것처럼 보이지 않게 한다 (ADR-025).
  *
  * 권한: 강사 본인. 회차에 붙이려면 **그 회차에 배정된 강사**여야 하고, 그때 수업 조건은
  * 회차 행에서 가져온다 — 본문 값은 무시한다 (ADR-015·016).
  *
  * 검증에 실패한 산출물도 200 으로 돌려준다. 화면이 실패 이유를 보여줘야 하기 때문이다 (ADR-030).
  *
- * **체험 세션도 여기서는 실제 LLM 을 쓴다** (ADR-035). 방문자가 적은 문장을 읽고 검수된
- * 조각으로 모양을 짜는 것이 이 제품이라, 고정된 시연 응답으로는 보여 줄 수 없다. 대신
- * 방문자별·하루 총량 상한을 걸고, 걸리면 거절이 아니라 시연용 응답으로 떨어진다.
+ * **체험 세션은 LLM 없이도 돌아간다** (ADR-033·044). 팩이 적중하면 호출이 0회이고, 적중하지
+ * 않으면 예산 안에서 실제 LLM 을 쓰거나(ADR-035) 시연용 응답으로 떨어진다.
  */
 export async function POST(request: Request) {
   // LLM 호출이 붙는다. 교안과 같은 상한을 쓴다.
@@ -101,15 +110,30 @@ export async function POST(request: Request) {
     lineageId = crypto.randomUUID()
   }
 
-  // ── 규칙 후보 → LLM 선택·제안 → 생성·검증 ────────────────────────────────
-  /**
-   * 모양 경로의 순서는 ADR-036 이 고정한다 — **레시피 → 아틀라스 → 윤곽 제안**.
-   *
-   * 저작 레이어에 주는 후보는 "주제와 같은 모양"뿐이다. 맞지도 않은 레시피를 넣으면
-   * LLM 이 그중에서 고르고, 강사는 엉뚱한 도안을 받는다. 2D 요청에는 레시피를 넣지 않는다 —
-   * 레시피 9종은 전부 입체다 (ADR-037).
-   */
+  // ── 검색 → 저작 → 생성·검증 ──────────────────────────────────────────────
   const form = formOf(spec)
+
+  /**
+   * 검수된 목록에서 먼저 찾는다 (ADR-044). 결정론적 문자열 일치이고 LLM 을 부르지 않는다.
+   * 미적중이면 `null` 이고, **아무 모양이나 집어 주지 않는다.**
+   */
+  const retrieved = spec.kind === 'pen3d' ? retrieveDesign(spec.topic) : null
+
+  /**
+   * 저작 레이어를 **건너뛸 수 있는가** (개발명세서 §8-1).
+   *
+   * 주제와 같은 단어의 검수된 모양이 2D 요청에 그대로 맞는 경우다. 그때 LLM 이 더해 줄 수
+   * 있는 것이 없다 — 모양은 이미 사람이 검수했고, 문장은 그 모양에 맞춰 미리 써 두었다.
+   *
+   * 입체 요청에는 적용하지 않는다: 레시피가 1순위이고(ADR-036) "연필 넣을 상자" 처럼
+   * 주제의 단어(연필)와 만들 물건(상자)이 다른 요청이 입체에 흔하다.
+   */
+  const usePack = !recipeId && form === 'flat' && isStrongHit(retrieved)
+
+  /**
+   * 저작 레이어에 주는 후보. **주제와 같은 모양만** 올린다 (ADR-036). 2D 요청에는 레시피를
+   * 넣지 않는다 — 레시피 9종은 전부 입체다 (ADR-037).
+   */
   const candidates: AuthorCandidate[] =
     spec.kind === 'pen3d'
       ? [
@@ -119,11 +143,12 @@ export async function POST(request: Request) {
             summary: r.summary,
             nominal_difficulty: r.nominal_difficulty,
           })),
-          ...atlasMatches(spec.topic).map((r) => ({
-            id: r.id,
-            title: r.words[0] ?? r.id,
-            summary: r.summary,
-            nominal_difficulty: r.nominal_difficulty,
+          // 검색 결과를 그대로 후보로 쓴다. id 는 아틀라스 id 이므로 고르면 `atlasById` 가 읽는다.
+          ...retrieveCandidates(spec.topic).map((c) => ({
+            id: c.design.shape_id,
+            title: c.design.title,
+            summary: c.design.reason,
+            nominal_difficulty: c.difficulty,
           })),
         ]
       : droneCandidates(spec.topic, spec.grade_band)
@@ -135,12 +160,12 @@ export async function POST(request: Request) {
   /**
    * 체험 세션에 LLM 을 열어 줄 것인가 (ADR-035).
    *
-   * 방문자 한 명이 연달아 누르는 것부터 막는다 — 하루 총량은 그다음 방어선이다
-   * (`lib/ai/tour-budget.ts`). 레시피를 직접 고른 요청은 저작 자체를 하지 않으므로
-   * 여기서 세지 않는다.
+   * **팩이 적중하면 열지 않는다** — 예산을 쓰지 않고 같은 결과를 내므로, 이 순서가 체험
+   * 세션의 비용을 실제로 0 으로 만든다. 레시피를 직접 고른 요청도 저작을 하지 않는다.
    */
   const tourStudio =
     !recipeId &&
+    !usePack &&
     (await tourActive()) &&
     rateLimit(
       clientKey(request.headers, 'studio-tour-llm'),
@@ -148,39 +173,54 @@ export async function POST(request: Request) {
       TOUR_LLM_PER_VISITOR.windowMs,
     )
 
-  const authoring = recipeId
-    ? {
-        recipe_id: recipeId,
-        composition: null,
-        title: '',
-        reason: '',
-        tasks: [] as string[],
-        source: 'rule' as const,
-        engine: 'rule' as const,
-      }
-    : await authorContent(spec, candidates, firstCalibration, {
-        tourStudio,
-        /**
-         * 윤곽 제안 (ADR-036). 3D펜만이고, **체험 세션에서는 저작 레이어가 스스로 끈다** —
-         * 체험 키로는 제안하지 않는다 (익명 공개 경로의 예산).
-         */
-        outline: spec.kind === 'pen3d' ? { allow: true, word: spec.topic } : undefined,
-        // 조각 조합은 3D펜만 쓴다 (ADR-034). 드론은 검수된 코스 목록 그대로다.
-        /**
-         * 조각 조합은 **입체 요청에만** 준다 (ADR-034·037). 2D 에 조합 지시문을 같이 보내면
-         * 모델이 조합으로 답하고, 2D 경로는 조합(접합이 있는 입체)을 쓸 수 없어 실패한다 —
-         * 운영에서 "물고기"·"피카츄" 2D 가 전부 실패 화면이 된 원인이다.
-         */
-        pieces:
-          spec.kind === 'pen3d' && form === 'solid'
-            ? PEN_PIECES.map((p) => ({
-                id: p.id,
-                name: p.name,
-                summary: p.summary,
-                can_be_base: p.can_be_base,
-              }))
-            : undefined,
-      })
+  /** 사전 제작 팩의 문장. **미리 써 둔 것이고 이번에 생성한 것이 아니다** (ADR-044) */
+  const packAuthoring: StudioAuthoring | null =
+    usePack && retrieved
+      ? {
+          recipe_id: retrieved.design.shape_id,
+          composition: null,
+          shape: null,
+          title: retrieved.design.title,
+          reason: retrieved.design.reason,
+          tasks: [],
+          source: 'rule',
+          engine: 'pack',
+        }
+      : null
+
+  const authoring: StudioAuthoring =
+    packAuthoring ??
+    (recipeId
+      ? {
+          recipe_id: recipeId,
+          composition: null,
+          title: '',
+          reason: '',
+          tasks: [] as string[],
+          source: 'rule' as const,
+          engine: 'rule' as const,
+        }
+      : await authorContent(spec, candidates, firstCalibration, {
+          tourStudio,
+          /**
+           * 윤곽 제안 (ADR-036). 3D펜만이고, **체험 세션에서는 저작 레이어가 스스로 끈다** —
+           * 체험 키로는 제안하지 않는다 (익명 공개 경로의 예산).
+           */
+          outline: spec.kind === 'pen3d' ? { allow: true, word: spec.topic } : undefined,
+          /**
+           * 조각 조합은 **입체 요청에만** 준다 (ADR-034·037). 2D 에 조합 지시문을 같이 보내면
+           * 모델이 조합으로 답하고, 2D 경로는 조합(접합이 있는 입체)을 쓸 수 없어 실패한다.
+           */
+          pieces:
+            spec.kind === 'pen3d' && form === 'solid'
+              ? PEN_PIECES.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  summary: p.summary,
+                  can_be_base: p.can_be_base,
+                }))
+              : undefined,
+        }))
 
   const calibration = calibrationFor(
     ds.studioContents,
@@ -190,30 +230,35 @@ export async function POST(request: Request) {
   )
 
   /**
-   * 무엇으로 만들 것인가. 제안이 있으면 그것, 아틀라스 id 를 골랐으면 아틀라스 모양,
-   * 2D 인데 둘 다 없으면 **가장 가까운 검수된 실루엣**이다 (그 사실을 화면에 적는다).
-   * 그마저 없으면 `generatePen` 이 실패로 끝낸다 — 입체 도안을 2D 라고 내보내지 않는다.
+   * 저작 레이어가 고른 모양. **팩 항목이면 그 항목째로 되찾는다** — 모양 id 만 들고 가면
+   * 대체 여부("요청한 사물이 아니다")가 사라지고, 그러면 고지 없이 다른 모양이 나간다.
    */
-  let shape: PenShape | null = authoring.shape ?? null
-  let nearestNote: string | null = null
-  if (!shape && spec.kind === 'pen3d') {
-    shape = atlasById(authoring.recipe_id)
-    if (!shape && form === 'flat') {
-      const nearest = atlasNearest(spec.topic)
-      shape = nearest ? atlasShape(nearest) : null
-      if (shape) {
-        nearestNote = `"${spec.topic}" 과 꼭 맞는 검수된 실루엣이 없어 가장 가까운 "${shape.word}" 로 만들었습니다.`
-      }
-    }
-  }
+  const pickedDesign =
+    spec.kind === 'pen3d' && !usePack
+      ? /**
+         * 같은 모양을 가리키는 항목이 둘일 수 있다 — "복어"(그 사물)와 "물고기"(대체).
+         * 이번 주제로 찾은 항목이 그 모양이면 **그쪽을 쓴다.** 그래야 "물고기로 적었는데
+         * 복어로 만들었다" 는 고지가 남는다.
+         */
+        retrieved && retrieved.design.shape_id === authoring.recipe_id
+        ? retrieved.design
+        : packByShapeId(authoring.recipe_id)
+      : null
+  const pickedShape: PenShape | null =
+    spec.kind === 'pen3d' && !usePack && !pickedDesign ? atlasById(authoring.recipe_id) : null
 
-  const generated = generate(
-    spec,
-    authoring.recipe_id,
+  const generated = generate(spec, {
+    recipeId: authoring.recipe_id,
+    instructorRecipeId: recipeId,
     calibration,
-    authoring.composition ?? null,
-    shape,
-  )
+    composition: authoring.composition ?? null,
+    proposedShape: authoring.shape ?? null,
+    pickedShape,
+    pickedDesign,
+    retrieved,
+    authoredBy: authoredByOf(authoring),
+    tasks: authoring.tasks,
+  })
 
   /**
    * 검수되지 않은 모양이면 그 사실을 남기고, 통과한 도안만 이미지로 되돌려 묻는다
@@ -223,7 +268,7 @@ export async function POST(request: Request) {
    */
   const extraFindings: Finding[] = []
   let review: Awaited<ReturnType<typeof reviewShape>> = { verdict: 'skipped', missing: null }
-  if (shape && !shape.reviewed) {
+  if (generated.shape_source === 'dsl') {
     extraFindings.push(
       penFinding(
         'PEN_SHAPE_UNREVIEWED',
@@ -255,7 +300,7 @@ export async function POST(request: Request) {
     if (last) last.findings = [...last.findings, ...extraFindings]
   }
 
-  // LLM 이 쓴 것은 **제목과 과제 문장뿐이다.** 좌표·명령·지표는 생성기 결과를 그대로 쓴다.
+  // LLM·팩이 쓴 것은 **제목과 과제 문장뿐이다.** 좌표·명령·지표는 생성기 결과를 그대로 쓴다.
   const title = authoring.title !== '' ? authoring.title : generated.title
   const artifact = withTitleAndTasks(generated.artifact, title, authoring.tasks)
   const source = authoring.tasks.length >= 2 && authoring.source === 'llm' ? 'llm' : 'rule'
@@ -277,8 +322,10 @@ export async function POST(request: Request) {
     reason: authoring.reason,
     source,
     calibrated: calibration !== null,
-    // 문장을 실제로 누가 썼는가. 화면 표시는 **이 값**이 정한다 (ADR-025·035).
+    // 문장을 실제로 누가 썼는가. 화면 표시는 **이 값**이 정한다 (ADR-025·035·044).
     demo_ai: authoring.engine === 'demo',
+    // 최종 판정은 **산출물 안의 값**이다 — 하네스가 팩 항목을 썼으면 그쪽으로 바뀐다
+    authored_by: 'package' in generated ? generated.package.authored_by : authoredByOf(authoring),
     metrics: generated.metrics,
     rounds: generated.rounds,
     findings: generated.report.findings,
@@ -286,15 +333,16 @@ export async function POST(request: Request) {
     // 주제를 바꿔 만든 경우에만 들어온다. 화면이 그대로 보여준다.
     topic_note: general.note,
     /**
-     * 모양이 어디서 왔는가 (ADR-036). 화면이 "검수된 도안"과 "자동 생성"을 구분해 적는다 —
-     * 이 구분을 지우면 강사는 검수되지 않은 모양을 검수된 것으로 믿는다.
+     * 모양이 어디서 왔는가 (ADR-036·044). 화면이 "검수된 도안"·"미리 만들어 둔 도안"·
+     * "자동 생성"을 구분해 적는다 — 이 구분을 지우면 강사는 검수되지 않은 모양을 검수된
+     * 것으로 믿는다.
      */
-    shape_source: shape ? (shape.reviewed ? 'atlas' : 'dsl') : authoring.composition ? 'compose' : 'recipe',
+    shape_source: generated.shape_source,
     shape_review: review.verdict,
     shape_missing: review.missing,
     form,
-    // 가장 가까운 실루엣으로 대체한 경우에만 들어온다
-    nearest_note: nearestNote,
+    // 요청한 모양과 다른 것으로 만든 경우에만 들어온다
+    nearest_note: generated.substitute_note,
     // 수업 조건도 **서버가 쓴 값**을 돌려준다. 회차에 붙은 생성은 회차 행이 정한다 (ADR-016).
     ...(persisted ? {} : { artifact, spec, title }),
   }
@@ -326,19 +374,65 @@ export async function POST(request: Request) {
   }
 }
 
+/** 수업 패키지의 문장을 누가 썼는가. 화면 표기의 유일한 근거다 (ADR-025·044) */
+function authoredByOf(authoring: StudioAuthoring): 'pack' | 'llm' | 'demo' | 'rule' {
+  if (authoring.engine === 'pack') return 'pack'
+  if (authoring.engine === 'demo') return 'demo'
+  if (authoring.engine === 'llm' && authoring.source === 'llm') return 'llm'
+  return 'rule'
+}
+
+type GenerateOptions = {
+  recipeId: string
+  /** 강사가 **직접 고른** 레시피. 저작 레이어가 고른 것과 구별한다 */
+  instructorRecipeId: string | null
+  calibration: ReturnType<typeof calibrationFor>
+  composition: PenHarnessOptions['composition']
+  proposedShape: PenShape | null
+  pickedShape: PenShape | null
+  pickedDesign: PenHarnessOptions['pickedDesign']
+  retrieved: PenHarnessOptions['retrieved']
+  authoredBy: 'pack' | 'llm' | 'demo' | 'rule'
+  tasks: string[]
+}
+
+type GenerateResult = (PenHarnessResult | ReturnType<typeof generateDrone>) & {
+  title: string
+  shape_source: PenHarnessResult['shape_source'] | 'drone'
+  substitute_note: string | null
+}
+
 /** 콘텐츠 종류별 생성기. 둘 다 같은 계약을 돌려준다 (ADR-030). */
-function generate(
-  spec: StudioSpec,
-  recipeId: string,
-  calibration: ReturnType<typeof calibrationFor>,
-  composition: PenComposition | null,
-  shape: PenShape | null,
-) {
+function generate(spec: StudioSpec, options: GenerateOptions): GenerateResult {
   if (spec.kind === 'drone') {
-    const result = generateDrone(spec, { recipeId, calibration })
-    return { ...result, title: result.artifact.mission.title }
+    const result = generateDrone(spec, {
+      recipeId: options.recipeId,
+      calibration: options.calibration,
+    })
+    return {
+      ...result,
+      title: result.artifact.mission.title,
+      shape_source: 'drone',
+      substitute_note: null,
+    }
   }
-  const result = generatePen(spec, { recipeId, calibration, composition, shape })
+
+  /**
+   * 3D펜은 하네스를 지난다 (ADR-044) — 검색·생성·물리 검증·수업 운영 검사·수업 패키지가
+   * 한 함수 안에서 같은 순서로 돈다. 레시피는 **강사가 직접 고른 것만** 넘긴다: 저작 레이어가
+   * 고른 아틀라스 id 는 `pickedShape` 로 이미 모양이 되어 있다.
+   */
+  const result = penHarness(spec, {
+    recipeId: options.instructorRecipeId,
+    composition: options.composition,
+    proposedShape: options.proposedShape,
+    pickedShape: options.pickedShape,
+    pickedDesign: options.pickedDesign,
+    calibration: options.calibration,
+    retrieved: options.retrieved,
+    authoredBy: options.authoredBy,
+    tasks: options.tasks,
+  })
   return { ...result, title: result.artifact.pattern.title }
 }
 

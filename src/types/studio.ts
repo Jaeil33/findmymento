@@ -354,6 +354,125 @@ export type PenMetrics = {
   page_fit: boolean
 }
 
+// ============================================================================
+// 수업 패키지 — 도안 하나와 함께 나가는 것들 (ADR-044)
+// ============================================================================
+
+/**
+ * 사전 제작 도안 팩의 항목 하나 (ADR-044).
+ *
+ * **모양은 여기 없다.** `shape_id` 로 아틀라스(`src/data/atlas/records.ts`)를 가리키고,
+ * 좌표·치수·판정은 그대로 `lib/studio/**` 의 결정론적 코드가 만든다. 이 타입이 들고 있는
+ * 것은 **문장과 조회어**다 — 원래 LLM 이 요청마다 쓰던 것을 미리 써 둔 것이다.
+ *
+ * 그래서 이 항목이 쓰였다는 사실은 화면에 "미리 만들어 둔 도안" 으로 적힌다. 실시간 AI 가
+ * 쓴 문장과 구별되지 않으면 안 된다 (ADR-025 와 같은 이유).
+ */
+export type PackDesign = {
+  /** `pack-<대표 단어>` */
+  id: string
+  /** 대표 단어 */
+  word: string
+  /** 조회어 (대표 단어 + 동의어). 첫 번째가 대표 단어다 */
+  words: string[]
+  /** 분류. 주제에 같은 단어가 없을 때의 마지막 조회 수단이다 */
+  tags: string[]
+  /** 쓰는 모양. 아틀라스 id (`atlas-<단어>`) */
+  shape_id: string
+  /** 수업 제목 */
+  title: string
+  /** 왜 이 모양이 이 주제에 맞는가. 한 줄 */
+  reason: string
+  /** 그릴 때 걸리는 지점. 학생 가이드 1단계의 주의사항으로 들어간다 */
+  focus: string
+  /** 학습 목표 한 줄 */
+  objective: string
+  /**
+   * 대표 단어와 **다른 사물의 모양**을 쓰는가. 꼭 맞는 검수된 실루엣이 없을 때 true 이고,
+   * 그때는 화면에 "가장 가까운 ○○ 로 만들었다" 고 적는다 — 요청한 모양인 척하지 않는다.
+   */
+  substitute: boolean
+}
+
+/** 모양·문장이 어디서 왔는가. 리포트에 그대로 싣는다 (명세서 §3.4-6) */
+export type Evidence = {
+  /** 아틀라스 id · 레시피 id · 팩 id */
+  source_id: string
+  /** 무엇으로 찾았는가 */
+  matched_by: 'exact' | 'alias' | 'phrase' | 'partial' | 'tag' | 'llm' | 'recipe' | 'fallback'
+  /** `reviewed` = 사람이 검수한 모양 · `substitute` = 가장 가까운 것 · `unreviewed` = 자동 생성 */
+  trust_level: 'reviewed' | 'substitute' | 'unreviewed'
+  /** 소스 라이선스. CC-BY 는 저작자 표시가 사용 조건이다 (ADR-041) */
+  license: string | null
+  attribution: string | null
+}
+
+/** 학생 가이드 한 단계. `part_ids` 는 **실제 도안의 부품 id** 여야 한다 (PLAN_PART_UNKNOWN) */
+export type GuideStep = {
+  step: number
+  part_ids: string[]
+  text: string
+  caution: string | null
+}
+
+/**
+ * 강사용 시간 배분. 합은 **수업 시간과 같아야 한다** (PLAN_TIME_MISMATCH).
+ * 숫자는 `constants.ts` 의 `CLASS_OVERHEAD_SPLIT` 과 제작 가용 시간에서 나온다.
+ */
+export type LessonPlanMinutes = {
+  intro_minutes: number
+  demo_minutes: number
+  making_minutes: number
+  wrap_minutes: number
+  /** 수업 시간 전체. 위 네 칸의 합과 같다 */
+  total_minutes: number
+}
+
+/** 장비 운영. **입력으로 알 수 없는 것은 null 이고 "확인 필요" 로 나간다** (명세서 §5C) */
+export type EquipmentPlan = {
+  pen_count: number | null
+  students_per_pen: number | null
+  /** 교대 조 수. 펜 수를 모르면 null */
+  rotations: number | null
+  notes: string[]
+}
+
+/**
+ * 무엇이 검증됐고 무엇이 아직 아닌가 (명세서 §5·§6).
+ *
+ * **기하 통과를 수업 검증으로 적지 않는다.** 제작 시간은 실측이 없으면 `estimated` 이고,
+ * 주제 일치는 사람이 보지 않았으면 `needs_review` 이고, 현장 결과는 피드백이 쌓이기
+ * 전까지 늘 `unverified` 다.
+ */
+export type VerificationState = {
+  geometry: 'passed' | 'failed'
+  /** `calibrated` 는 같은 레시피·학년대 피드백 3건 이상이 쌓였을 때만이다 (ADR-032) */
+  time: 'calibrated' | 'estimated' | 'unknown'
+  topic_match: 'reviewed' | 'needs_review'
+  field: 'verified' | 'unverified'
+  /** 입력으로 알 수 없어 강사가 확인해야 하는 것 */
+  unconfirmed: string[]
+}
+
+/**
+ * 도안 하나와 함께 나가는 수업 패키지 (ADR-044).
+ *
+ * **옛 행에는 없다** — 이 필드가 생기기 전에 저장된 `studio_contents.artifact` 에는 없으므로
+ * 읽는 쪽은 없을 수 있다고 보고 그려야 한다.
+ */
+export type LessonPackage = {
+  objectives: string[]
+  student_guide: GuideStep[]
+  lesson_plan: LessonPlanMinutes
+  /** 지도안에 붙는 운영 메모 (교대·먼저 끝낸 학생·시간 초과 대안) */
+  lesson_notes: string[]
+  equipment_plan: EquipmentPlan
+  verification: VerificationState
+  evidence: Evidence[]
+  /** 이 패키지의 문장을 누가 썼는가 */
+  authored_by: 'pack' | 'llm' | 'demo' | 'rule'
+}
+
 export type PenArtifact = {
   kind: 'pen3d'
   pattern: PenPattern
@@ -363,6 +482,11 @@ export type PenArtifact = {
   /** 학생에게 주는 실습 과제. LLM 이 문장을 쓰고 규칙이 개수를 정한다 */
   tasks: string[]
   safety_notes: string[]
+  /**
+   * 수업 패키지 (ADR-044). **옛 행에는 없다** — 선택 필드로 두고 읽는 쪽이 없을 수 있다고
+   * 본다. 좌표·지표가 아니라 문장과 시간 배분이므로, 이 값이 없어도 도안은 그려진다.
+   */
+  package?: LessonPackage
 }
 
 // ============================================================================
