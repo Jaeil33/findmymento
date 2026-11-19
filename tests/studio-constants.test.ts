@@ -28,6 +28,9 @@ import {
   PEN_SAFETY_NOTES,
   PEN_FINDING_SEVERITY,
   PEN_LIMITS,
+  SHAPE_FIT_ATTEMPTS,
+  SHAPE_FIT_STEP,
+  SHAPE_PAGE_FILL,
   SLOT_CLEARANCE_MM,
   TIME_SAFETY,
   TIME_TIGHT_RATIO,
@@ -145,6 +148,25 @@ describe('3D펜 물리 상수가 docs/STUDIO.md 와 일치한다', () => {
 
   it('부품 간 배치 간격', () => {
     expect(nums(row('부품 간 배치 간격')[1])).toEqual([PAGE.gutter_mm])
+  })
+
+  it('도안 채움 목표 — 2D 가 입체보다 크고, 상한을 넘지 않는다 (ADR-045)', () => {
+    expect(nums(row('도안 채움 목표 (2D / 입체)')[1])).toEqual([
+      SHAPE_PAGE_FILL.flat,
+      SHAPE_PAGE_FILL.solid,
+    ])
+    expect(SHAPE_PAGE_FILL.flat).toBeGreaterThan(SHAPE_PAGE_FILL.solid)
+    expect(SHAPE_PAGE_FILL.flat).toBeLessThanOrEqual(1)
+  })
+
+  it('1라운드 치수 하강 폭과 횟수 — 탐색 폭이지 임계값이 아니다', () => {
+    expect(nums(row('1라운드 치수 하강 폭 / 횟수')[1])).toEqual([
+      SHAPE_FIT_STEP,
+      SHAPE_FIT_ATTEMPTS,
+    ])
+    // 내려가는 폭이다. 1 이상이면 탐색이 끝나지 않는다
+    expect(SHAPE_FIT_STEP).toBeLessThan(1)
+    expect(SHAPE_FIT_ATTEMPTS).toBeGreaterThan(0)
   })
 
   it('라벨 블록 — 배치가 예약하는 자리와 렌더가 그리는 글자가 같은 값에서 온다', () => {

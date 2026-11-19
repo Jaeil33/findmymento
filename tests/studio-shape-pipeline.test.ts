@@ -109,8 +109,13 @@ describe('3D 적층 생성', () => {
     expect(layer.quantity).toBe(LAYER_COUNT[band])
   })
 
+  /**
+   * 24분인 이유: 1라운드 치수가 종이에서 역산되고(ADR-045) 시간이 모자라면 **치수를 먼저**
+   * 줄여 맞춘다. 25분이면 층 3장을 그대로 두고 치수만 줄여 통과한다 — 그쪽이 작품을 덜
+   * 망친다. 층을 줄여야만 들어가는 구간이 이 값이다.
+   */
   it('시간이 모자라면 층 수를 줄여서 통과시킨다 — 임계값은 건드리지 않는다', () => {
-    const result = generatePen(spec('elementary', { form: 'solid', duration_minutes: 25 }), {
+    const result = generatePen(spec('elementary', { form: 'solid', duration_minutes: 24 }), {
       shape: shape(),
     })
     expect(result.status).toBe('validated')

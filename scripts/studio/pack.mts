@@ -62,6 +62,10 @@ type Row = {
   parts: number
   art: number
   retrieved: boolean
+  /** 중등 2D 에서 실제로 인쇄되는 치수 (mm) */
+  size_mm: number
+  /** 부품 칸이 A4 사용 영역에서 차지하는 비율 */
+  page_ratio: number
 }
 
 function check(design: PackDesign): Row {
@@ -74,6 +78,8 @@ function check(design: PackDesign): Row {
     parts: 0,
     art: 0,
     retrieved: false,
+    size_mm: 0,
+    page_ratio: 0,
   }
 
   const shape = packShape(design)
@@ -111,6 +117,8 @@ function check(design: PackDesign): Row {
     parts: result.metrics.part_count,
     art: shape.art.length,
     retrieved,
+    size_mm: gate.flat_size_mm,
+    page_ratio: gate.flat_page_ratio,
   }
 }
 
@@ -156,6 +164,9 @@ function main(): void {
     `| 대표 단어로 조회했을 때 1순위가 아닌 항목 | ${notRetrieved.length}개 |`,
     `| 평균 예상 제작 시간 (중등·2D·90분) | ${avg(passed.map((r) => r.minutes))}분 |`,
     `| 평균 색 영역 개수 | ${avg(passed.map((r) => r.art))}개 |`,
+    `| 평균 인쇄 치수 (중등·2D) | ${avg(passed.map((r) => r.size_mm))}mm |`,
+    `| 평균 A4 사용 영역 점유율 | ${Math.round(avg(passed.map((r) => r.page_ratio * 100)))}% |`,
+    `| 100mm 보다 작게 나오는 항목 | ${passed.filter((r) => r.size_mm < 100).length}개 |`,
     '',
   ]
 
@@ -186,10 +197,15 @@ function main(): void {
     lines.push('')
   }
 
-  lines.push('## 항목별', '', '| 단어 | 모양 | 조회어 | 분류 | 예상(분) | 부품 | 색 영역 | 대체 |', '|---|---|---|---|---|---|---|---|')
+  lines.push(
+    '## 항목별',
+    '',
+    '| 단어 | 모양 | 조회어 | 분류 | 치수(mm) | 종이 | 예상(분) | 부품 | 색 영역 | 대체 |',
+    '|---|---|---|---|---|---|---|---|---|---|',
+  )
   for (const r of rows) {
     lines.push(
-      `| ${r.design.word} | \`${r.design.shape_id}\` | ${r.design.words.slice(1).join(' · ') || '-'} | ${r.design.tags.join(' · ')} | ${r.ok ? r.minutes : '-'} | ${r.ok ? r.parts : '-'} | ${r.ok ? r.art : '-'} | ${r.design.substitute ? '○' : ''} |`,
+      `| ${r.design.word} | \`${r.design.shape_id}\` | ${r.design.words.slice(1).join(' · ') || '-'} | ${r.design.tags.join(' · ')} | ${r.ok ? r.size_mm : '-'} | ${r.ok ? Math.round(r.page_ratio * 100) + '%' : '-'} | ${r.ok ? r.minutes : '-'} | ${r.ok ? r.parts : '-'} | ${r.ok ? r.art : '-'} | ${r.design.substitute ? '○' : ''} |`,
     )
   }
 

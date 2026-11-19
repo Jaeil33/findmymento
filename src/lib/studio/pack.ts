@@ -44,6 +44,10 @@ export type PackSource = {
   reason: string
   focus: string
   objective: string
+  /** 먼저 끝낸 학생에게 줄 과제. **그 모양에서 더할 수 있는 것**을 적는다 */
+  extension: string
+  /** 완성 확인 한 줄. 학생이 스스로 본다 — "선생님이 확인한다" 가 아니다 */
+  check: string
   /**
    * 대표 단어와 **다른 사물의 모양**을 쓸 때만 적는다 (`atlas-복어` 처럼 전체 id).
    * 적으면 `substitute: true` 가 되고, 화면이 "가장 가까운 ○○" 라고 적는다.
@@ -74,6 +78,8 @@ function toDesign(source: PackSource): PackDesign {
     reason: source.reason,
     focus: source.focus,
     objective: source.objective,
+    extension: source.extension,
+    check: source.check,
     substitute: shapeId !== `atlas-${word}`,
   }
 }

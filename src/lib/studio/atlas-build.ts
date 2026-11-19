@@ -9,9 +9,9 @@
  * 통과하지 못하면 임계값을 낮추지 않고 **그 단어를 버린다** (ADR-030).
  */
 
-import { buildPattern } from '@/lib/studio/pen3d/recipes'
-import { shapeRecipe } from '@/lib/studio/pen3d/shape'
-import { penMetrics, validatePen } from '@/lib/studio/pen3d/validate'
+import { PAGE_USABLE } from '@/lib/studio/constants'
+import { partCell } from '@/lib/studio/pen3d/label'
+import { generatePen } from '@/lib/studio/pen3d/pipeline'
 import { GRADE_BANDS, type GradeBand } from '@/types/domain'
 import { SHAPE_FORMS, type AtlasRecord, type PenShape, type ShapeForm, type StudioSpec } from '@/types/studio'
 
@@ -37,28 +37,49 @@ export type AtlasGate = {
   failures: string[]
   /** 중등 2D 기준 측정 난이도. 후보 목록에 쓴다 */
   difficulty: number
+  /** 중등 2D 에서 실제로 인쇄되는 치수 (mm). 보고서가 "얼마나 큰가"를 적는 데 쓴다 */
+  flat_size_mm: number
+  /** 중등 2D 부품 칸이 A4 사용 영역에서 차지하는 면적 비율 (0~1) */
+  flat_page_ratio: number
 }
 
-/** 세 학년대 · 2D·3D 전부에서 검증을 통과하는가 */
+/**
+ * 세 학년대 · 2D·3D 전부에서 검증을 통과하는가.
+ *
+ * **런타임과 같은 경로로 본다** (`generatePen`). 예전에는 `recipe.defaults` 를 그대로 한 번
+ * 검증했는데, 기본 치수가 종이에서 역산되는 값이 된 뒤로 그 판정이 런타임과 어긋났다 —
+ * 생성기는 1라운드 치수를 찾고(`initialParams`) 걸리면 개선 라운드를 돌리므로, 기본값
+ * 한 번으로 떨어지는 모양도 실제로는 검증을 통과한 도안을 내보낸다. 강사가 받는 것이
+ * 그 결과이므로 게이트도 그것을 본다.
+ *
+ * 느슨해진 것이 아니다: 통과 기준은 `validatePen` 그대로이고, 개선 라운드는 LLM 이 아니라
+ * 결정론적 코드다. **임계값은 하나도 면제하지 않는다** (ADR-030).
+ */
 export function atlasGate(shape: PenShape): AtlasGate {
   const failures: string[] = []
 
   for (const band of GRADE_BANDS) {
     for (const form of SHAPE_FORMS) {
-      const recipe = shapeRecipe(shape, { form, grade_band: band })
-      const spec = gateSpec(band, form)
-      const { report } = validatePen(buildPattern(recipe, recipe.defaults), spec)
-      for (const finding of report.findings) {
+      const run = generatePen(gateSpec(band, form), { shape })
+      for (const finding of run.report.findings) {
         if (finding.severity !== 'error') continue
         failures.push(`${band}·${form}: ${finding.code}`)
       }
     }
   }
 
-  const flat = shapeRecipe(shape, { form: 'flat', grade_band: 'middle' })
-  const metrics = penMetrics(buildPattern(flat, flat.defaults), gateSpec('middle', 'flat'))
+  const flat = generatePen(gateSpec('middle', 'flat'), { shape })
+  const cells = flat.artifact.pattern.parts.map((part) => partCell(part))
+  const used = cells.reduce((sum, cell) => sum + cell.width_mm * cell.height_mm, 0)
+  const page = PAGE_USABLE.width_mm * PAGE_USABLE.height_mm
 
-  return { ok: failures.length === 0, failures, difficulty: metrics.difficulty }
+  return {
+    ok: failures.length === 0,
+    failures,
+    difficulty: flat.metrics.difficulty,
+    flat_size_mm: flat.params.size,
+    flat_page_ratio: Math.round((used / page) * 1000) / 1000,
+  }
 }
 
 /** 조회 id. **같은 단어면 같은 id** 여야 성과 피드백 보정이 쌓인다 (ADR-032) */

@@ -23,13 +23,16 @@ import {
   HANGER_THICKNESS_MM,
   LAYER_COUNT,
   LAYER_WELD_RATIO,
+  PAGE,
   PAGE_USABLE,
+  PEN_LABEL,
   PEN_LIMITS,
   SHAPE_ASPECT,
   SHAPE_COORD_TOLERANCE,
   SHAPE_MARGIN,
   SHAPE_MAX_DETAILS,
   SHAPE_MAX_HOLES,
+  SHAPE_PAGE_FILL,
   SHAPE_POINTS,
   SHAPE_POINTS_TOLERATED,
   SHAPE_SMOOTH_MAX,
@@ -720,6 +723,19 @@ function acceptsExtra(kept: Stroke[], candidate: Stroke, limit: PenLimit): boole
   return minGap([...kept, candidate], penGapOptions(limit)) >= target.gap
 }
 
+/**
+ * 색 영역이 **윤곽보다 아래로 더 내려가는** 경우의 세로 범위 (가로 1 기준).
+ * 색은 물리 검증을 받지 않지만 **인쇄되므로 종이는 차지한다** (`label.ts` 의 `partBox`).
+ */
+function artHeight(shape: PenShape): number {
+  let max = 0
+  for (const region of shape.art) {
+    for (const point of region.outline.points) if (point.y > max) max = point.y
+    for (const hole of region.holes) for (const point of hole.points) if (point.y > max) max = point.y
+  }
+  return max
+}
+
 export type ShapeRecipeOptions = {
   form: ShapeForm
   grade_band: GradeBand
@@ -739,15 +755,38 @@ export function shapeRecipe(shape: PenShape, options: ShapeRecipeOptions): PenRe
   const normPerimeter = closedLength(shape.silhouette.points)
   const extras = [...shape.details, ...shape.holes]
 
-  // 치수 상한은 종이에서 나온다. 라벨 칸이 들어갈 자리를 남긴다 (`pen3d/label.ts`).
-  const maxWidth = PAGE_USABLE.width_mm - 14
-  const maxHeight = PAGE_USABLE.height_mm - 40
-  let maxSize = Math.min(maxWidth, maxHeight / shape.aspect)
+  /**
+   * 치수 상한은 종이에서 나온다. **윤곽만 재지 않는다** — 종이에 인쇄되는 것은
+   * 윤곽 + 색 영역(ADR-039) + 라벨 칸이고, 2D 에 고리가 붙으면 그 부품의 줄까지 한 장에
+   * 들어가야 한다. 배치가 쓰는 기준(`pen3d/label.ts` 의 `partCell`)과 같은 것을 센다.
+   *
+   * `shape.aspect` 를 쓰지 않는 이유: 그 값은 **들어온 윤곽**의 종횡비이고, 색 영역은
+   * 그보다 클 수 있다 (실측: 재활용표시의 색 영역이 윤곽보다 2배 높다). 그 차이만큼
+   * 부품이 종이를 넘어가고, 개선 라운드가 축소로 그걸 되돌리느라 라운드를 썼다.
+   */
+  const contentHeight = Math.max(shape.aspect, artHeight(shape))
+  // 이름 줄 + 치수 줄. 이름이 길어 두 줄이 되는 경우까지 자리를 남긴다
+  const labelReserve = PEN_LABEL.lead_mm + PEN_LABEL.line_mm * 2 + PEN_LABEL.descent_mm
+  const hangerRow = flat && shape.hanger ? PAGE.gutter_mm + HANGER_OUTER_R_MM * 2 + labelReserve : 0
+  // 측면 띠는 기본값에서 층이 3장을 넘을 때만 들어간다 (아래 `defaults.extras`)
+  const bandRow =
+    !flat && layers > 3
+      ? PAGE.gutter_mm + Math.max(limit.min_segment_mm, layers * BEAD_WIDTH_MM) + labelReserve
+      : 0
+  const maxWidth = PAGE_USABLE.width_mm - 2
+  const maxHeight = PAGE_USABLE.height_mm - labelReserve - hangerRow - bandRow
+  let maxSize = Math.min(maxWidth, maxHeight / contentHeight)
   // 측면 띠 한 토막이 종이 폭을 넘으면 적층이 영구 실패한다
   if (!flat) maxSize = Math.min(maxSize, (maxWidth * BAND_SEGMENTS) / normPerimeter)
   maxSize = Math.max(30, Math.floor(maxSize))
   const minSize = Math.min(45, maxSize)
-  const size = Math.max(minSize, Math.min(maxSize, flat ? 85 : 70))
+  /**
+   * 기본 치수는 **종이에서 역산한다** — 상수에 적힌 mm 가 아니다 (`SHAPE_PAGE_FILL`).
+   * 2D 는 사용 영역을 꽉 채우고, 입체는 띠·밑면 자리를 남긴다. 넘치면 개선 라운드가 줄이고,
+   * 좁거나 짧으면 키운다 — `size_range` 가 그 폭이다.
+   */
+  const fill = flat ? SHAPE_PAGE_FILL.flat : SHAPE_PAGE_FILL.solid
+  const size = Math.max(minSize, Math.min(maxSize, Math.floor(maxSize * fill)))
 
   return {
     id: shape.id,

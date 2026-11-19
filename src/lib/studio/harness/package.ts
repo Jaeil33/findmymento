@@ -142,6 +142,14 @@ function guideSteps(input: PackageInput): GuideStep[] {
     )
   }
 
+  /**
+   * 완성 확인은 **학생이 스스로 본다.** "선생님께 검사받습니다" 로 적지 않는다 — 20명이
+   * 줄을 서면 그 자체가 수업 시간이 된다. 무엇을 보면 되는지는 모양마다 다르므로 팩이 들고 있다.
+   */
+  if (design?.check) {
+    push(`완성했는지 스스로 확인합니다. ${design.check}`, pattern.parts.map((p) => p.id), null)
+  }
+
   return steps
 }
 
@@ -172,8 +180,14 @@ function lessonNotes(input: PackageInput): string[] {
   notes.push(
     `도입 ${constraints.intro_minutes}분에는 완성 예시를 보여 주고, 안전·시범 ${constraints.demo_minutes}분에는 노즐 온도와 떼어내는 방법을 직접 보여 주세요.`,
   )
+  /**
+   * 먼저 끝낸 학생. 팩이 **그 모양에 맞는 과제**를 들고 있으면 그것을 적는다 — 일반론을
+   * 적어 두면 강사가 교실에서 다시 생각해야 한다.
+   */
   notes.push(
-    '먼저 끝낸 학생에게 줄 과제를 하나 준비해 주세요 — 안쪽에 자기 무늬를 더하거나, 같은 모양을 한 장 더 만들어 겹치는 것이면 됩니다.',
+    input.design?.extension
+      ? `먼저 끝낸 학생에게: ${input.design.extension}`
+      : '먼저 끝낸 학생에게 줄 과제를 하나 준비해 주세요 — 안쪽에 자기 무늬를 더하거나, 같은 모양을 한 장 더 만들어 겹치는 것이면 됩니다.',
   )
   /**
    * 한 장이 활동 시간의 절반도 쓰지 않는 경우. **흔하다** — 2D 한 장의 덧그릴 선은 짧다.

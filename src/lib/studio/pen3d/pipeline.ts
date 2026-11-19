@@ -10,7 +10,14 @@
  * 결과가 그대로 화면에 나간다.
  */
 
-import { MAX_REPAIR_ROUNDS, PEN_SAFETY_NOTES, SCALE_DOWN_STEP, SCALE_UP_STEP } from '@/lib/studio/constants'
+import {
+  MAX_REPAIR_ROUNDS,
+  PEN_SAFETY_NOTES,
+  SCALE_DOWN_STEP,
+  SCALE_UP_STEP,
+  SHAPE_FIT_ATTEMPTS,
+  SHAPE_FIT_STEP,
+} from '@/lib/studio/constants'
 import { compositionRecipe, type PenComposition } from '@/lib/studio/pen3d/compose'
 import { fallbackShape } from '@/lib/studio/pen3d/fallback'
 import { shapeRecipe } from '@/lib/studio/pen3d/shape'
@@ -112,9 +119,9 @@ function pickRecipe(spec: StudioSpec, options: PenGenerateOptions): PenRecipe | 
 /**
  * 1라운드 치수. 기본 치수로 시간이 모자라면 **미리 줄여서 시작한다** — 선 길이는 치수에
  * 비례하므로 필요한 배율을 바로 계산할 수 있다. 시간이 남을 때 키우지는 않는다:
- * 레시피의 기본 치수가 사람이 검수한 값이고, 그걸 넘겨서 키울 근거가 없다.
+ * 기본 치수는 종이에서 역산한 값(`SHAPE_PAGE_FILL`)이고, 그걸 넘겨서 키울 근거가 없다.
  */
-function initialParams(
+function timeFittedSize(
   recipe: PenRecipe,
   spec: StudioSpec,
   speedFactor: number,
@@ -130,6 +137,60 @@ function initialParams(
   const minSize = recipe.size_range[0]
   const size = Math.max(minSize, Math.round(base.size * ratio * 10) / 10)
   return { ...base, size }
+}
+
+/** 치수를 내려서 풀리는 항목. 시간·장비·접합은 치수 탐색으로 풀 일이 아니다 */
+const FIT_CODES = new Set([
+  'PEN_GAP_TOO_SMALL',
+  'PEN_SEGMENT_TOO_SHORT',
+  'PEN_ANGLE_TOO_SHARP',
+  'PEN_PART_OUT_OF_PAGE',
+  'PEN_PARTS_OVERLAP',
+])
+
+/** 기하 항목만 본다. 통과 판정은 `validatePen` 이 하고, 여기서 기준을 바꾸지 않는다 */
+function geometryOk(
+  recipe: PenRecipe,
+  spec: StudioSpec,
+  speedFactor: number,
+  params: PenRecipeParams,
+): boolean {
+  const { report } = validatePen(buildPattern(recipe, params), spec, { speedFactor })
+  return !report.findings.some((f) => f.severity === 'error' && FIT_CODES.has(f.code))
+}
+
+/**
+ * 1라운드 치수를 **종이 쪽에서 내려오며** 찾는다 (`SHAPE_FIT_STEP`).
+ *
+ * 왜 필요한가: 기본 치수가 종이를 꽉 채우는 값이 된 뒤로, 보정 단계가 큰 치수에서 살려 두는
+ * 좁은 틈 때문에 간격 검사에 걸리는 모양이 생겼다 (실측: 호랑이·게·나비). 그 모양들은
+ * 치수를 **내리면** 통과한다 — 보정이 그 틈의 점들을 합치기 때문이다. 개선 라운드는 간격
+ * 항목에 확대만 시도하므로(그쪽이 물리적으로 맞는 방향이다) 이 경우를 혼자 풀지 못한다.
+ *
+ * 바로 아래 단계도 함께 통과해야 받아들인다 — 경계에 걸친 치수는 쓰지 않는다.
+ * 찾지 못하면 받은 값을 그대로 돌려주고 개선 라운드가 맡는다 (이전과 같은 동작).
+ */
+function initialParams(
+  recipe: PenRecipe,
+  spec: StudioSpec,
+  speedFactor: number,
+): PenRecipeParams {
+  const base = timeFittedSize(recipe, spec, speedFactor)
+  if (geometryOk(recipe, spec, speedFactor, base)) return base
+
+  const minSize = recipe.size_range[0]
+  let size = base.size
+  for (let i = 0; i < SHAPE_FIT_ATTEMPTS; i += 1) {
+    size = Math.round(size * SHAPE_FIT_STEP * 10) / 10
+    if (size < minSize) break
+    const candidate = { ...base, size }
+    if (!geometryOk(recipe, spec, speedFactor, candidate)) continue
+    const below = Math.round(size * SHAPE_FIT_STEP * 10) / 10
+    // 아래 단계가 범위를 벗어나면 그 아래는 볼 수 없다 — 통과한 값을 그대로 받는다
+    if (below < minSize) return candidate
+    if (geometryOk(recipe, spec, speedFactor, { ...base, size: below })) return candidate
+  }
+  return base
 }
 
 type RepairKind = 'scale-up' | 'scale-down' | 'detail-down' | 'extras-off' | 'layers-down'
