@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { llmKeyForRequest } from '@/lib/ai/client'
+import { studioLlmAvailable, studioLlmGrant } from '@/lib/ai/studio-llm'
 import { getActor } from '@/lib/auth/actor'
 import { loadDataset } from '@/lib/db/dataset'
 import { demoDataMode, tourActive } from '@/lib/demo/mode'
@@ -127,8 +127,13 @@ export async function POST(request: Request) {
    *
    * 입체 요청에는 적용하지 않는다: 레시피가 1순위이고(ADR-036) "연필 넣을 상자" 처럼
    * 주제의 단어(연필)와 만들 물건(상자)이 다른 요청이 입체에 흔하다.
+   *
+   * **스위치(`STUDIO_LLM`)가 켜져 있으면 건너뛰지 않는다** (ADR-046). 켠 이유가 "주제대로
+   * 그려 달라" 이므로, 같은 단어의 아틀라스가 있어도 제안을 먼저 받아 본다. 제안이 실패하거나
+   * 물리 검증에 걸리면 하네스가 그 검수된 모양으로 내려간다 — 켠 것이 결과를 나쁘게 만들지 않는다.
    */
-  const usePack = !recipeId && form === 'flat' && isStrongHit(retrieved)
+  const llmDraws = !recipeId && spec.kind === 'pen3d' && (await studioLlmAvailable())
+  const usePack = !recipeId && form === 'flat' && isStrongHit(retrieved) && !llmDraws
 
   /**
    * 저작 레이어에 주는 후보. **주제와 같은 모양만** 올린다 (ADR-036). 2D 요청에는 레시피를
@@ -264,7 +269,8 @@ export async function POST(request: Request) {
    * 검수되지 않은 모양이면 그 사실을 남기고, 통과한 도안만 이미지로 되돌려 묻는다
    * (ADR-036·038). 둘 다 **warn 이다** — 물리 검증(`ok`)의 의미를 흐리지 않는다.
    *
-   * 체험 세션에서는 `llmKeyForRequest()` 가 null 이므로 검토가 저절로 꺼진다.
+   * 스위치가 꺼져 있거나 체험 세션이면 게이트가 `null` 을 주므로 검토가 저절로 꺼진다
+   * (ADR-033·046). 체험 키(scope `tour`)는 여기 오지 않는다 — `tourStudio` 를 주지 않는다.
    */
   const extraFindings: Finding[] = []
   let review: Awaited<ReturnType<typeof reviewShape>> = { verdict: 'skipped', missing: null }
@@ -279,7 +285,7 @@ export async function POST(request: Request) {
       review = await reviewShape({
         word: spec.topic,
         strokes: generated.artifact.pattern.parts.flatMap((p) => p.strokes),
-        apiKey: await llmKeyForRequest(),
+        apiKey: (await studioLlmGrant())?.key ?? null,
       })
       if (review.verdict === 'unrecognized') {
         extraFindings.push(

@@ -64,6 +64,7 @@ GitHub 저장소를 [vercel.com/new](https://vercel.com/new)에서 import하면 
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 실 DB용 | 없으면 데모 모드 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 운영자 기능용 | **`NEXT_PUBLIC_` 접두사를 절대 붙이지 말 것** |
 | `ANTHROPIC_API_KEY` | 선택 | 없으면 추천이 규칙 기반으로 동작한다 (E-06) |
+| `STUDIO_LLM` | 선택 | `on` 이어야 도안 생성이 클로드 API 를 부른다. 기본은 꺼짐 — 키가 있어도 호출 0회다 (ADR-046). 연결 확인: `npm run studio:ping` |
 
 키 하나 없이도 배포와 화면 확인이 된다. 넣는 순서는 `Supabase → ANTHROPIC`이고, 둘 다 나중에 추가해도 코드 변경이 없다.
 

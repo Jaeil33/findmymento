@@ -99,6 +99,8 @@ function goLive() {
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key'
   process.env.ANTHROPIC_API_KEY = 'sk-ant-live'
+  // 스튜디오 LLM 스위치 (ADR-046 — 기본값은 off 다)
+  process.env.STUDIO_LLM = 'on'
 }
 
 let ip = 0

@@ -11,6 +11,16 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 /**
+ * 쓸 모델 이름. **모든 호출이 이 함수를 쓴다** — 모델을 갈아 끼우는 일이 한 줄이어야 하고,
+ * 연결 점검 스크립트(`npm run studio:ping`)가 런타임과 다른 모델의 비용을 계산하면 안 된다.
+ *
+ * `ANTHROPIC_MODEL` 로 요청 없이 바꿀 수 있다 (예: `claude-opus-5-5` 는 더 싸고 새 모델이다).
+ */
+export function anthropicModel(): string {
+  return process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'
+}
+
+/**
  * Anthropic 클라이언트. **모든 LLM 호출은 이 함수로 클라이언트를 만든다** — 서버 전용이다.
  *
  * 작업공간에 묶이지 않은 조직 단위 키는 요청마다 `anthropic-workspace-id` 헤더가 있어야 한다.

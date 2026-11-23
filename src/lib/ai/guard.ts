@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { anthropicModel, createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
 
 /**
@@ -54,7 +54,7 @@ export async function callJsonLlm(req: JsonLlmRequest): Promise<unknown | null> 
     const client = createAnthropic(apiKey)
     const response = await client.messages.create(
       {
-        model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+        model: anthropicModel(),
         max_tokens: req.maxTokens,
         output_config: { effort: 'low' },
         system: req.system,

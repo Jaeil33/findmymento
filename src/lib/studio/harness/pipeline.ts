@@ -1,15 +1,19 @@
 /**
  * 하네스 오케스트레이터 — **수업 조건 → 검색 → 생성 → 다층 검증 → 수업 패키지** (ADR-044).
  *
- * 순서는 ADR-036 이 고정한다. 이 파일이 그 순서를 **한 곳에 모은 것**이고, 라우트는 저작
+ * 순서는 ADR-036·046 이 고정한다. 이 파일이 그 순서를 **한 곳에 모은 것**이고, 라우트는 저작
  * 레이어(LLM 호출)만 맡는다:
  *
  *   1. 강사가 직접 고른 레시피 (입체 요청에서만)
  *   2. 레시피 키워드 일치 (입체 요청에서만 — 레시피 9종은 전부 입체다)
- *   3. 검수된 목록에서 **주제와 같은 단어**로 찾은 모양 (= 사전 제작 팩, ADR-044)
- *   4. 저작 레이어의 윤곽 제안 (DSL)
+ *   3. 저작 레이어의 윤곽·색 영역 제안 (DSL) — `STUDIO_LLM` 을 켠 요청에만 들어온다 (ADR-046)
+ *   4. 검수된 목록에서 **주제와 같은 단어**로 찾은 모양 (= 사전 제작 팩, ADR-044)
  *   5. 조각 조합 · **유사 아틀라스**(분류만 맞거나 대체 모양)
  *   6. 이름 명패 (2D 전용 바닥, ADR-042)
+ *
+ * 3번이 4번보다 앞인 것은 **스위치를 켠 요청에 한해서다** (ADR-046). 끈 요청에는 제안 자체가
+ * 들어오지 않으므로 순서가 예전과 같다. 그리고 3번이 물리 검증에 걸리면 4번으로 내려간다 —
+ * 검수되지 않은 모양이 검수된 모양을 **밀어내지는 못한다.**
  *
  * **LLM 도 팩도 숫자를 만들지 않는다.** 둘이 주는 것은 모양 선택과 문장이고, 좌표·치수·
  * 접합·배치·판정은 그대로 `generatePen` 과 `validatePen` 이 한다 (CLAUDE.md).
@@ -39,6 +43,7 @@ import {
 import { packShape } from '@/lib/studio/pack'
 import type { PenComposition } from '@/lib/studio/pen3d/compose'
 import { generatePen, type PenGenerateResult } from '@/lib/studio/pen3d/pipeline'
+import { penFinding } from '@/lib/studio/pen3d/validate'
 import { formOf } from '@/types/studio'
 import type {
   Evidence,
@@ -137,19 +142,14 @@ function chooseShape(
     }
   }
 
-  // 3순위 — 주제와 같은 단어로 찾은 검수된 모양 (사전 제작 팩)
-  if (isStrongHit(retrieved) && retrieved) {
-    return {
-      shape: retrieved.shape,
-      source: 'pack',
-      design: retrieved.design,
-      matched_by: retrieved.matched_by,
-      substitute: false,
-      retrieval_miss: false,
-    }
-  }
-
-  // 4순위 — 저작 레이어의 윤곽 제안 (검수 전)
+  /**
+   * 3순위 — 저작 레이어의 윤곽·색 영역 제안 (검수 전, ADR-046).
+   *
+   * **검수된 아틀라스보다 먼저 쓴다.** 스위치(`STUDIO_LLM`)를 켠 요청에서만 이 값이 들어오고,
+   * 켠 이유가 "주제대로 그려 달라" 이기 때문이다. 검수되지 않았다는 사실은
+   * `PEN_SHAPE_UNREVIEWED`(warn)와 이미지 검토(ADR-038)로 남고, 물리 검증은 한 항목도
+   * 면제되지 않는다. 제안이 검증에 걸리면 `penHarness` 가 아래 순서로 내려간다.
+   */
   if (options.proposedShape) {
     return {
       shape: options.proposedShape,
@@ -158,6 +158,18 @@ function chooseShape(
       matched_by: 'llm',
       substitute: false,
       retrieval_miss: miss,
+    }
+  }
+
+  // 4순위 — 주제와 같은 단어로 찾은 검수된 모양 (사전 제작 팩)
+  if (isStrongHit(retrieved) && retrieved) {
+    return {
+      shape: retrieved.shape,
+      source: 'pack',
+      design: retrieved.design,
+      matched_by: retrieved.matched_by,
+      substitute: false,
+      retrieval_miss: false,
     }
   }
 
@@ -228,18 +240,57 @@ export function penHarness(spec: StudioSpec, options: PenHarnessOptions = {}): P
   const flat = formOf(spec) === 'flat'
   const constraints = lessonConstraints(spec)
   const retrieved = options.retrieved !== undefined ? options.retrieved : retrieveDesign(spec.topic)
-  const chosen = chooseShape(spec, options, retrieved)
 
-  const generated = generatePen(spec, {
-    recipeId: options.recipeId ?? null,
-    composition: options.composition ?? null,
-    shape: chosen.shape,
-    calibration: options.calibration ?? null,
-  })
+  const run = (pick: Chosen) =>
+    generatePen(spec, {
+      recipeId: options.recipeId ?? null,
+      composition: options.composition ?? null,
+      shape: pick.shape,
+      calibration: options.calibration ?? null,
+    })
+
+  let chosen = chooseShape(spec, options, retrieved)
+  let generated = run(chosen)
+
+  /**
+   * **검수되지 않은 제안이 물리 검증에 걸리면 검수된 모양으로 내려간다** (ADR-046).
+   *
+   * 제안을 아틀라스보다 먼저 쓰기로 한 결정(`chooseShape` 3순위)의 안전망이다. 이것이 없으면
+   * 스위치를 켠 것만으로, 같은 단어의 검수된 모양이 있는데도 `failed` 가 나가는 요청이 생긴다.
+   *
+   * 내려가는 것은 **제안(`dsl`)뿐이다.** 검수된 모양이 떨어지는 경우에는 개선 라운드가 이미
+   * 돈 뒤이므로, 다음 순서로 바꿔 봐야 같은 임계값에 같은 방식으로 걸린다. **임계값은 한
+   * 항목도 면제하지 않는다** — 내려간 결과도 `validatePen` 을 그대로 다시 지난다 (ADR-030).
+   */
+  let downgraded = false
+  if (!generated.report.ok && chosen.source === 'dsl') {
+    const vetted = chooseShape(spec, { ...options, proposedShape: null }, retrieved)
+    const retry = run(vetted)
+    if (retry.report.ok) {
+      chosen = vetted
+      generated = retry
+      downgraded = true
+    }
+  }
 
   const artifact = generated.artifact
   const fellBack = generated.report.findings.some((f) => f.code === 'PEN_SHAPE_FALLBACK')
   const source: ShapeSource = fellBack ? 'fallback' : chosen.source
+
+  /**
+   * 내려갔다는 사실을 남긴다. **명패까지 내려간 경우에는 적지 않는다** —
+   * `PEN_SHAPE_FALLBACK` 이 "요청한 모양이 아니다" 를 이미 적고 있고, 그 경우 나간 것은
+   * 검수된 모양이 아니라 명패이므로 이 문장이 사실과 다르다.
+   */
+  if (downgraded && !fellBack) {
+    const notice = penFinding(
+      'PEN_SHAPE_DOWNGRADED',
+      'AI 가 제안한 모양이 물리 검증에 걸려 검수된 모양으로 만들었습니다. 같은 단어로 다시 만들면 다른 제안이 나올 수 있습니다.',
+    )
+    generated.report.findings.push(notice)
+    const last = generated.rounds[generated.rounds.length - 1]
+    if (last) last.findings = [...last.findings, notice]
+  }
 
   const evidence: Evidence[] = []
   if (chosen.design && chosen.shape) {

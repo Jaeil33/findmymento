@@ -64,6 +64,8 @@ function llmReturns(json: unknown) {
 beforeEach(() => {
   createMock.mockReset()
   process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+  // 스튜디오 LLM 스위치 (ADR-046 — 기본값은 off 다)
+  process.env.STUDIO_LLM = 'on'
   delete process.env.DEMO_AI
 })
 

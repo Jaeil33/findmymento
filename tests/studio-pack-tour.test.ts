@@ -212,10 +212,15 @@ describe('체험 모드 — 조건을 넣으면 도안이 나온다 (LLM 없이)
   })
 })
 
-describe('키가 있어도 — 검수된 모양이 있으면 부르지 않는다 (개발명세서 §8-1)', () => {
+/**
+ * 스위치가 꺼져 있으면 **키가 환경에 있어도** 스튜디오는 클로드를 부르지 않는다 (ADR-046).
+ * 이것이 기본값이고, 그래서 키를 넣는 것만으로 생성 클릭이 과금되지 않는다.
+ */
+describe('스위치가 꺼져 있으면 — 키가 있어도 부르지 않는다 (ADR-046)', () => {
   beforeEach(() => {
     cookieJar.map.clear() // 체험이 아니다
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    delete process.env.STUDIO_LLM
   })
 
   it('2D 요청에 주제와 같은 단어의 검수된 모양이 있으면 호출이 0회다', async () => {
@@ -223,6 +228,32 @@ describe('키가 있어도 — 검수된 모양이 있으면 부르지 않는다
     expect(json.ok).toBe(true)
     expect(json.shape_source).toBe('pack')
     expect(createMock).not.toHaveBeenCalled()
+  })
+
+  it('목록에 없는 주제여도 호출이 0회다 — 명패로 떨어진다 (ADR-042)', async () => {
+    const json = await (await generate(post(body({ topic: '피카츄' })))).json()
+    expect(createMock).not.toHaveBeenCalled()
+    expect(json.ok).toBe(true)
+  })
+
+  it('대체 모양뿐인 주제여도 호출이 0회다 — 검색 결과로 만든다', async () => {
+    const json = await (await generate(post(body({ topic: '물고기' })))).json()
+    expect(createMock).not.toHaveBeenCalled()
+    expect(json.ok).toBe(true)
+    expect(json.shape_source).toBe('pack')
+    expect(json.nearest_note).toContain('가장 가까운')
+  })
+})
+
+/**
+ * 스위치를 켜면 **검수된 모양이 있어도 제안을 먼저 받아 본다** (ADR-046). 개발명세서 §8-1 의
+ * "같은 단어의 검수된 모양이 있으면 저작을 건너뛴다" 는 **스위치가 꺼진 경우의 규칙**이 되었다.
+ */
+describe('스위치를 켜면 — 저작 레이어를 부른다 (ADR-046)', () => {
+  beforeEach(() => {
+    cookieJar.map.clear() // 체험이 아니다
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    process.env.STUDIO_LLM = 'on'
   })
 
   it('목록에 없는 주제에는 저작 레이어를 부른다', async () => {
@@ -241,5 +272,14 @@ describe('키가 있어도 — 검수된 모양이 있으면 부르지 않는다
     // 제안이 실패하면 검색 결과(대체 모양)로 떨어진다
     expect(json.shape_source).toBe('pack')
     expect(json.nearest_note).toContain('가장 가까운')
+  })
+
+  it('주제와 같은 단어의 검수된 모양이 있어도 부른다 — 제안이 실패하면 그 모양으로 떨어진다', async () => {
+    createMock.mockRejectedValue(new Error('offline'))
+    const json = await (await generate(post(body({ topic: '자전거' })))).json()
+    expect(createMock).toHaveBeenCalled()
+    expect(json.ok).toBe(true)
+    expect(json.shape_source).toBe('pack')
+    expect(json.status).toBe('validated')
   })
 })

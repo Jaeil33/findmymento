@@ -35,7 +35,8 @@
 
 ## 콘텐츠 스튜디오 규칙 (산출물이 교실에서 쓰인다 — `docs/STUDIO.md`)
 - CRITICAL: 도안의 **mm·접합 규격·배치·판정**과 드론 비행 명령을 LLM에게 만들게 하지 말 것. LLM이 모양에 대해 돌려줄 수 있는 것은 **검수된 목록에서의 선택**과 **단위 없는 비율**, 그리고 **팔레트 색 이름**뿐이다 — 레시피·아틀라스 선택(ADR-029), 조각 조합의 비율·수량(ADR-034), 윤곽·색 영역의 **0~1 정규화 좌표**(ADR-036·039)까지다. 색의 hex는 `lib/studio/palette.ts`가 정한다. LLM이 `#hex`를 보내면 팔레트 밖이므로 기본색으로 떨어진다. 거기에 치수를 곱하고 접합을 정하고 배치하고 판정하는 것은 `lib/studio/**`의 결정론적 코드다 (`pen3d/shape.ts`·`pen3d/compose.ts`). 목록 밖의 값, 범위 밖의 비율·좌표, 자기교차하는 윤곽은 **통째로** 버리고 다음 순서로 떨어진다.
-- CRITICAL: 모양 경로의 순서를 바꾸지 말 것 — 레시피 → 코퍼스·아틀라스(`src/data/atlas/**`) → 윤곽·색 영역 제안(DSL) → 조합·유사 아틀라스 → **이름 명패**(ADR-042). **2D에 `failed`는 없다.** 물리 검증을 통과하지 않은 모양을 아틀라스에 커밋하지 말 것. 코퍼스 적재(ADR-041)는 이미지 검토를 돌리지 않는다 — 사람이 그린 아트라 "그 단어로 보이는가"의 답이 이미 정해져 있다. 그 면제를 **LLM이 만든 모양에 적용하지 말 것.**
+- CRITICAL: 스튜디오에서 클로드를 부르는 코드는 `lib/ai/studio-llm.ts`의 게이트를 거칠 것 (ADR-046). `llmKeyForRequest()`·`tourStudioKey()`를 스튜디오 경로에서 직접 부르지 말 것 — 그 틈으로 `STUDIO_LLM`이 꺼진 요청이 과금된다. 스위치의 기본값은 **꺼짐**이고, 꺼진 상태에서 스튜디오는 검수된 목록과 이름 명패만으로 돌아간다. 연결 확인은 `npm run studio:ping`(과금 없는 호출만)이다.
+- CRITICAL: 모양 경로의 순서를 바꾸지 말 것 — 레시피 → **윤곽·색 영역 제안(DSL, `STUDIO_LLM=on`에서만)** → 코퍼스·아틀라스(`src/data/atlas/**`) → 조합·유사 아틀라스 → **이름 명패**(ADR-042). 제안이 아틀라스보다 앞인 것은 스위치를 켠 요청에 한해서고(ADR-046), 제안이 물리 검증에 걸리면 **그 아래 순서로 내려가 다시 만든다** — 검수되지 않은 모양이 검수된 모양을 밀어내지 못하게 하는 장치이므로 지우지 말 것. 내려갔다는 사실은 `PEN_SHAPE_DOWNGRADED`(warn)로 남는다. **2D에 `failed`는 없다.** 물리 검증을 통과하지 않은 모양을 아틀라스에 커밋하지 말 것. 코퍼스 적재(ADR-041)는 이미지 검토를 돌리지 않는다 — 사람이 그린 아트라 "그 단어로 보이는가"의 답이 이미 정해져 있다. 그 면제를 **LLM이 만든 모양에 적용하지 말 것.**
 - CRITICAL: `art`(색 영역)와 `trace`(덧그릴 선)를 섞지 말 것 (ADR-039). `art`는 장식이고 물리 검증을 받지 않는다. `trace`는 `art`에서 **코드가 유도하고**(ADR-040 — 라스터 등고선) 간격·선분·내각 검사를 전수로 받는다. 이것을 근거로 `trace`의 검사를 빼면 교실에서 선이 녹아 붙는다. 배치와 렌더는 **같은 박스**(`label.ts`의 `partBox`)를 써야 한다 — 다르면 색과 선이 어긋나 인쇄된다.
 - CRITICAL: 2D 모드가 접합 검사(`PEN_JOINT_UNPAIRED`·`PEN_ASSEMBLY_DISCONNECTED`)를 받지 않는 것은 **조립하지 않는 산출물**이기 때문이다 (ADR-037). 이것을 근거로 간격·선분·내각·닫힘·자기교차·A4·시간 검사를 면제하지 말 것. 물리 임계값은 모드와 무관하다.
 - CRITICAL: 이미지 검토(ADR-038)의 부정 판정을 `failed`로 바꾸지 말 것 — `warn`이다. 반대로 검토 자체의 실패(키 없음·타임아웃·거절·JSON 깨짐)를 "그 단어로 보이지 않는다"로 적지도 말 것. 래스터 PNG는 검토 입력으로만 쓰고 사용자에게 내려주지 말 것(내려받기는 SVG·코드 텍스트다).
@@ -53,8 +54,8 @@
 - CRITICAL: 체험 쿠키(`fmm_tour`)가 붙은 요청에서 실 DB 클라이언트를 만들지 말 것. `getServerSupabase()`·`getServiceSupabase()` 둘 다 `null` 이고, 데이터 계층은 `demoDataMode()` 하나로만 분기한다. 새 조회·쓰기 함수를 만들 때 `isDemoMode()` 로 분기하지 말 것 — 체험 세션이 그 틈으로 실 DB 에 닿는다.
 - CRITICAL: 역할 쿠키(`fmm_demo_role`)를 읽는 코드를 `demoDataMode()` 블록 밖에 두지 말 것. 실 DB 경로의 역할 판별은 `org_members`/`instructors`/`admins` 조회 그대로다.
 - CRITICAL: 체험 쿠키를 심는 코드를 `app/tour/[key]/route.ts` 밖에 만들지 말 것. 입구가 늘어나면 쿠키 수명·옵션이 갈라진다.
-- CRITICAL: 체험 세션에서 윤곽 제안(DSL)과 이미지 검토를 돌리지 말 것 (ADR-036·038). 체험의 모양 경로는 레시피·아틀라스·조합까지이고, 화면에는 검수된 목록에서 고른다는 사실을 적는다. 익명 공개 경로의 예산이 이유다.
-- 체험 세션에서 LLM 을 부르는 곳은 **스튜디오 저작(`lib/studio/author.ts`) 하나뿐이다** (ADR-035). 그 경로의 키는 `tourStudioKey()` 로만 얻고, 예산 상한(`lib/ai/tour-budget.ts`)을 거쳐야 한다. 나머지 기능의 키는 `llmKeyForRequest()` 로만 읽으며 체험에서는 `null` 이다 — 시연용 응답(ADR-025)을 쓰고 화면에 그 사실을 표시한다. 익명 공개 경로이므로 새 기능에 체험 키를 넘기지 말 것.
+- CRITICAL: 체험 세션에서 윤곽 제안(DSL)과 이미지 검토를 돌리지 말 것 (ADR-036·038·046). `STUDIO_LLM`을 켜도 그렇다. 체험의 모양 경로는 레시피·아틀라스·조합까지이고, 화면에는 검수된 목록에서 고른다는 사실을 적는다. 익명 공개 경로의 예산이 이유다.
+- 체험 세션에서 LLM 을 부르는 곳은 **스튜디오 저작(`lib/studio/author.ts`) 하나뿐이다** (ADR-035). 그 경로의 키는 `studioLlmGrant({ tourStudio: true })` 로만 얻고(ADR-046), 그 안에서 `tourStudioKey()` 와 예산 상한(`lib/ai/tour-budget.ts`)을 거친다. `STUDIO_LLM` 이 꺼져 있으면 이 경로도 열리지 않는다. 나머지 기능의 키는 `llmKeyForRequest()` 로만 읽으며 체험에서는 `null` 이다 — 시연용 응답(ADR-025)을 쓰고 화면에 그 사실을 표시한다. 익명 공개 경로이므로 새 기능에 체험 키를 넘기지 말 것.
 - 체험 중이라는 사실과 데이터가 실제가 아니라는 사실을 화면에서 지우지 말 것. 띠 한 줄과 입구 옆 문구 둘 다 유지한다.
 - 데모 시드(`src/data/demo.ts`)를 직접 import 하지 말 것. 읽기·쓰기는 `src/data/demo-store.ts` 의 `demo` 를 거친다 — 라우트 핸들러와 서버 컴포넌트가 다른 번들 레이어라 시드가 두 벌이 되고, 생성한 산출물이 화면에서 사라진다.
 
@@ -76,4 +77,6 @@ npm run dev      # 개발 서버
 npm run build    # 프로덕션 빌드
 npm run lint     # ESLint
 npm run test     # 테스트
-npm run studio:atlas -- --words scripts/studio/words/animals.txt   # 검수된 실루엣 적재 (실제 LLM·오프라인)
+npm run studio:ping     # 클로드 API 연결 확인 (과금 없는 호출만 — 생성하지 않는다)
+npm run studio:pack     # 사전 제작 도안 팩 검수 (LLM 없음)
+npm run studio:atlas -- --words scripts/studio/words/animals.txt   # 검수된 실루엣 적재 (실제 LLM·오프라인·토큰 소모)

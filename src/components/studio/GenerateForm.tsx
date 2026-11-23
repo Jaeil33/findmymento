@@ -47,6 +47,18 @@ const STAGES: Record<ShapeForm, string[]> = {
   ],
 }
 
+/**
+ * `STUDIO_LLM` 을 켠 세션의 2D 단계 (ADR-046). AI 가 **먼저** 그리므로 순서가 다르다 —
+ * 기다리는 동안 보는 유일한 설명이므로 실제로 하는 일과 같아야 한다.
+ */
+const STAGES_LLM_FIRST: string[] = [
+  '수업 조건과 장비 읽기',
+  'AI 가 주제를 읽고 윤곽·색을 제안',
+  '좌표·치수 만들기',
+  '검증 — 걸리면 검수된 도안으로',
+  '수업 패키지 만들기',
+]
+
 /** 고른 모드가 **무엇을 만들어 주는지**를 한 줄로 적는다. 2D·3D 는 결과물이 다르다 */
 const FORM_HINT: Record<ShapeForm, string> = {
   flat: '윤곽 한 장을 그려 떼어냅니다. 키링·명패·장식으로 쓰고, 짧은 시수에서도 끝납니다.',
@@ -64,6 +76,7 @@ export function GenerateForm({
   defaultSessionId = '',
   defaultForm = 'flat',
   demoAi = false,
+  llmDraws = false,
 }: {
   sessions: SessionOption[]
   recipes: RecipeOption[]
@@ -77,6 +90,11 @@ export function GenerateForm({
   defaultForm?: ShapeForm
   /** 시연용 문장을 쓰는 세션인가. 결과 화면이 실제 AI 처럼 표시하지 않기 위해 받는다 (ADR-025) */
   demoAi?: boolean
+  /**
+   * 이번 세션에서 AI 가 모양을 **먼저** 그리는가 (`STUDIO_LLM=on`, ADR-046).
+   * 진행 단계 문구가 이 값으로 갈린다 — 하지 않는 일을 적지 않는다.
+   */
+  llmDraws?: boolean
 }) {
   const router = useRouter()
   const [topic, setTopic] = useState(defaultTopic)
@@ -90,6 +108,8 @@ export function GenerateForm({
   // 기본값은 2D 다 — 짧은 시수에서 실패하지 않는 쪽이다 (ADR-037). 단 2D 를 만들 수단이
   // 없는 세션에서는 서버가 `solid` 를 넘긴다.
   const [form, setForm] = useState<ShapeForm>(defaultForm)
+  // 2D 에서 AI 가 먼저 그리는 세션이면 단계 문구가 다르다 (ADR-046)
+  const stages = llmDraws && form === 'flat' ? STAGES_LLM_FIRST : STAGES[form]
   const [pending, setPending] = useState(false)
   const [stage, setStage] = useState(0)
   const [failure, setFailure] = useState<Failure | null>(null)
@@ -109,7 +129,7 @@ export function GenerateForm({
     setFailure(null)
     setStage(0)
     ticker.current = setInterval(
-      () => setStage((s) => Math.min(s + 1, STAGES[form].length - 1)),
+      () => setStage((s) => Math.min(s + 1, stages.length - 1)),
       1400,
     )
 
@@ -312,7 +332,7 @@ export function GenerateForm({
 
       {pending ? (
         <div className="rounded-md border border-line bg-muted px-4 py-3">
-          <AssistProgress stages={STAGES[form]} active={stage} />
+          <AssistProgress stages={stages} active={stage} />
         </div>
       ) : null}
 

@@ -294,6 +294,13 @@ export const PEN_FINDING_SEVERITY: Record<string, Severity> = {
    * 화면에서 읽는다 — 요청한 모양이 나온 것처럼 보이는 것이 유일하게 해서는 안 되는 일이다.
    */
   PEN_SHAPE_FALLBACK: 'warn',
+  /**
+   * AI 제안이 물리 검증에 걸려 **검수된 모양으로 내려갔다** (ADR-046). warn 인 이유:
+   * 나간 산출물은 사람이 검수한 모양이고 검증을 전부 통과했다. 막을 근거가 없다.
+   *
+   * 지우지 말 것 — 강사가 "AI 가 주제대로 그려 줬다" 고 믿는 것을 막는 유일한 줄이다.
+   */
+  PEN_SHAPE_DOWNGRADED: 'warn',
 }
 
 /** 개선 라운드 상한. 넘으면 `failed` 로 끝낸다 — 임계값을 낮추지 않는다 (ADR-030). */

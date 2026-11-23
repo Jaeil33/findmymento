@@ -288,6 +288,8 @@ describe('LLM 저작 레이어 (ADR-029)', () => {
 
   beforeEach(() => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    // 스튜디오 LLM 스위치 (ADR-046 — 기본값은 off 다)
+    process.env.STUDIO_LLM = 'on'
   })
 
   it('고른 레시피와 제목·과제 문장이 반영된다', async () => {

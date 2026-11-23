@@ -2,7 +2,7 @@ import { tourActive } from '@/lib/demo/mode'
 import { takeTourLlmCall, tourLlmBudget, tourLlmEnabled } from '@/lib/ai/tour-budget'
 
 /** 클라이언트 생성은 `ai/anthropic.ts` 에 있다 (오프라인 스크립트가 쓸 수 있어야 한다) */
-export { createAnthropic } from '@/lib/ai/anthropic'
+export { anthropicModel, createAnthropic } from '@/lib/ai/anthropic'
 
 
 /**

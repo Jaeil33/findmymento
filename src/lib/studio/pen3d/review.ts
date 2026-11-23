@@ -15,7 +15,7 @@
  * 서버 전용이다. 클라이언트 컴포넌트에서 import 하지 않는다.
  */
 
-import { createAnthropic } from '@/lib/ai/anthropic'
+import { anthropicModel, createAnthropic } from '@/lib/ai/anthropic'
 import { sanitizeText } from '@/lib/ai/text-guard'
 import { SHAPE_REVIEW_TIMEOUT_MS } from '@/lib/studio/constants'
 import { rasterPngBase64 } from '@/lib/studio/pen3d/raster'
@@ -82,7 +82,7 @@ export async function reviewShape(input: {
     const client = createAnthropic(apiKey)
     const response = await client.beta.messages.create(
       {
-        model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+        model: anthropicModel(),
         max_tokens: 300,
         // 판정 한 줄이다. 긴 추론이 필요한 일이 아니고, 강사가 기다리고 있다.
         output_config: { effort: 'low' },

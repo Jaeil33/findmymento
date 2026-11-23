@@ -29,6 +29,8 @@ const NEXT_ACTION: Record<string, string> = {
   PEN_TIME_TIGHT: '먼저 끝낸 학생에게 줄 과제를 하나 준비해 주세요.',
   PEN_SELF_INTERSECT: '모양이 꼬였습니다. 주제를 더 단순한 단어로 적어 다시 만들어 주세요.',
   PEN_SHAPE_UNREVIEWED: '인쇄 전에 아래 미리보기에서 모양을 한 번 확인해 주세요.',
+  PEN_SHAPE_DOWNGRADED:
+    '지금 나온 모양은 검수된 도안입니다. 같은 단어로 다시 만들면 다른 제안이 나올 수 있습니다.',
   PEN_SHAPE_UNRECOGNIZED:
     '주제를 더 단순한 단어로 적으면 모양이 또렷해집니다. 지금 모양이 괜찮으면 그대로 쓰셔도 됩니다.',
   PEN_SHAPE_UNAVAILABLE: '주제를 더 일반적인 단어로 적어 보거나, 3D 로 바꿔 만들어 주세요.',

@@ -100,7 +100,8 @@ const reply = (payload: unknown) => ({
 beforeEach(() => {
   createMock.mockReset()
   state.actor = INSTRUCTOR
-  process.env = { ...ORIGINAL, ANTHROPIC_API_KEY: 'sk-test', AI_DEMO: 'off' }
+  // 스튜디오 LLM 스위치를 켠 상태를 고정한다 (ADR-046 — 기본값은 off 다)
+  process.env = { ...ORIGINAL, ANTHROPIC_API_KEY: 'sk-test', AI_DEMO: 'off', STUDIO_LLM: 'on' }
 })
 afterEach(() => {
   process.env = { ...ORIGINAL }

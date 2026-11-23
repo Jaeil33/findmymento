@@ -1,4 +1,4 @@
-import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { anthropicModel, createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled, demoLessonSteps } from '@/lib/ai/demo-writer'
 import type { Dataset } from '@/lib/db/dataset'
@@ -413,7 +413,7 @@ async function refineByLlm(
       const client = createAnthropic(apiKey)
       const response = await client.beta.messages.create(
         {
-          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+          model: anthropicModel(),
           max_tokens: 4000,
           // Opus 5 는 effort 를 비우면 high 로 생각한다. 같은 입력이 high 23.8초 · low 10.5초였고,
           // 20초 제한에 걸리면 강사는 기본 템플릿만 본다 (2026-09-19 첫 파일럿 실측).

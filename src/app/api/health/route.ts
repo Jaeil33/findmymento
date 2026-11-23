@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
+import { STUDIO_LLM_ENV, studioLlmEnabled } from '@/lib/ai/studio-llm'
 import { tourLlmBudget, tourLlmEnabled } from '@/lib/ai/tour-budget'
 import { isDemoMode, siteUrl } from '@/lib/supabase/env'
 
@@ -26,9 +27,20 @@ export async function GET() {
     mode: isDemoMode() ? 'demo' : 'live',
     // llm: 실제 LLM · demo: 시연용 AI 응답(ADR-025) · rule: 규칙 문장
     ai_mode: isSet(process.env.ANTHROPIC_API_KEY) ? 'llm' : demoAi ? 'demo' : 'rule',
+    /**
+     * 스튜디오(도안 생성·이미지 검토)가 클로드를 부를 수 있는 상태인가 (ADR-046).
+     *
+     * `switch` 가 `off` 면 키가 들어 있어도 호출이 0회다 — 배포에서 "왜 AI 가 안 도는가" 와
+     * "왜 요금이 나가는가" 둘 다 이 한 줄에서 먼저 확인한다.
+     */
+    studio_llm: {
+      switch: studioLlmEnabled() ? 'on' : 'off',
+      ready: studioLlmEnabled() && isSet(process.env.ANTHROPIC_API_KEY),
+      env: STUDIO_LLM_ENV,
+    },
     // 체험 세션의 도안 저작이 실제 LLM 을 쓰는가 (ADR-035). used 는 이 인스턴스 기준이다.
     tour_llm: {
-      enabled: tourLlmEnabled() && isSet(process.env.ANTHROPIC_API_KEY),
+      enabled: studioLlmEnabled() && tourLlmEnabled() && isSet(process.env.ANTHROPIC_API_KEY),
       used: tourLlmBudget().used,
       max: tourLlmBudget().max,
     },

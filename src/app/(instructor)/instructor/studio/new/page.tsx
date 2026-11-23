@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { GenerateForm, type SessionOption } from '@/components/studio/GenerateForm'
 import { PageHeader, Panel } from '@/components/ui/Section'
 import { demoAiEnabled } from '@/lib/ai/demo-writer'
-import { llmKeyForRequest, tourStudioLlmAvailable } from '@/lib/ai/client'
+import { studioLlmAvailable, studioTourLlmAvailable } from '@/lib/ai/studio-llm'
 import { atlasCount } from '@/lib/studio/atlas'
 import { packCount } from '@/lib/studio/pack'
 import { getActor } from '@/lib/auth/actor'
@@ -52,7 +52,7 @@ export default async function StudioNewPage({
   }))
 
   // 체험 세션이어도 도안 저작은 실제 AI 가 한다 (ADR-035). 그 사실을 적어 둔다.
-  const tourLlm = await tourStudioLlmAvailable()
+  const tourLlm = await studioTourLlmAvailable()
 
   /**
    * 2D 를 기본값으로 둘 수 있는가 (ADR-036·037).
@@ -61,7 +61,9 @@ export default async function StudioNewPage({
    * 있고 키도 없는 세션(체험)에서 2D 를 기본값으로 두면 강사·방문자는 **첫 화면부터 실패**를 본다.
    * 그래서 기본값을 조건에서 계산한다 — 아틀라스가 쌓이거나 키가 붙는 순간 저절로 2D 가 된다.
    */
-  const flatReady = atlasCount() > 0 || (await llmKeyForRequest()) !== null
+  /** AI 가 모양을 **먼저** 그리는 세션인가 (ADR-046). 화면 문구와 진행 단계가 이 값으로 갈린다 */
+  const llmDraws = await studioLlmAvailable()
+  const flatReady = atlasCount() > 0 || llmDraws
 
   return (
     <div className="space-y-8">
@@ -71,7 +73,9 @@ export default async function StudioNewPage({
         description={
           head
             ? '앞 버전은 그대로 남습니다. 수업에서 무엇이 더 나았는지 비교할 수 있어야 하기 때문입니다.'
-            : `주제와 수업 조건을 넣으면 미리 만들어 둔 검수된 도안 ${packCount()}개에서 찾고, A4 1:1 도안·학생용 사용법·강사용 지도안·검증 리포트를 함께 만듭니다.`
+            : llmDraws
+              ? `주제와 수업 조건을 넣으면 AI 가 주제대로 윤곽과 색을 그려 보고, 검증에 걸리면 미리 만들어 둔 검수된 도안 ${packCount()}개에서 찾습니다. A4 1:1 도안·학생용 사용법·강사용 지도안·검증 리포트를 함께 만듭니다.`
+              : `주제와 수업 조건을 넣으면 미리 만들어 둔 검수된 도안 ${packCount()}개에서 찾고, A4 1:1 도안·학생용 사용법·강사용 지도안·검증 리포트를 함께 만듭니다.`
         }
         actions={
           <Link href="/instructor/studio" className="text-sm text-sub underline-offset-4 hover:underline">
@@ -98,12 +102,17 @@ export default async function StudioNewPage({
           defaultForm={flatReady ? 'flat' : 'solid'}
           // 시연용 문장을 쓰는 세션이면 결과 화면이 그렇게 표시한다 (ADR-025).
           demoAi={await demoAiEnabled()}
+          llmDraws={llmDraws}
         />
       </Panel>
 
       <Panel
         title="조립해서 만드는 입체 도안"
-        description={`사람이 검수한 목록입니다. 2D 한 장으로 만드는 모양은 미리 만들어 둔 도안 ${packCount()}개에서 주제로 찾습니다 — 목록 밖의 모양은 AI 가 윤곽을 그려 보고, 검증을 통과하지 못하면 내보내지 않습니다.`}
+        description={
+          llmDraws
+            ? `사람이 검수한 목록입니다. 2D 한 장으로 만드는 모양은 AI 가 주제대로 그려 보고, 검증에 걸리면 미리 만들어 둔 도안 ${packCount()}개에서 찾습니다 — 검증을 통과하지 못한 도안은 내보내지 않습니다.`
+            : `사람이 검수한 목록입니다. 2D 한 장으로 만드는 모양은 미리 만들어 둔 도안 ${packCount()}개에서 주제로 찾습니다 — 검증을 통과하지 못하면 내보내지 않습니다.`
+        }
       >
         <ul className="grid gap-3 sm:grid-cols-2">
           {PEN_RECIPES.map((recipe) => (

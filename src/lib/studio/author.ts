@@ -13,11 +13,8 @@
  * 서버 전용이다. 클라이언트 컴포넌트에서 import 하지 않는다.
  */
 
-import {
-  createAnthropic,
-  llmKeyForRequest,
-  tourStudioKey,
-} from "@/lib/ai/client";
+import { anthropicModel, createAnthropic } from "@/lib/ai/client";
+import { studioLlmGrant } from "@/lib/ai/studio-llm";
 import {
   parseComposition,
   type PenComposition,
@@ -206,21 +203,27 @@ export async function authorContent(
   if (candidates.length === 0 && options?.outline?.allow !== true)
     return fallback;
 
-  // 체험 키는 예산을 깎으므로 **일반 키가 없을 때만** 본다. 순서를 바꾸면 실 계정이 체험 예산을 쓴다.
-  const regularKey = await llmKeyForRequest();
-  const apiKey =
-    regularKey ?? (options?.tourStudio ? await tourStudioKey() : null);
+  /**
+   * 키는 **게이트 한 곳에서만** 온다 (ADR-046). `STUDIO_LLM` 이 켜져 있지 않으면 여기는
+   * 늘 `null` 이고, 저작은 규칙·시연용 응답으로 간다 — 토큰을 쓰지 않는다.
+   *
+   * 체험 키는 예산을 깎으므로 게이트가 일반 키를 먼저 본다. 순서가 반대면 로그인한 강사의
+   * 요청이 체험 예산을 쓴다.
+   */
+  const grant = await studioLlmGrant({ tourStudio: options?.tourStudio });
+  const apiKey = grant?.key ?? null;
+  // `apiKey` 로 판별한다 — 이 별칭이 아래 `if (hasKey)` 에서 `apiKey` 의 null 을 좁혀 준다.
   const hasKey = apiKey !== null;
   const demoAllowed = await demoAiEnabled();
   if (!hasKey && !demoAllowed) return fallback;
 
   const composable = (options?.pieces?.length ?? 0) > 0;
   const outlineWord = options?.outline?.word?.trim() ?? "";
-  // 체험 키(regularKey 가 없는 경우)로는 윤곽을 제안하지 않는다 (ADR-036).
+  // 체험 키(scope 가 'tour')로는 윤곽을 제안하지 않는다 (ADR-033·036 — 익명 공개 경로의 예산).
   const outlineAllowed =
     options?.outline?.allow === true &&
     outlineWord !== "" &&
-    regularKey !== null;
+    grant?.scope === "regular";
 
   const payload = {
     주제: spec.topic,
@@ -338,7 +341,7 @@ export async function authorContent(
         const client = createAnthropic(apiKey);
         const response = await client.beta.messages.create(
           {
-            model: process.env.ANTHROPIC_MODEL?.trim() || "claude-opus-5",
+            model: anthropicModel(),
             max_tokens: outlineAllowed ? 2400 : 1200,
             // 레시피 선택은 긴 추론이 필요한 일이 아니다. 강사는 생성 버튼 앞에서 기다린다.
             output_config: { effort: "low" },

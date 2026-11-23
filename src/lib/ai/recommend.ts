@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { anthropicModel, createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { FIELD_UNSURE, type Field, type GradeBand, type Recommendation } from '@/types/domain'
 import { expandRegion, regionName } from '@/lib/region'
 import { maskForStorage } from '@/lib/moderation'
@@ -243,7 +243,7 @@ async function rankByLlm(items: Recommendation[], input: RecommendInput): Promis
   // 키가 없으면 데모 배포에서만 시연용 응답을 쓴다 (ADR-025). 아래 정리·병합은 똑같이 거친다.
   if (!hasKey && !(await demoAiEnabled())) return { items: null, meta: { ...EMPTY_META, error: 'NoApiKey' } }
 
-  const model = hasKey ? process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5' : 'demo'
+  const model = hasKey ? anthropicModel() : 'demo'
   const meta: RecommendMeta = { ...EMPTY_META, model }
   const started = Date.now()
 

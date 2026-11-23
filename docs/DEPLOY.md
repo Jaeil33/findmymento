@@ -164,6 +164,7 @@ Project Settings → Environment Variables. Production·Preview 둘 다 체크.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 같은 화면 | 공개 키. 브라우저에 내려가는 게 정상이다 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 같은 화면 (Reveal) | **`NEXT_PUBLIC_` 접두사를 절대 붙이지 말 것.** 없으면 심사·초대·문의 배정이 안 된다 |
 | `ANTHROPIC_API_KEY` | 선택 | 없으면 추천이 규칙 기반으로 동작한다 (E-06, ADR-004) |
+| `STUDIO_LLM` | 선택 | `on` 이어야 **도안 생성·이미지 검토**가 클로드를 부른다. 기본은 꺼짐이고, 꺼진 상태에서는 키가 있어도 스튜디오 호출이 0회다 (ADR-046). 상태는 `/api/health` 의 `studio_llm` 에서 본다 |
 | `ANTHROPIC_WORKSPACE_ID` | 키가 조직 단위일 때 | Console → Settings → Workspaces 의 ID(`wrkspc_...`). 작업공간에 묶이지 않은 키는 이 값이 없으면 **모든 AI 호출이 400** 이고 화면은 규칙 문장으로 조용히 떨어진다 |
 | `TOUR_LLM` | 선택 | `off` 면 체험 세션의 도안 저작도 시연용 응답이 된다 (ADR-035) |
 | `TOUR_LLM_DAILY_MAX` | 선택 | 체험이 하루에 쓸 수 있는 LLM 호출. 기본 150, `0` 이면 끔. **인스턴스별 카운터**라 정확한 과금 상한이 아니다 — 금액 상한은 Anthropic 콘솔에서 건다 |

@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { anthropicModel, createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { maskForStorage } from '@/lib/moderation'
 import { demoAiEnabled, demoSessionPlan } from '@/lib/ai/demo-writer'
 import type { Dataset } from '@/lib/db/dataset'
@@ -217,7 +217,7 @@ async function refineByLlm(
       const client = createAnthropic(apiKey)
       const response = await client.messages.create(
         {
-          model: process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5',
+          model: anthropicModel(),
           max_tokens: 1500,
           output_config: { effort: 'low' },
           system: SYSTEM,

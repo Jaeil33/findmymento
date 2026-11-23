@@ -1,4 +1,4 @@
-import { createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
+import { anthropicModel, createAnthropic, llmKeyForRequest } from '@/lib/ai/client'
 import { CAREERS, type Career } from '@/data/careers'
 import { FIELD_UNSURE, GRADE_BAND_LABEL, type GradeBand } from '@/types/domain'
 import { maskForStorage } from '@/lib/moderation'
@@ -243,7 +243,7 @@ async function pickByLlm(
   const apiKey = await llmKeyForRequest()
   if (apiKey === null) return { picks: null, dreamNote: null, meta: NO_CALL }
 
-  const model = process.env.ANTHROPIC_MODEL?.trim() || 'claude-opus-5'
+  const model = anthropicModel()
   const payload = {
     학생: {
       학년대: GRADE_BAND_LABEL[input.gradeBand],

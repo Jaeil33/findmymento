@@ -20,7 +20,8 @@
     "pilot:export": "node scripts/pilot/export.mjs",
     "pilot:rehearse": "node scripts/pilot/rehearse.mjs",
     "studio:atlas": "node --experimental-strip-types --env-file-if-exists=.env.local --env-file-if-exists=.env --import ./scripts/studio/register.mjs scripts/studio/atlas.mts",
-    "studio:pack": "node --experimental-strip-types --import ./scripts/studio/register.mjs scripts/studio/pack.mts"
+    "studio:pack": "node --experimental-strip-types --import ./scripts/studio/register.mjs scripts/studio/pack.mts",
+    "studio:ping": "node --experimental-strip-types --env-file-if-exists=.env.local --env-file-if-exists=.env --import ./scripts/studio/register.mjs scripts/studio/ping.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
